@@ -198,7 +198,7 @@ export function PlayerBar() {
     <>
       <div className="fixed bottom-0 left-0 right-0 h-16 md:h-20 glass z-50 flex items-center px-2 md:px-4 gap-2 md:gap-4">
         {/* 歌曲信息 + 封面 */}
-        <div className="flex items-center gap-2 md:gap-3 w-32 md:w-64 shrink-0">
+        <div className="flex items-center gap-2 md:gap-3 w-28 md:w-64 shrink-0">
           <div
             className={cn(
               "w-12 h-12 rounded-lg overflow-hidden shrink-0 cursor-pointer",
@@ -224,7 +224,7 @@ export function PlayerBar() {
             </p>
           </div>
 
-          <Button variant="ghost" size="icon" className="shrink-0 cursor-pointer h-8 w-8" onClick={() => currentSong && toggleFavorite(currentSong)}>
+          <Button variant="ghost" size="icon" className="shrink-0 cursor-pointer h-8 w-8 hidden sm:inline-flex" onClick={() => currentSong && toggleFavorite(currentSong)}>
             <Heart className={cn("h-4 w-4", currentSong && isFavorite(currentSong.id) && "fill-red-500 text-red-500")} />
           </Button>
         </div>
@@ -233,7 +233,7 @@ export function PlayerBar() {
         <div className="flex-1 flex flex-col items-center gap-1 max-w-2xl mx-auto">
           {/* 播放按钮行：居中 */}
           <div className="flex items-center justify-center gap-1 w-full">
-            <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8" onClick={cyclePlayMode} title={MODE_LABELS[playMode]}>
+            <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8 hidden sm:inline-flex" onClick={cyclePlayMode} title={MODE_LABELS[playMode]}>
               <ModeIcon className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8" onClick={prevSong} disabled={isLoading}>
@@ -249,7 +249,7 @@ export function PlayerBar() {
             <Button
               variant="ghost"
               size="icon"
-              className="cursor-pointer h-8 w-8 text-xs font-bold"
+              className="cursor-pointer h-8 w-8 text-xs font-bold hidden sm:inline-flex"
               onClick={() => setShowFloatingLyrics(true)}
               title="打开桌面悬浮歌词"
               style={{
@@ -262,7 +262,7 @@ export function PlayerBar() {
               <span className={showFloatingLyrics ? "text-sky-400" : "text-sky-500"}>词</span>
             </Button>
             {/* 可视化条右移 */}
-            <div className="ml-1">
+            <div className="ml-1 hidden sm:block">
               <VisualizerBars barCount={8} maxHeight={20} />
             </div>
           </div>
@@ -340,7 +340,7 @@ export function PlayerBar() {
           </Button>
 
           {/* 定时关闭 - 下拉菜单 */}
-          <div className="relative" ref={sleepRef}>
+          <div className="relative hidden md:block" ref={sleepRef}>
             <Button
               variant="ghost"
               size="icon"
@@ -387,7 +387,7 @@ export function PlayerBar() {
             max={1}
             step={0.01}
             onValueChange={(val) => setVolume(Array.isArray(val) ? val[0] : val)}
-            className="w-20 md:w-28"
+            className="hidden md:block w-28"
           />
         </div>
       </div>
