@@ -144,7 +144,7 @@ export function DailyRecommend() {
           </Button>
         </div>
       </div>
-      <SongList songs={songs} showIndex showAlbum={false} />
+      <SongList songs={songs} showIndex showAlbum={false} virtual />
     </div>
   );
 }

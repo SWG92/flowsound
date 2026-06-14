@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Play, Heart, Clock, Loader2, Lock, Plus, MoreHorizontal,
   ListPlus, Info, Share2, UserRound, Disc3, Ban, Download, MessageCircle
 } from "lucide-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,6 +18,8 @@ import { downloadSong } from "@/lib/download";
 import { useToast } from "@/components/ui/toast";
 import type { Song } from "@/lib/types";
 import { cn, getCoverUrl } from "@/lib/utils";
+
+const ROW_HEIGHT = 56; // 每行固定高度
 
 function formatDuration(ms: number | undefined): string {
   if (typeof ms !== "number" || isNaN(ms) || ms < 0) return "--:--";
@@ -36,9 +39,126 @@ interface SongListProps {
   songs: Song[];
   showIndex?: boolean;
   showAlbum?: boolean;
+  /** 启用虚拟滚动（大列表推荐） */
+  virtual?: boolean;
+  /** 虚拟滚动容器最大高度，默认填充父容器 */
+  maxHeight?: string;
 }
 
-export function SongList({ songs, showIndex = true, showAlbum = true }: SongListProps) {
+function SongRow({
+  song,
+  index,
+  isCurrent,
+  isPlaying,
+  isLoading,
+  isPaid,
+  isFav,
+  showIndex,
+  showAlbum,
+  onPlay,
+  onToggleFav,
+  onMenu,
+}: {
+  song: Song;
+  index: number;
+  isCurrent: boolean;
+  isPlaying: boolean;
+  isLoading: boolean;
+  isPaid: boolean;
+  isFav: boolean;
+  showIndex: boolean;
+  showAlbum: boolean;
+  onPlay: () => void;
+  onToggleFav: () => void;
+  onMenu: () => void;
+}) {
+  const coverUrl = getCoverUrl(song);
+
+  return (
+    <div
+      className={cn(
+        "grid grid-cols-[3rem_2.5rem_1fr_1fr_5rem_2.5rem] gap-3 px-4 py-2 rounded-lg song-row group items-center",
+        isCurrent && "bg-primary/10",
+        isPaid ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+      )}
+      style={{ height: ROW_HEIGHT }}
+      onDoubleClick={onPlay}
+    >
+      {/* 序号 */}
+      <div className="flex items-center justify-center">
+        {isCurrent && isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+        ) : isCurrent && isPlaying ? (
+          <div className="flex items-end h-4 gap-[2px]">
+            <span className="eq-bar" style={{ height: "60%" }} />
+            <span className="eq-bar" style={{ height: "80%" }} />
+            <span className="eq-bar" style={{ height: "40%" }} />
+          </div>
+        ) : isPaid ? (
+          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+        ) : (
+          <>
+            <span className="text-sm text-muted-foreground group-hover:hidden">
+              {showIndex ? index + 1 : ""}
+            </span>
+            <Play
+              className="h-4 w-4 text-foreground hidden group-hover:block cursor-pointer"
+              onClick={(e) => { e.stopPropagation(); onPlay(); }}
+            />
+          </>
+        )}
+      </div>
+
+      {/* 封面 */}
+      <div className="w-10 h-10 rounded overflow-hidden shrink-0">
+        {coverUrl ? (
+          <img src={coverUrl + "?param=80y80"} alt={song.name} className="w-full h-full object-cover" loading="lazy" />
+        ) : (
+          <div className="w-full h-full bg-muted flex items-center justify-center"><Play className="h-3 w-3 text-muted-foreground" /></div>
+        )}
+      </div>
+
+      {/* 歌名 + 歌手 */}
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <p className={cn("text-sm truncate", isCurrent && "text-primary font-medium", isPaid && "text-muted-foreground")}>{song.name}</p>
+          {isPaid && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-amber-500/50 text-amber-500 shrink-0">VIP</Badge>}
+        </div>
+        <p className="text-xs text-muted-foreground truncate">{song.artists?.map((a) => a.name).join(" / ")}</p>
+      </div>
+
+      {/* 专辑 */}
+      {showAlbum && (
+        <div className="min-w-0 hidden sm:block">
+          <p className="text-sm text-muted-foreground truncate">{song.album?.name}</p>
+        </div>
+      )}
+
+      {/* 时长 */}
+      <div className="flex items-center justify-end gap-2">
+        <Heart
+          className={cn("h-3.5 w-3.5 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity", isFav && "fill-red-500 text-red-500 opacity-100")}
+          onClick={(e) => { e.stopPropagation(); onToggleFav(); }}
+        />
+        <span className="text-xs text-muted-foreground tabular-nums">{formatDuration(song.duration)}</span>
+      </div>
+
+      {/* 更多 */}
+      <div className="flex items-center justify-center">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+          onClick={(e) => { e.stopPropagation(); onMenu(); }}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function SongList({ songs, showIndex = true, showAlbum = true, virtual = false, maxHeight }: SongListProps) {
   const router = useRouter();
   const { currentSong, isPlaying, isLoading, playSong, toggleFavorite, isFavorite, setQueue } =
     usePlayerStore();
@@ -52,22 +172,28 @@ export function SongList({ songs, showIndex = true, showAlbum = true }: SongList
   const [commentsSong, setCommentsSong] = useState<Song | null>(null);
   const [blacklist, setBlacklist] = useState<number[]>(() => {
     if (typeof window === "undefined") return [];
-    try {
-      return JSON.parse(localStorage.getItem("flowsound_blacklist") || "[]");
-    } catch {
-      return [];
-    }
+    try { return JSON.parse(localStorage.getItem("flowsound_blacklist") || "[]"); } catch { return []; }
   });
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    try {
-      setPlaylists(JSON.parse(localStorage.getItem("flowsound_playlists") || "[]"));
-    } catch {
-      setPlaylists([]);
-    }
+    try { setPlaylists(JSON.parse(localStorage.getItem("flowsound_playlists") || "[]")); } catch { setPlaylists([]); }
   }, []);
 
-  const handlePlay = (song: Song, index: number) => {
+  // 过滤黑名单
+  const filteredSongs = songs.filter(s => !blacklist.includes(s.id));
+
+  // 虚拟滚动
+  const virtualizer = useVirtualizer({
+    count: filteredSongs.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 10,
+    enabled: virtual,
+  });
+
+  const handlePlay = (song: Song) => {
     if (song.fee === 1) return;
     setQueue(songs);
     playSong(song, songs);
@@ -91,7 +217,6 @@ export function SongList({ songs, showIndex = true, showAlbum = true }: SongList
     const updated = [...blacklist, song.id];
     setBlacklist(updated);
     localStorage.setItem("flowsound_blacklist", JSON.stringify(updated));
-    // 同时保存歌曲信息以便黑名单页面展示
     try {
       const saved: Song[] = JSON.parse(localStorage.getItem("flowsound_blacklist_songs") || "[]");
       if (!saved.find((s) => s.id === song.id)) {
@@ -104,19 +229,14 @@ export function SongList({ songs, showIndex = true, showAlbum = true }: SongList
   };
 
   const menuItems = [
-    {
-      icon: ListPlus,
-      label: "添加到歌单",
-      onClick: () => setShowAddToPlaylist(true),
-    },
+    { icon: ListPlus, label: "添加到歌单", onClick: () => setShowAddToPlaylist(true) },
     {
       icon: Heart,
       label: menuSong && isFavorite(menuSong.id) ? "取消收藏" : "收藏",
       onClick: () => { if (menuSong) toggleFavorite(menuSong); setMenuSong(null); },
     },
     {
-      icon: Download,
-      label: "下载",
+      icon: Download, label: "下载",
       onClick: async () => {
         if (!menuSong) return;
         try {
@@ -131,56 +251,49 @@ export function SongList({ songs, showIndex = true, showAlbum = true }: SongList
           } else {
             showToast("暂无可用音源", "warning");
           }
-        } catch {
-          showToast("下载失败，请稍后重试", "error");
-        }
+        } catch { showToast("下载失败，请稍后重试", "error"); }
         setMenuSong(null);
       },
     },
+    { icon: MessageCircle, label: "查看评论", onClick: () => { setCommentsSong(menuSong); setMenuSong(null); } },
+    { icon: Info, label: "歌曲信息", onClick: () => { setInfoSong(menuSong); setMenuSong(null); } },
+    { icon: Share2, label: "分享", onClick: () => { setShareSong(menuSong); setMenuSong(null); } },
     {
-      icon: MessageCircle,
-      label: "查看评论",
-      onClick: () => { setCommentsSong(menuSong); setMenuSong(null); },
-    },
-    {
-      icon: Info,
-      label: "歌曲信息",
-      onClick: () => { setInfoSong(menuSong); setMenuSong(null); },
-    },
-    {
-      icon: Share2,
-      label: "分享",
-      onClick: () => { setShareSong(menuSong); setMenuSong(null); },
-    },
-    {
-      icon: UserRound,
-      label: "查看歌手",
+      icon: UserRound, label: "查看歌手",
       disabled: !menuSong?.artists?.[0]?.id || menuSong.artists[0].id === 0,
       onClick: () => {
-        if (menuSong?.artists?.[0]?.id && menuSong.artists[0].id !== 0) {
-          router.push(`/artist/${menuSong.artists[0].id}`);
-        }
+        if (menuSong?.artists?.[0]?.id && menuSong.artists[0].id !== 0) router.push(`/artist/${menuSong.artists[0].id}`);
         setMenuSong(null);
       },
     },
     {
-      icon: Disc3,
-      label: "查看专辑",
+      icon: Disc3, label: "查看专辑",
       disabled: !menuSong?.album?.id || menuSong.album.id === 0,
       onClick: () => {
-        if (menuSong?.album?.id && menuSong.album.id !== 0) {
-          router.push(`/album/${menuSong.album.id}`);
-        }
+        if (menuSong?.album?.id && menuSong.album.id !== 0) router.push(`/album/${menuSong.album.id}`);
         setMenuSong(null);
       },
     },
-    {
-      icon: Ban,
-      label: "加入黑名单",
-      onClick: () => { if (menuSong) addToBlacklist(menuSong); },
-      destructive: true,
-    },
+    { icon: Ban, label: "加入黑名单", onClick: () => { if (menuSong) addToBlacklist(menuSong); }, destructive: true },
   ];
+
+  const renderRow = (song: Song, index: number) => (
+    <SongRow
+      key={song.id}
+      song={song}
+      index={index}
+      isCurrent={currentSong?.id === song.id}
+      isPlaying={isPlaying}
+      isLoading={isLoading}
+      isPaid={song.fee === 1}
+      isFav={isFavorite(song.id)}
+      showIndex={showIndex}
+      showAlbum={showAlbum}
+      onPlay={() => handlePlay(song)}
+      onToggleFav={() => toggleFavorite(song)}
+      onMenu={() => setMenuSong(song)}
+    />
+  );
 
   return (
     <>
@@ -195,94 +308,42 @@ export function SongList({ songs, showIndex = true, showAlbum = true }: SongList
           <div></div>
         </div>
 
-        {/* 歌曲列表（过滤黑名单） */}
-        {songs.filter(s => !blacklist.includes(s.id)).map((song, index) => {
-          const isCurrent = currentSong?.id === song.id;
-          const isPaid = song.fee === 1;
-          const coverUrl = getCoverUrl(song);
-          return (
+        {/* 歌曲列表 */}
+        {virtual ? (
+          <div
+            ref={scrollRef}
+            className="overflow-y-auto"
+            style={{ maxHeight: maxHeight || "calc(100vh - 320px)" }}
+          >
             <div
-              key={song.id}
-              className={cn(
-                "grid grid-cols-[3rem_2.5rem_1fr_1fr_5rem_2.5rem] gap-3 px-4 py-2 rounded-lg song-row group items-center",
-                isCurrent && "bg-primary/10",
-                isPaid ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-              )}
-              onDoubleClick={() => handlePlay(song, index)}
+              style={{
+                height: virtualizer.getTotalSize(),
+                width: "100%",
+                position: "relative",
+              }}
             >
-              {/* 序号 */}
-              <div className="flex items-center justify-center">
-                {isCurrent && isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                ) : isCurrent && isPlaying ? (
-                  <div className="flex items-end h-4 gap-[2px]">
-                    <span className="eq-bar" style={{ height: "60%" }} />
-                    <span className="eq-bar" style={{ height: "80%" }} />
-                    <span className="eq-bar" style={{ height: "40%" }} />
+              {virtualizer.getVirtualItems().map((vItem) => {
+                const song = filteredSongs[vItem.index];
+                return (
+                  <div
+                    key={song.id}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${vItem.start}px)`,
+                    }}
+                  >
+                    {renderRow(song, vItem.index)}
                   </div>
-                ) : isPaid ? (
-                  <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-                ) : (
-                  <>
-                    <span className="text-sm text-muted-foreground group-hover:hidden">
-                      {showIndex ? index + 1 : ""}
-                    </span>
-                    <Play
-                      className="h-4 w-4 text-foreground hidden group-hover:block cursor-pointer"
-                      onClick={(e) => { e.stopPropagation(); handlePlay(song, index); }}
-                    />
-                  </>
-                )}
-              </div>
-
-              {/* 封面 */}
-              <div className="w-10 h-10 rounded overflow-hidden shrink-0">
-                {coverUrl ? (
-                  <img src={coverUrl + "?param=80y80"} alt={song.name} className="w-full h-full object-cover" loading="lazy" />
-                ) : (
-                  <div className="w-full h-full bg-muted flex items-center justify-center"><Play className="h-3 w-3 text-muted-foreground" /></div>
-                )}
-              </div>
-
-              {/* 歌名 + 歌手 */}
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className={cn("text-sm truncate", isCurrent && "text-primary font-medium", isPaid && "text-muted-foreground")}>{song.name}</p>
-                  {isPaid && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-amber-500/50 text-amber-500 shrink-0">VIP</Badge>}
-                </div>
-                <p className="text-xs text-muted-foreground truncate">{song.artists?.map((a) => a.name).join(" / ")}</p>
-              </div>
-
-              {/* 专辑 */}
-              {showAlbum && (
-                <div className="min-w-0 hidden sm:block">
-                  <p className="text-sm text-muted-foreground truncate">{song.album?.name}</p>
-                </div>
-              )}
-
-              {/* 时长 */}
-              <div className="flex items-center justify-end gap-2">
-                <Heart
-                  className={cn("h-3.5 w-3.5 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity", isFavorite(song.id) && "fill-red-500 text-red-500 opacity-100")}
-                  onClick={(e) => { e.stopPropagation(); toggleFavorite(song); }}
-                />
-                <span className="text-xs text-muted-foreground tabular-nums">{formatDuration(song.duration)}</span>
-              </div>
-
-              {/* 更多 */}
-              <div className="flex items-center justify-center">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                  onClick={(e) => { e.stopPropagation(); setMenuSong(song); }}
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </div>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        ) : (
+          filteredSongs.map((song, index) => renderRow(song, index))
+        )}
       </div>
 
       {/* 操作菜单 */}
@@ -352,13 +413,8 @@ export function SongList({ songs, showIndex = true, showAlbum = true }: SongList
         </DialogContent>
       </Dialog>
 
-      {/* 歌曲信息 */}
       <SongInfoDialog song={infoSong} open={!!infoSong} onOpenChange={() => setInfoSong(null)} />
-
-      {/* 分享 */}
       <ShareDialog song={shareSong} open={!!shareSong} onOpenChange={() => setShareSong(null)} />
-
-      {/* 评论 */}
       <CommentsDialog song={commentsSong} open={!!commentsSong} onOpenChange={() => setCommentsSong(null)} />
     </>
   );

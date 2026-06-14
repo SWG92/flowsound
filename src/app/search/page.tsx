@@ -102,7 +102,7 @@ function SearchContent() {
         </div>
       ) : songs.length > 0 ? (
         <>
-          <SongList songs={songs} />
+          <SongList songs={songs} virtual />
           {hasMore && (
             <div ref={sentinelRef} className="flex justify-center py-4">
               {loading && (

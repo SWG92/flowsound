@@ -95,7 +95,7 @@ export default function Home() {
           ) : (
             <>
               <PlayAllBtn onClick={() => handlePlayAll(hotSongs)} />
-              <SongList songs={hotSongs} />
+              <SongList songs={hotSongs} virtual />
             </>
           )}
         </TabsContent>
@@ -106,7 +106,7 @@ export default function Home() {
           ) : (
             <>
               <PlayAllBtn onClick={() => handlePlayAll(risingSongs)} />
-              <SongList songs={risingSongs} />
+              <SongList songs={risingSongs} virtual />
             </>
           )}
         </TabsContent>
@@ -117,7 +117,7 @@ export default function Home() {
           ) : (
             <>
               <PlayAllBtn onClick={() => handlePlayAll(newSongs)} />
-              <SongList songs={newSongs} />
+              <SongList songs={newSongs} virtual />
             </>
           )}
         </TabsContent>

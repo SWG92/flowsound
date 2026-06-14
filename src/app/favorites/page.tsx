@@ -26,7 +26,7 @@ export default function FavoritesPage() {
       </div>
 
       {mounted && favoriteSongs.length > 0 ? (
-        <SongList songs={favoriteSongs} showIndex showAlbum />
+        <SongList songs={favoriteSongs} showIndex showAlbum virtual />
       ) : mounted ? (
         <div className="text-center py-20 text-muted-foreground">
           <Heart className="h-12 w-12 mx-auto mb-4 opacity-30" />

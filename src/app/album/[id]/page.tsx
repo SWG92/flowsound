@@ -133,7 +133,7 @@ export default function AlbumPage() {
       {/* 歌曲列表 */}
       <div>
         <h2 className="text-lg font-semibold mb-4">歌曲列表</h2>
-        <SongList songs={songs} showAlbum={false} />
+        <SongList songs={songs} showAlbum={false} virtual />
       </div>
     </div>
   );

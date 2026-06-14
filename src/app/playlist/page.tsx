@@ -160,7 +160,7 @@ export default function PlaylistPage() {
             </div>
           </div>
           {activePlaylist.songs.length > 0 ? (
-            <SongList songs={activePlaylist.songs} />
+            <SongList songs={activePlaylist.songs} virtual />
           ) : (
             <div className="text-center py-20 text-muted-foreground">
               <Music2 className="h-12 w-12 mx-auto mb-4 opacity-30" />

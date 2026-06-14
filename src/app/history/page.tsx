@@ -40,7 +40,7 @@ export default function HistoryPage() {
       </div>
 
       {showContent ? (
-        <SongList songs={playHistory} showIndex showAlbum />
+        <SongList songs={playHistory} showIndex showAlbum virtual />
       ) : mounted ? (
         <div className="text-center py-20 text-muted-foreground">
           <Clock className="h-12 w-12 mx-auto mb-4 opacity-30" />

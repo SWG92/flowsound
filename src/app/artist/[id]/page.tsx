@@ -122,7 +122,7 @@ export default function ArtistPage() {
       {/* 热门歌曲 */}
       <div>
         <h2 className="text-lg font-semibold mb-4">热门歌曲</h2>
-        <SongList songs={songs} />
+        <SongList songs={songs} virtual />
       </div>
     </div>
   );

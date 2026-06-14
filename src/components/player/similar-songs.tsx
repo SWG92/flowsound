@@ -74,7 +74,7 @@ export function SimilarSongs({ songId }: SimilarSongsProps) {
         <Music2 className="h-4 w-4" />
         相似歌曲
       </h3>
-      <SongList songs={songs} />
+      <SongList songs={songs} virtual />
     </div>
   );
 }
