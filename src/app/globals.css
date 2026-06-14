@@ -303,8 +303,3 @@
 .eq-bar:nth-child(7) { animation: bar4 1.0s ease-in-out infinite 0.3s; }
 .eq-bar:nth-child(8) { animation: bar3 1.1s ease-in-out infinite 0.18s; }
 
-/* 性能优化：歌曲行使用 content-visibility 跳过屏幕外渲染 */
-.song-row {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 48px;
-}

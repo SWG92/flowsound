@@ -22,20 +22,13 @@ export function TopNav() {
   };
 
   return (
-    <div className="flex items-center gap-1 px-2 py-2">
+    <div className="flex items-center gap-1 px-2 py-2 md:pl-2 pl-12">
       <button
         onClick={handleBack}
         disabled={!canGoBack}
-        className="p-1.5 rounded-full transition-colors cursor-pointer disabled:cursor-default"
+        className="p-1.5 rounded-full transition-colors cursor-pointer disabled:cursor-default hover:bg-foreground/10 disabled:hover:bg-transparent"
         style={{
-          background: canGoBack ? "rgba(255,255,255,0.08)" : "transparent",
-          color: canGoBack ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.2)",
-        }}
-        onMouseEnter={(e) => {
-          if (canGoBack) e.currentTarget.style.background = "rgba(255,255,255,0.15)";
-        }}
-        onMouseLeave={(e) => {
-          if (canGoBack) e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+          opacity: canGoBack ? 0.8 : 0.2,
         }}
         title="后退"
       >
@@ -44,16 +37,9 @@ export function TopNav() {
       <button
         onClick={handleForward}
         disabled={!canGoForward}
-        className="p-1.5 rounded-full transition-colors cursor-pointer disabled:cursor-default"
+        className="p-1.5 rounded-full transition-colors cursor-pointer disabled:cursor-default hover:bg-foreground/10 disabled:hover:bg-transparent"
         style={{
-          background: canGoForward ? "rgba(255,255,255,0.08)" : "transparent",
-          color: canGoForward ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.2)",
-        }}
-        onMouseEnter={(e) => {
-          if (canGoForward) e.currentTarget.style.background = "rgba(255,255,255,0.15)";
-        }}
-        onMouseLeave={(e) => {
-          if (canGoForward) e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+          opacity: canGoForward ? 0.8 : 0.2,
         }}
         title="前进"
       >

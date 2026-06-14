@@ -74,17 +74,17 @@ export default function Home() {
       <Tabs defaultValue="hot" className="gap-0!">
         <div className="flex items-center justify-between mb-1">
           <TabsList className="bg-black/5">
-            <TabsTrigger value="hot" className="cursor-pointer">
-              <Flame className="h-4 w-4 mr-1.5" />
-              热歌榜
+            <TabsTrigger value="hot" className="cursor-pointer text-xs md:text-sm">
+              <Flame className="h-4 w-4 mr-1 md:mr-1.5" />
+              <span className="hidden sm:inline">热歌榜</span>
             </TabsTrigger>
-            <TabsTrigger value="rising" className="cursor-pointer">
-              <TrendingUp className="h-4 w-4 mr-1.5" />
-              飙升榜
+            <TabsTrigger value="rising" className="cursor-pointer text-xs md:text-sm">
+              <TrendingUp className="h-4 w-4 mr-1 md:mr-1.5" />
+              <span className="hidden sm:inline">飙升榜</span>
             </TabsTrigger>
-            <TabsTrigger value="new" className="cursor-pointer">
-              <Sparkles className="h-4 w-4 mr-1.5" />
-              新歌榜
+            <TabsTrigger value="new" className="cursor-pointer text-xs md:text-sm">
+              <Sparkles className="h-4 w-4 mr-1 md:mr-1.5" />
+              <span className="hidden sm:inline">新歌榜</span>
             </TabsTrigger>
           </TabsList>
         </div>
