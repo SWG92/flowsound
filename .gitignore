@@ -47,3 +47,10 @@ next-env.d.ts
 .edgeone/*
 .tef_dist/*
   
+# OpenNext
+.open-next
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example

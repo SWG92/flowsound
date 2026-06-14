@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 next dev --webpack",
     "build": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 next build --webpack",
+    "dev": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 next dev --webpack",
     "start": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "edgeone": "edgeone makers deploy ./ -n flowsound"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
-    "@cloudflare/next-on-pages": "^1.13.16",
     "@tanstack/react-virtual": "^3.14.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
