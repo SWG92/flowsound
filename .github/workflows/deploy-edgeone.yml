@@ -1,0 +1,23 @@
+name: Deploy to EdgeOne Pages
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm install
+
+      - run: npm run build
+
+      # 部署完整 Next.js 项目到 EdgeOne Pages
+      - name: Deploy to EdgeOne
+        run: npx edgeone pages deploy ./ -n flowsound -t ${{ secrets.EDGEONE_API_TOKEN }}
