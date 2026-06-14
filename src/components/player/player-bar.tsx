@@ -32,6 +32,7 @@ import { EQPanel } from "./equalizer-panel";
 import { VisualizerBars } from "./visualizer-bars";
 import { CommentsDialog } from "./comments-dialog";
 import { useLyricsBroadcast } from "@/hooks/use-lyrics-broadcast";
+import { useMediaSession } from "@/hooks/use-media-session";
 
 const MODE_ICONS: Record<PlayMode, typeof Repeat> = {
   list: Repeat,
@@ -71,6 +72,8 @@ export function PlayerBar() {
 
   // 启用桌面悬浮歌词广播
   useLyricsBroadcast();
+  // 启用系统媒体控制（锁屏/通知中心）
+  useMediaSession();
 
   const {
     currentSong,
