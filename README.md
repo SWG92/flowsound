@@ -3,6 +3,8 @@
 **全平台聚合音乐播放器** — 网易云 + QQ音乐 + 酷狗，一站式畅听。
 
 > 基于 Next.js 16 构建，纯前端 + API 代理架构，无需后端服务即可使用。
+> 
+> 🌐 在线使用：**[flowsound1-lq9d6sjy.edgeone.cool](https://flowsound1-lq9d6sjy.edgeone.cool)** （国内直连，无需翻墙）
 
 ---
 

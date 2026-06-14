@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
+    "@cloudflare/next-on-pages": "^1.13.16",
     "@tanstack/react-virtual": "^3.14.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
