@@ -13,9 +13,9 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Sidebar />
-      <main className="flex-1 flex flex-col overflow-hidden pb-20">
+      <main className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-20">
         <TopNav />
-        <div className="flex-1 overflow-y-auto px-4">{children}</div>
+        <div className="flex-1 overflow-y-auto px-2 md:px-4">{children}</div>
       </main>
       <PlayerBar />
       <PlayQueue />

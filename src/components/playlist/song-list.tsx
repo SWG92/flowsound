@@ -77,7 +77,7 @@ function SongRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[3rem_2.5rem_1fr_1fr_5rem_2.5rem] gap-3 px-4 py-2 rounded-lg song-row group items-center",
+        "grid grid-cols-[2rem_2.5rem_1fr_3rem_1.5rem] md:grid-cols-[3rem_2.5rem_1fr_1fr_5rem_2.5rem] gap-2 md:gap-3 px-2 md:px-4 py-2 rounded-lg song-row group items-center",
         isCurrent && "bg-primary/10",
         isPaid ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
       )}
@@ -299,13 +299,13 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
     <>
       <div className="space-y-1">
         {/* 表头 */}
-        <div className="grid grid-cols-[3rem_2.5rem_1fr_1fr_5rem_2.5rem] gap-3 px-4 py-2 text-xs text-muted-foreground uppercase tracking-wider">
+        <div className="grid grid-cols-[2rem_2.5rem_1fr_3rem_1.5rem] md:grid-cols-[3rem_2.5rem_1fr_1fr_5rem_2.5rem] gap-2 md:gap-3 px-2 md:px-4 py-2 text-xs text-muted-foreground uppercase tracking-wider">
           <div className="text-center">#</div>
-          <div></div>
+          <div />
           <div>歌曲</div>
-          <div className="hidden sm:block">专辑</div>
+          <div className="hidden md:block">专辑</div>
           <div className="text-right"><Clock className="h-3 w-3 inline" /></div>
-          <div></div>
+          <div />
         </div>
 
         {/* 歌曲列表 */}

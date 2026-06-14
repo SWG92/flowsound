@@ -158,9 +158,9 @@ export function PlayerBar() {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 h-20 glass z-50 flex items-center px-4 gap-4">
+      <div className="fixed bottom-0 left-0 right-0 h-16 md:h-20 glass z-50 flex items-center px-2 md:px-4 gap-2 md:gap-4">
         {/* 歌曲信息 + 封面 */}
-        <div className="flex items-center gap-3 w-64 shrink-0">
+        <div className="flex items-center gap-2 md:gap-3 w-32 md:w-64 shrink-0">
           <div
             className={cn(
               "w-12 h-12 rounded-lg overflow-hidden shrink-0 cursor-pointer",
@@ -255,9 +255,9 @@ export function PlayerBar() {
         </div>
 
         {/* 右侧：倍速 + 定时 + 队列 + 音量 */}
-        <div className="flex items-center gap-2 shrink-0 justify-end w-64">
+        <div className="flex items-center gap-1 md:gap-2 shrink-0 justify-end w-auto md:w-64">
           {/* 倍速 - 下拉菜单 */}
-          <div className="relative" ref={speedRef}>
+          <div className="relative hidden md:block" ref={speedRef}>
             <Button
               variant="ghost"
               size="icon"
@@ -294,7 +294,7 @@ export function PlayerBar() {
           <Button
             variant="ghost"
             size="icon"
-            className="cursor-pointer h-8 w-8"
+            className="cursor-pointer h-8 w-8 hidden md:flex"
             onClick={() => setShowEQ(true)}
             title="均衡器"
           >
@@ -336,7 +336,7 @@ export function PlayerBar() {
           </div>
 
           {/* 播放队列 */}
-          <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8" onClick={() => setShowQueue(!showQueue)} title="播放队列">
+          <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8 hidden md:flex" onClick={() => setShowQueue(!showQueue)} title="播放队列">
             <ListMusic className="h-4 w-4" />
           </Button>
 
@@ -349,7 +349,7 @@ export function PlayerBar() {
             max={1}
             step={0.01}
             onValueChange={(val) => setVolume(Array.isArray(val) ? val[0] : val)}
-            className="w-28"
+            className="w-20 md:w-28"
           />
         </div>
       </div>

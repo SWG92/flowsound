@@ -44,9 +44,13 @@ export function FloatingLyrics() {
       try {
         const saved = localStorage.getItem("flowsound_lyrics_pos");
         if (saved) setPos(JSON.parse(saved));
-        else setPos({ x: (window.innerWidth - 560) / 2 + 60, y: (window.innerHeight - 600) / 2 });
+        else {
+          const w = Math.min(560, window.innerWidth - 16);
+          setPos({ x: (window.innerWidth - w) / 2 + 60, y: (window.innerHeight - 400) / 4 });
+        }
       } catch {
-        setPos({ x: (window.innerWidth - 560) / 2 + 60, y: (window.innerHeight - 600) / 2 });
+        const w = Math.min(560, window.innerWidth - 16);
+        setPos({ x: (window.innerWidth - w) / 2 + 60, y: (window.innerHeight - 400) / 4 });
       }
     }
   }, []);
@@ -86,9 +90,10 @@ export function FloatingLyrics() {
   useEffect(() => {
     if (!dragging) return;
     const move = (e: MouseEvent) => {
+      const w = Math.min(560, window.innerWidth - 16);
       setPos({
-        x: Math.max(0, Math.min(window.innerWidth - 560, dragRef.current.origX + e.clientX - dragRef.current.startX)),
-        y: Math.max(0, Math.min(window.innerHeight - 520, dragRef.current.origY + e.clientY - dragRef.current.startY)),
+        x: Math.max(0, Math.min(window.innerWidth - w, dragRef.current.origX + e.clientX - dragRef.current.startX)),
+        y: Math.max(0, Math.min(window.innerHeight - 400, dragRef.current.origY + e.clientY - dragRef.current.startY)),
       });
     };
     const up = () => setDragging(false);
@@ -115,7 +120,7 @@ export function FloatingLyrics() {
       onMouseDown={handleMouseDown}
     >
       <div
-        className="relative w-[560px] rounded-[28px] overflow-hidden"
+        className="relative w-[min(560px,calc(100vw-16px))] rounded-[28px] overflow-hidden"
         style={{
           background: "rgba(10,10,16,0.38)",
           backdropFilter: "blur(36px) saturate(180%)",
@@ -192,7 +197,7 @@ export function FloatingLyrics() {
         </div>
 
         {/* ===== 歌词区 - 多行渐变 ===== */}
-        <div className="relative flex flex-col items-center justify-center px-6 py-6 gap-0 min-h-[380px]">
+        <div className="relative flex flex-col items-center justify-center px-4 md:px-6 py-4 md:py-6 gap-0 min-h-[280px] md:min-h-[380px]">
           {lyrics.length === 0 ? (
             <div className="text-center">
               <p className="text-5xl mb-4 opacity-30">🎵</p>
@@ -219,7 +224,7 @@ export function FloatingLyrics() {
                       pointerEvents: "none",
                     }}
                   >
-                    <p style={{
+                    <p className="!text-[length:inherit]" style={{
                       margin: 0,
                       fontSize: isCurrent ? 28 : dist === 1 ? 18 : dist === 2 ? 15 : 13,
                       fontWeight: isCurrent ? 700 : dist === 1 ? 500 : 400,
