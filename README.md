@@ -4,7 +4,7 @@
 
 > 基于 Next.js 16 构建，纯前端 + API 代理架构，无需后端服务即可使用。
 > 
-> 🌐 在线使用：**[flowsound1-lq9d6sjy.edgeone.cool](https://flowsound1-lq9d6sjy.edgeone.cool)** （国内直连，无需翻墙）
+> 📱 支持 **PWA** — 可安装为独立 App，手机/桌面均可使用
 
 ---
 
@@ -22,9 +22,11 @@
 ### 🎨 界面体验
 - **毛玻璃 UI** — 全透明毛玻璃设计，渐变色彩背景
 - **深色/浅色主题** — 一键切换，完整适配所有组件
-- **桌面悬浮歌词** — 可拖拽的独立歌词窗口，6 色可选，跨窗口同步
+- **移动端适配** — 响应式布局，侧栏抽屉、播放栏精简、适配手机屏幕
+- **桌面悬浮歌词** — 可拖拽的独立歌词窗口（6 色可选、跨窗口同步）
 - **歌词弹窗** — 播放栏点击封面/歌名即可打开，附带评论入口
 - **音频可视化** — 播放栏实时跳动 EQ 条
+- **PWA 支持** — 可安装为独立 App，支持离线缓存
 
 ### 📋 音乐管理
 - **收藏系统** — 歌曲收藏/取消收藏，持久化存储
@@ -48,6 +50,12 @@
 - **歌手页 / 专辑页** — 点击歌手/专辑查看详情和歌曲列表
 - **相似歌曲推荐** — 歌曲详情中展示相似歌曲
 
+### ⚡ 性能优化
+- **虚拟滚动** — 大列表（1000+ 首）只渲染可视区域，流畅不卡顿
+- **系统媒体控制** — Media Session API，锁屏/通知中心显示歌曲和控制
+- **播放队列拖拽排序** — 拖动队列歌曲自由调整顺序
+- **定时关闭渐弱** — 定时关闭前音量平滑降低，不再突然中断
+
 ---
 
 ## 🛠 技术栈
@@ -59,8 +67,10 @@
 | 语言 | TypeScript |
 | 样式 | Tailwind CSS 4 + shadcn/ui |
 | 状态管理 | Zustand |
+| 虚拟滚动 | @tanstack/react-virtual |
 | 音频引擎 | Howler.js (HTML5 Audio) |
 | EQ/可视化 | Web Audio API (BiquadFilterNode) |
+| 系统媒体 | Media Session API |
 | 基础组件 | Base UI (headless) |
 | 图标 | Lucide React |
 
@@ -128,6 +138,7 @@ flowsound/
 │   ├── hooks/                    # 自定义 Hooks
 │   │   ├── use-player.ts         # 音频播放器 Hook
 │   │   ├── use-visualizer.ts     # 音频可视化 Hook
+│   │   ├── use-media-session.ts  # 系统媒体控制 Hook
 │   │   ├── use-lyrics-broadcast.ts # 跨窗口歌词同步
 │   │   ├── use-keyboard.ts       # 键盘快捷键
 │   │   └── use-nav-tracker.ts    # 导航历史追踪
@@ -187,6 +198,14 @@ npm run dev
 npm run build
 npm start
 ```
+
+### 部署到 EdgeOne（国内直连）
+
+```bash
+npm run edgeone
+```
+
+3 分钟后即获得国内可访问的在线链接。
 
 ---
 
