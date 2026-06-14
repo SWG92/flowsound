@@ -41,6 +41,37 @@ function formatTime(ts: number): string {
   return `${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
+/**
+ * 解析网易云评论内容，将 <img> 表情标签渲染为真实图片。
+ * 仅允许 *.music.126.net 域名的 img 标签，其他 HTML 原样转义防 XSS。
+ */
+function CommentContent({ content }: { content: string }) {
+  // 匹配网易云表情 img 标签：<img src="https://p?.music.126.net/..."/>
+  const parts = content.split(/(<img\s+src="https:\/\/[^"]*music\.126\.net\/[^"]*"[^>]*\/?>)/g);
+
+  return (
+    <p className="text-sm mt-0.5 break-words leading-relaxed">
+      {parts.map((part, i) => {
+        const m = part.match(/^<img\s+src="(https:\/\/[^"]*music\.126\.net\/[^"]*)"[^>]*\/?>$/);
+        if (m) {
+          return (
+            <img
+              key={i}
+              src={m[1]}
+              alt="[表情]"
+              className="inline-block align-text-bottom mx-0.5"
+              style={{ width: 24, height: 24 }}
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </p>
+  );
+}
+
 export function CommentsDialog({ song, open, onOpenChange }: CommentsDialogProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -200,7 +231,7 @@ export function CommentsDialog({ song, open, onOpenChange }: CommentsDialogProps
                       <span className="text-xs font-medium">{c.user?.nickname || "匿名"}</span>
                       {c.isLocal && <span className="text-[10px] text-primary/60 bg-primary/10 px-1 rounded">我</span>}
                     </div>
-                    <p className="text-sm mt-0.5 break-words leading-relaxed">{c.content}</p>
+                    <CommentContent content={c.content} />
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-[10px] text-muted-foreground/60">{formatTime(c.time)}</span>
                       <button onClick={() => toggleLike(c.id)} className={`flex items-center gap-0.5 text-[11px] transition-colors cursor-pointer ${likedMap[c.id] ? "text-red-400" : "text-muted-foreground/50 hover:text-muted-foreground"}`}>
