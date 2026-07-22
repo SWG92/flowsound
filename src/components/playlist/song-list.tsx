@@ -195,8 +195,8 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
 
   const handlePlay = (song: Song) => {
     if (song.fee === 1) return;
-    setQueue(songs);
-    playSong(song, songs);
+    setQueue(filteredSongs);
+    playSong(song, filteredSongs);
   };
 
   const addToPlaylist = (playlistId: string) => {

@@ -136,6 +136,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     // 多平台 URL 获取（源平台 → 其他平台依次回退）
     let url = "";
     let resolvedPlatform: MusicPlatform = sourcePlatform;
+    let resolvedPlatformId = sourcePlatformId;
 
     try {
       url = await getSongUrl(song.id, undefined, sourcePlatform, sourcePlatformId);
@@ -163,6 +164,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
             if (fbUrl) {
               url = fbUrl;
               resolvedPlatform = fbPlatform;
+              resolvedPlatformId = match.platformId;
               break;
             }
           }
@@ -173,7 +175,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     // 获取歌词
     let lyrics: LyricLine[] = [];
     try {
-      lyrics = await getLyrics(song.id, resolvedPlatform, sourcePlatformId);
+      lyrics = await getLyrics(song.id, resolvedPlatform, resolvedPlatformId);
     } catch { /* ignore */ }
 
     // 检查是否已被新请求取代

@@ -47,7 +47,7 @@ function SearchContent() {
     if (query) {
       doSearch(query, 1);
     }
-  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [query, doSearch]);
 
   // 无限滚动
   useEffect(() => {

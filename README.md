@@ -99,8 +99,7 @@ flowsound/
 │   │       ├── route.ts          # 主路由（搜索/播放/歌词/歌单）
 │   │       ├── album/route.ts    # 专辑 API
 │   │       ├── artist/route.ts   # 歌手 API
-│   │       ├── comments/route.ts # 评论 API
-│   │       └── simi/route.ts     # 相似推荐 API
+│   │       └── comments/route.ts # 评论 API
 │   │
 │   ├── components/
 │   │   ├── layout/               # 布局组件
@@ -120,7 +119,6 @@ flowsound/
 │   │   │   ├── share-dialog.tsx  # 分享弹窗
 │   │   │   ├── equalizer-panel.tsx # EQ 均衡器面板
 │   │   │   ├── visualizer-bars.tsx # 音频可视化条
-│   │   │   ├── similar-songs.tsx # 相似歌曲推荐
 │   │   │   └── daily-recommend.tsx # 每日推荐组件
 │   │   │
 │   │   ├── playlist/
@@ -157,7 +155,6 @@ flowsound/
 │       ├── search-store.ts       # 搜索历史 Store
 │       ├── nav-history.ts        # 导航历史 Store
 │       ├── download.ts           # 歌曲下载工具
-│       ├── auth.ts               # 网易云匿名登录
 │       ├── lyrics-broadcast.ts   # 跨窗口歌词广播
 │       └── platforms/            # 平台适配器（Adapter 模式）
 │           ├── types.ts          # 适配器接口定义
@@ -299,7 +296,6 @@ interface PlatformAdapter {
 | `GET /api/music/comments?id=xx` | `id`, `limit`, `offset` | 获取歌曲评论 |
 | `GET /api/music/album?id=xx` | `id` | 获取专辑信息 |
 | `GET /api/music/artist?id=xx` | `id` | 获取歌手信息 |
-| `GET /api/music/simi?id=xx` | `id` | 获取相似歌曲 |
 
 ---
 
