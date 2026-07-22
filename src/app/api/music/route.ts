@@ -43,16 +43,6 @@ const playlistDetailHandler: HandlerFn = async (params) => {
   return { result: { tracks }, playlist: { tracks } };
 };
 
-const simiSongHandler: HandlerFn = async (params) => {
-  const id = params.id || "";
-  // 相似歌曲仅网易云支持
-  return getAdapter("netease").getPlaylistDetail(id);
-};
-
-const simiArtistHandler: HandlerFn = async () => {
-  return { artists: [] };
-};
-
 // ============ 路由映射 ============
 
 const HANDLERS: Record<string, HandlerFn> = {
@@ -60,8 +50,6 @@ const HANDLERS: Record<string, HandlerFn> = {
   "song/url": songUrlHandler,
   lyric: lyricHandler,
   "playlist/detail": playlistDetailHandler,
-  "simi/song": simiSongHandler,
-  "simi/artist": simiArtistHandler,
 };
 
 // ============ Route handler ============

@@ -13,8 +13,6 @@ export const NETEASE_API = {
   anonymousLogin: `${NETEASE_BASE}/api/register/anonimous`,
   comments: (id: string) =>
     `${NETEASE_BASE}/api/v1/resource/comments/R_SO_4_${id}`,
-  simiSong: `${NETEASE_BASE}/api/discovery/simiSong`,
-  simiArtist: `${NETEASE_BASE}/api/discovery/simiArtist`,
 } as const;
 
 // 请求头

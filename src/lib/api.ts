@@ -290,20 +290,3 @@ export function prefetchSongUrl(_id: number) {
   getSongUrl(_id).catch(() => {});
 }
 
-// 相似歌曲
-export async function getSimilarSongs(id: number): Promise<Song[]> {
-  const data = await fetchJSON<{ songs: Song[] }>("simi/song", {
-    id: String(id),
-  });
-  return data.songs || [];
-}
-
-// 相似歌手
-export async function getSimilarArtists(
-  id: number
-): Promise<{ id: number; name: string; picUrl: string }[]> {
-  const data = await fetchJSON<{
-    artists: { id: number; name: string; picUrl: string }[];
-  }>("simi/artist", { id: String(id) });
-  return data.artists || [];
-}
