@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import { ClientWrapper } from "@/components/layout/client-wrapper";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { ToastContainer } from "@/components/ui/toast";
@@ -52,14 +53,13 @@ export default function RootLayout({
     >
       <head>
         <link rel="apple-touch-icon" href="/icon-192.svg" />
-        {/* 在水合前根据 localStorage/系统偏好设置主题 class，避免深色模式首屏闪白 */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('flowsound_theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}`,
-          }}
-        />
       </head>
       <body className="h-screen overflow-hidden bg-gradient-main text-foreground flex">
+        {/* 在水合前根据 localStorage/系统偏好设置主题 class，避免深色模式首屏闪白。
+            beforeInteractive 会被注入到初始 HTML 的 head 中，先于任何 Next.js 代码执行。
+            用外链而非内联：内联形式的 beforeInteractive 会被放进 __next_s 队列延后执行，
+            起不到防闪烁作用；外链会被预加载并优先执行。 */}
+        <Script src="/theme-init.js" strategy="beforeInteractive" />
         <ThemeProvider>
           <ClientWrapper>
             <ConditionalLayout>
