@@ -29,6 +29,7 @@ interface PlayerState {
   favorites: number[];      // 派生自 favoriteSongs
   favoriteSongs: Song[];
   playHistory: Song[];
+  playCounts: Record<number, number>; // 听歌排行：歌曲ID → 播放次数
 
   // UI 状态
   showQueue: boolean;
@@ -92,6 +93,7 @@ function saveToStorage(key: string, value: unknown) {
 // 初始化时加载数据
 const initialFavoriteSongs = loadFromStorage<Song[]>(STORAGE_KEYS.favorites, []);
 const initialHistory = loadFromStorage<Song[]>(STORAGE_KEYS.history, []);
+const initialPlayCounts = loadFromStorage<Record<number, number>>(STORAGE_KEYS.playCounts, {});
 const initialVolume = loadFromStorage<number>(STORAGE_KEYS.volume, 0.8);
 const initialPlayMode = loadFromStorage<PlayMode>(STORAGE_KEYS.playMode, "list");
 const initialSpeed = loadFromStorage<number>(STORAGE_KEYS.speed, 1);
@@ -121,6 +123,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   favorites: initialFavorites,
   favoriteSongs: initialFavoriteSongs,
   playHistory: initialHistory,
+  playCounts: initialPlayCounts,
   showQueue: false,
   isLoading: false,
   showFloatingLyrics: false,
@@ -228,6 +231,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     // 添加到播放历史
     get().addToHistory(song);
+
+    // 累计播放次数（听歌排行），只保留次数最高的 300 首控制存储体积
+    const counts = { ...get().playCounts };
+    counts[song.id] = (counts[song.id] || 0) + 1;
+    const trimmed = Object.fromEntries(
+      Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 300)
+    );
+    saveToStorage(STORAGE_KEYS.playCounts, trimmed);
+    set({ playCounts: trimmed });
   },
 
   togglePlay: () => set((s) => ({ isPlaying: !s.isPlaying })),

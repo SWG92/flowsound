@@ -80,6 +80,7 @@ export const STORAGE_KEYS = {
   eqSettings: "flowsound_eq_settings",
   dailyRecommend: "flowsound_daily_recommend",
   playlists: "flowsound_playlists",
+  playCounts: "flowsound_play_counts",
 } as const;
 
 // Toast 持续时间 (ms)
