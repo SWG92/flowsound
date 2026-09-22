@@ -85,7 +85,7 @@ export function LyricsDisplay() {
   if (lyrics.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
-        <div className="w-48 h-48 rounded-2xl bg-muted flex items-center justify-center overflow-hidden">
+        <div className="w-56 h-56 md:w-72 md:h-72 rounded-2xl bg-muted flex items-center justify-center overflow-hidden">
           {getCoverUrl(currentSong) ? (
             <img
               src={getCoverUrl(currentSong) + "?param=400y400"}
@@ -96,7 +96,7 @@ export function LyricsDisplay() {
             <span className="text-6xl">🎵</span>
           )}
         </div>
-        <p className="text-muted-foreground text-sm">暂无歌词</p>
+        <p className="text-muted-foreground text-base">暂无歌词</p>
       </div>
     );
   }
@@ -105,10 +105,10 @@ export function LyricsDisplay() {
     <div className="relative h-full">
       <div
         ref={containerRef}
-        className="h-full overflow-y-auto px-6 py-8 space-y-4 scrollbar-hide"
+        className="h-full overflow-y-auto px-6 md:px-10 py-4 space-y-4 scrollbar-hide"
       >
-        {/* 顶部留白 */}
-        <div className="h-40" />
+        {/* 顶部留白：只留够让第一行也能滚到居中的高度，避免大片空白 */}
+        <div className="h-16 md:h-20" />
 
         {lyrics.map((line, index) => (
           <div
@@ -119,10 +119,10 @@ export function LyricsDisplay() {
           >
             <p
               className={cn(
-                "transition-all duration-300",
+                "transition-all duration-300 leading-relaxed",
                 index === currentLyricIndex
-                  ? "lyric-active text-base"
-                  : "lyric-inactive text-sm hover:text-foreground/60"
+                  ? "lyric-active text-2xl md:text-3xl font-semibold"
+                  : "lyric-inactive text-lg md:text-xl hover:text-foreground/60"
               )}
             >
               {line.text}
@@ -130,10 +130,10 @@ export function LyricsDisplay() {
             {line.transText && (
               <p
                 className={cn(
-                  "transition-all duration-300 mt-0.5",
+                  "transition-all duration-300 mt-1",
                   index === currentLyricIndex
-                    ? "text-primary/70 text-sm"
-                    : "text-muted-foreground/40 text-xs"
+                    ? "text-primary/70 text-base md:text-lg"
+                    : "text-muted-foreground/40 text-sm md:text-base"
                 )}
               >
                 {line.transText}
@@ -143,7 +143,7 @@ export function LyricsDisplay() {
         ))}
 
         {/* 底部留白 */}
-        <div className="h-40" />
+        <div className="h-16 md:h-20" />
       </div>
     </div>
   );

@@ -5,6 +5,8 @@ import { MessageCircle, ThumbsUp, Send, Loader2, Trash2, ChevronDown } from "luc
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
+import { PLAYER_DIALOG_SIZE } from "./dialog-sizes";
 import type { Song } from "@/lib/types";
 
 const PAGE_SIZE = 50;
@@ -199,7 +201,7 @@ export function CommentsDialog({ song, open, onOpenChange }: CommentsDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass max-w-lg h-[78vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className={cn("glass flex flex-col p-0 overflow-hidden", PLAYER_DIALOG_SIZE)}>
         <DialogHeader className="px-5 pt-4 pb-2 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 text-base">
             <MessageCircle className="h-5 w-5" /> 评论

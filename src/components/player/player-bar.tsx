@@ -31,6 +31,7 @@ import { LyricsDisplay } from "./lyrics";
 import { EQPanel } from "./equalizer-panel";
 import { VisualizerBars } from "./visualizer-bars";
 import { CommentsDialog } from "./comments-dialog";
+import { PLAYER_DIALOG_SIZE } from "./dialog-sizes";
 import { useLyricsBroadcast } from "@/hooks/use-lyrics-broadcast";
 import { useMediaSession } from "@/hooks/use-media-session";
 
@@ -398,7 +399,7 @@ export function PlayerBar() {
 
       {/* 歌词弹窗 */}
       <Dialog open={showLyrics} onOpenChange={setShowLyrics}>
-        <DialogContent className="glass max-w-lg h-[70vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className={cn("glass flex flex-col p-0 overflow-hidden", PLAYER_DIALOG_SIZE)}>
           <DialogHeader className="px-6 pt-6 pb-2">
             <DialogTitle className="text-center">{currentSong?.name || "歌词"}</DialogTitle>
             <p className="text-xs text-muted-foreground text-center">{currentSong?.artists?.map((a) => a.name).join(" / ")}</p>
@@ -406,7 +407,8 @@ export function PlayerBar() {
               <Button
                 variant="outline"
                 size="xs"
-                onClick={() => { setShowLyrics(false); setShowComments(true); }}
+                // 不关闭歌词窗：评论窗叠在它上面，关闭评论后自然回到歌词（弹窗栈行为）
+                onClick={() => setShowComments(true)}
                 className="cursor-pointer text-xs"
               >
                 <MessageCircle className="h-3 w-3 mr-1" />查看评论
