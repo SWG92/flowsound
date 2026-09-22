@@ -52,6 +52,9 @@ interface PlayerState {
   nextSong: () => void;
   prevSong: () => void;
   setQueue: (songs: Song[]) => void;
+  reorderQueue: (from: number, to: number) => void;
+  removeFromQueue: (index: number) => void;
+  clearQueue: () => void;
   setCurrentLyricIndex: (index: number) => void;
   toggleFavorite: (song: Song) => void;
   isFavorite: (songId: number) => boolean;
@@ -220,7 +223,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     // 预加载下一首
     const nextIdx = (index >= 0 ? index : 0) + 1;
     if (nextIdx < newQueue.length) {
-      prefetchSongUrl(newQueue[nextIdx].id);
+      prefetchSongUrl(newQueue[nextIdx]);
     }
 
     // 添加到播放历史
@@ -250,7 +253,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     let nextIndex: number;
     if (playMode === "shuffle") {
-      nextIndex = Math.floor(Math.random() * queue.length);
+      // 随机但不重复当前歌曲（队列只有一首时原地循环）
+      nextIndex =
+        queue.length > 1
+          ? (queueIndex + 1 + Math.floor(Math.random() * (queue.length - 1))) % queue.length
+          : queueIndex;
     } else if (playMode === "single") {
       nextIndex = queueIndex;
     } else {
@@ -269,6 +276,36 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   setQueue: (songs) => set({ queue: songs }),
+
+  // 拖拽排序：重排后同步修正 queueIndex，使其继续指向正在播放的歌曲
+  reorderQueue: (from, to) => {
+    const { queue, queueIndex, currentSong } = get();
+    if (from < 0 || to < 0 || from >= queue.length || to >= queue.length) return;
+    const reordered = [...queue];
+    const [moved] = reordered.splice(from, 1);
+    if (!moved) return;
+    reordered.splice(to, 0, moved);
+    const newIdx = currentSong
+      ? reordered.findIndex((s) => s.id === currentSong.id)
+      : queueIndex;
+    set({ queue: reordered, queueIndex: newIdx >= 0 ? newIdx : queueIndex });
+  },
+
+  // 从队列移除单曲（正在播放的不允许移除）
+  removeFromQueue: (index) => {
+    const { queue, queueIndex, currentSong } = get();
+    if (index < 0 || index >= queue.length) return;
+    if (currentSong && queue[index].id === currentSong.id) return;
+    const newQueue = queue.filter((_, i) => i !== index);
+    const newIdx = queueIndex > index ? queueIndex - 1 : queueIndex;
+    set({ queue: newQueue, queueIndex: newIdx });
+  },
+
+  // 清空队列（保留正在播放的歌曲，保证 next/prev 不悬空）
+  clearQueue: () => {
+    const { currentSong } = get();
+    set({ queue: currentSong ? [currentSong] : [], queueIndex: currentSong ? 0 : -1 });
+  },
 
   setCurrentLyricIndex: (index) => set({ currentLyricIndex: index }),
   setLyrics: (lyrics) => set({ lyrics }),

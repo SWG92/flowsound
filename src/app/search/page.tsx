@@ -21,23 +21,29 @@ function SearchContent() {
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  // 搜索代际号：快速切换关键词时丢弃过期响应，防止旧结果追加到新结果后面
+  const searchGenRef = useRef(0);
   const { showToast } = useToast();
 
   const doSearch = useCallback(
     async (q: string, p: number = 1) => {
       if (!q.trim()) return;
+      const gen = ++searchGenRef.current;
       setLoading(true);
       try {
         const result = await searchAllPlatforms(q, p, 30);
+        if (gen !== searchGenRef.current) return;
         setSongs(p === 1 ? result.songs : (prev) => [...prev, ...result.songs]);
         setTotal(result.total);
         setHasMore(result.hasMore);
         setPage(p);
       } catch (error) {
         logError("搜索失败:", error);
-        showToast("搜索失败，请检查网络后重试", "error");
+        if (gen === searchGenRef.current) {
+          showToast("搜索失败，请检查网络后重试", "error");
+        }
       } finally {
-        setLoading(false);
+        if (gen === searchGenRef.current) setLoading(false);
       }
     },
     [showToast]

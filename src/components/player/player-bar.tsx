@@ -67,7 +67,8 @@ export function PlayerBar() {
   // 拖拽进度条时使用本地状态，隔离 rAF 循环的 currentTime 更新，防止抽搐
   const [dragTime, setDragTime] = useState<number | null>(null);
   const sleepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fadeAnimRef = useRef<number>(0);
+  const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isFadingRef = useRef(false);
   const origVolumeRef = useRef<number>(0.8);
   const speedRef = useRef<HTMLDivElement>(null);
   const sleepRef = useRef<HTMLDivElement>(null);
@@ -115,48 +116,51 @@ export function PlayerBar() {
   };
 
   // 定时关闭（带渐弱效果）
+  // 注意：渐弱用 setInterval 而不是 requestAnimationFrame —— 后台标签页会暂停 rAF，
+  // 导致定时关闭在挂后台时永远不触发（边听边切走恰恰是最主要的场景）
   const handleSleep = (minutes: number) => {
     // 清理之前的定时器和渐弱动画
     if (sleepTimerRef.current) clearTimeout(sleepTimerRef.current);
-    if (fadeAnimRef.current) cancelAnimationFrame(fadeAnimRef.current);
-    // 恢复之前的音量
-    if (sleepMinutes > 0) setVolume(origVolumeRef.current);
+    if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+    // 只有渐弱已开始修改过音量时才需要恢复
+    if (isFadingRef.current) {
+      setVolume(origVolumeRef.current);
+      isFadingRef.current = false;
+    }
 
     setSleepMinutes(minutes);
     setShowSleep(false);
 
-    if (minutes > 0) {
-      const totalMs = minutes * 60 * 1000;
-      const fadeDuration = Math.min(30000, totalMs * 0.15); // 渐弱时间：30秒 或 总时长的15%
-      const fadeStartDelay = totalMs - fadeDuration;
+    if (minutes <= 0) return;
 
-      // 阶段1：等待到渐弱开始时间
-      sleepTimerRef.current = setTimeout(() => {
-        // 记录原始音量
-        origVolumeRef.current = usePlayerStore.getState().volume;
-        const startVol = origVolumeRef.current;
-        const fadeStart = performance.now();
+    const totalMs = minutes * 60 * 1000;
+    const fadeDuration = Math.min(30000, totalMs * 0.15); // 渐弱时间：30秒 或 总时长的15%
+    const fadeStartDelay = totalMs - fadeDuration;
 
-        // 阶段2：渐弱动画（从当前音量到0）
-        const fadeStep = () => {
-          const elapsed = performance.now() - fadeStart;
-          const progress = Math.min(elapsed / fadeDuration, 1);
-          const newVol = startVol * (1 - progress);
-          setVolume(newVol);
+    // 阶段1：等待到渐弱开始时间
+    sleepTimerRef.current = setTimeout(() => {
+      // 记录原始音量，渐弱从这里开始
+      origVolumeRef.current = usePlayerStore.getState().volume;
+      isFadingRef.current = true;
+      const startVol = origVolumeRef.current;
+      const fadeStart = Date.now();
 
-          if (progress < 1) {
-            fadeAnimRef.current = requestAnimationFrame(fadeStep);
-          } else {
-            // 渐弱完成 → 暂停播放
-            usePlayerStore.getState().setPlaying(false);
-            setSleepMinutes(0);
-            // 恢复原始音量
-            setVolume(origVolumeRef.current);
-          }
-        };
-        fadeAnimRef.current = requestAnimationFrame(fadeStep);
-      }, fadeStartDelay);
-    }
+      // 阶段2：渐弱（从当前音量到 0），setInterval 在后台标签页仍会触发
+      fadeIntervalRef.current = setInterval(() => {
+        const progress = Math.min((Date.now() - fadeStart) / fadeDuration, 1);
+        setVolume(startVol * (1 - progress));
+
+        if (progress >= 1) {
+          if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+          fadeIntervalRef.current = null;
+          isFadingRef.current = false;
+          // 渐弱完成 → 暂停播放并恢复原始音量
+          usePlayerStore.getState().setPlaying(false);
+          setSleepMinutes(0);
+          setVolume(origVolumeRef.current);
+        }
+      }, 250);
+    }, fadeStartDelay);
   };
 
   // 静音切换
@@ -186,7 +190,7 @@ export function PlayerBar() {
   useEffect(() => {
     return () => {
       if (sleepTimerRef.current) clearTimeout(sleepTimerRef.current);
-      if (fadeAnimRef.current) cancelAnimationFrame(fadeAnimRef.current);
+      if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
     };
   }, []);
 

@@ -82,9 +82,13 @@ export async function searchAllPlatforms(
   // 合并去重（同名 + 同歌手视为重复）
   const seen = new Set<string>();
   const merged: Song[] = [];
+  let totalCount = 0; // 各平台报告的总量（去重前，作近似展示值）
+  let anyHasMore = false;
 
   for (const r of results) {
     if (r.status !== "fulfilled") continue;
+    totalCount += r.value.total || 0;
+    if (r.value.hasMore) anyHasMore = true;
     for (const song of r.value.songs) {
       const key = `${song.name}|${song.artists?.[0]?.name || ""}`;
       if (!seen.has(key)) {
@@ -96,8 +100,8 @@ export async function searchAllPlatforms(
 
   const result: SearchResult = {
     songs: merged.slice(0, limit),
-    total: merged.length,
-    hasMore: merged.length >= limit,
+    total: totalCount,
+    hasMore: anyHasMore,
   };
 
   setCache(cacheKey, result);
@@ -284,9 +288,9 @@ export async function getNewSongs(): Promise<Song[]> {
   return result;
 }
 
-// 预加载
-export function prefetchSongUrl(_id: number) {
-  // 简化：通过 getSongUrl 预加载（内部已有缓存）
-  getSongUrl(_id).catch(() => {});
+// 预加载（带上歌曲自己的平台信息，否则非网易云歌曲会查错平台）
+export function prefetchSongUrl(song: Song) {
+  const platform = (song.platform || "netease") as MusicPlatform;
+  getSongUrl(song.id, undefined, platform, song.platformId).catch(() => {});
 }
 

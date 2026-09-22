@@ -52,6 +52,12 @@ export default function RootLayout({
     >
       <head>
         <link rel="apple-touch-icon" href="/icon-192.svg" />
+        {/* 在水合前根据 localStorage/系统偏好设置主题 class，避免深色模式首屏闪白 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('flowsound_theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}`,
+          }}
+        />
       </head>
       <body className="h-screen overflow-hidden bg-gradient-main text-foreground flex">
         <ThemeProvider>

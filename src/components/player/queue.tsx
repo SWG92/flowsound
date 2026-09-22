@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { X, Lock, GripVertical } from "lucide-react";
+import { X, Lock, GripVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePlayerStore } from "@/lib/store";
@@ -9,8 +9,10 @@ import { cn, getCoverUrl } from "@/lib/utils";
 import type { Song } from "@/lib/types";
 
 export function PlayQueue() {
-  const { queue, currentSong, playSong, showQueue, setShowQueue, setQueue, queueIndex } =
-    usePlayerStore();
+  const {
+    queue, currentSong, playSong, showQueue, setShowQueue,
+    reorderQueue, removeFromQueue, clearQueue,
+  } = usePlayerStore();
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dropIdx, setDropIdx] = useState<number | null>(null);
 
@@ -30,30 +32,22 @@ export function PlayQueue() {
     setDropIdx(null);
   }, []);
 
+  // 排序逻辑（含 queueIndex 同步修正）在 store.reorderQueue 中
   const handleDrop = useCallback((e: React.DragEvent, toIdx: number) => {
     e.preventDefault();
     const fromIdx = parseInt(e.dataTransfer.getData("text/plain"));
-    if (isNaN(fromIdx) || fromIdx === toIdx) {
-      setDragIdx(null);
-      setDropIdx(null);
-      return;
-    }
-
-    // 不可拖动付费歌曲
-    if (queue[fromIdx]?.fee === 1 || queue[toIdx]?.fee === 1) {
-      setDragIdx(null);
-      setDropIdx(null);
-      return;
-    }
-
-    const reordered = [...queue];
-    const [moved] = reordered.splice(fromIdx, 1);
-    reordered.splice(toIdx, 0, moved);
-
-    setQueue(reordered);
     setDragIdx(null);
     setDropIdx(null);
-  }, [queue, setQueue]);
+    if (isNaN(fromIdx) || fromIdx === toIdx) return;
+    // 不可拖动付费歌曲
+    if (queue[fromIdx]?.fee === 1 || queue[toIdx]?.fee === 1) return;
+    reorderQueue(fromIdx, toIdx);
+  }, [queue, reorderQueue]);
+
+  const handleRemove = useCallback((e: React.MouseEvent, idx: number) => {
+    e.stopPropagation();
+    removeFromQueue(idx);
+  }, [removeFromQueue]);
 
   const handleDragEnd = useCallback(() => {
     setDragIdx(null);
@@ -70,14 +64,27 @@ export function PlayQueue() {
           播放队列
           <span className="text-muted-foreground ml-2">({queue.length})</span>
         </h3>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="cursor-pointer h-8 w-8"
-          onClick={() => setShowQueue(false)}
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {queue.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="cursor-pointer h-8 w-8 text-muted-foreground hover:text-destructive"
+              onClick={clearQueue}
+              title="清空队列（保留正在播放）"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="cursor-pointer h-8 w-8"
+            onClick={() => setShowQueue(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* 歌曲列表 */}
@@ -160,6 +167,17 @@ export function PlayQueue() {
                   </div>
                   <p className="text-xs text-muted-foreground truncate">{song.artists?.map((a) => a.name).join(" / ")}</p>
                 </div>
+
+                {/* 移除单曲（正在播放的不可移除） */}
+                {!isCurrent && !isPaid && (
+                  <button
+                    className="shrink-0 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-muted-foreground hover:text-destructive"
+                    onClick={(e) => handleRemove(e, index)}
+                    title="从队列移除"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             );
           })

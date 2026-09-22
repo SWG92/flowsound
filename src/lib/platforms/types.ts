@@ -45,8 +45,8 @@ export interface PlatformAdapter {
     limit: number
   ): Promise<SearchResult>;
 
-  /** 获取歌曲播放 URL */
-  getSongUrl(songId: string): Promise<string>;
+  /** 获取歌曲播放 URL（br 为目标码率，如 "320000"；仅网易云支持，其他平台忽略） */
+  getSongUrl(songId: string, br?: string): Promise<string>;
 
   /** 获取歌词 */
   getLyrics(songId: string): Promise<LyricLine[]>;

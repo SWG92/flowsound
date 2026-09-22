@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { usePlayerStore } from "@/lib/store";
-import { Heart, Lock, Unlock, X } from "lucide-react";
+import { openDesktopLyrics } from "@/lib/lyrics-broadcast";
+import { Heart, Lock, Unlock, X, PictureInPicture2 } from "lucide-react";
 
 const LYRIC_COLORS = [
   { name: "绿", hex: "#1ed760", glow: "rgba(30,215,96,0.5)" },
@@ -185,6 +186,10 @@ export function FloatingLyrics() {
                 </div>
               )}
             </div>
+
+            <TBtn onClick={() => openDesktopLyrics()} title="打开独立桌面歌词窗口">
+              <PictureInPicture2 className="h-4 w-4" />
+            </TBtn>
 
             <TBtn onClick={() => setLocked(!locked)} title={locked ? "已锁定" : "锁定位置"} active={locked}>
               {locked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}

@@ -97,12 +97,12 @@ export const neteaseAdapter: PlatformAdapter = {
     };
   },
 
-  async getSongUrl(songId) {
+  async getSongUrl(songId, br = "320000") {
     await ensureLogin();
 
     const data = await fetchJSON<{
       data: { url: string }[];
-    }>(`${NETEASE_API.songUrl}?ids=[${songId}]&br=320000`);
+    }>(`${NETEASE_API.songUrl}?ids=[${songId}]&br=${br}`);
 
     return data.data?.[0]?.url || "";
   },

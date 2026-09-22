@@ -71,6 +71,16 @@ function loadBands(): EQBand[] {
   return getDefaultBands();
 }
 
+function loadEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem("flowsound_eq_enabled") === "1";
+  } catch {
+    // ignore
+  }
+  return false;
+}
+
 interface EQStore {
   enabled: boolean;
   bands: EQBand[];
@@ -82,11 +92,18 @@ interface EQStore {
 }
 
 export const useEQStore = create<EQStore>((set, get) => ({
-  enabled: false,
+  enabled: loadEnabled(),
   bands: loadBands(),
   preset: loadPreset(),
 
-  toggleEQ: () => set((s) => ({ enabled: !s.enabled })),
+  toggleEQ: () =>
+    set((s) => {
+      const enabled = !s.enabled;
+      try {
+        localStorage.setItem("flowsound_eq_enabled", enabled ? "1" : "0");
+      } catch { /* ignore */ }
+      return { enabled };
+    }),
 
   setBand: (index: number, gain: number) => {
     const bands = get().bands.map((b, i) =>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ListMusic, Plus, Music2, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,13 +40,20 @@ function savePlaylists(playlists: Playlist[]) {
 }
 
 export default function PlaylistPage() {
-  const [playlists, setPlaylists] = useState<Playlist[]>(() => loadPlaylists());
+  // 挂载后再读取 localStorage，避免 SSR/CSR 首帧不一致导致 hydration 报错
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const { setQueue, playSong } = usePlayerStore();
   const { showToast } = useToast();
+
+  useEffect(() => {
+    // 异步读取，避免同步 setState 触发级联渲染（react-hooks/set-state-in-effect）
+    const t = setTimeout(() => setPlaylists(loadPlaylists()), 0);
+    return () => clearTimeout(t);
+  }, []);
 
   const activePlaylist = playlists.find((p) => p.id === activeId);
 

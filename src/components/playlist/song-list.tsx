@@ -170,14 +170,13 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
   const [infoSong, setInfoSong] = useState<Song | null>(null);
   const [shareSong, setShareSong] = useState<Song | null>(null);
   const [commentsSong, setCommentsSong] = useState<Song | null>(null);
-  const [blacklist, setBlacklist] = useState<number[]>(() => {
-    if (typeof window === "undefined") return [];
-    try { return JSON.parse(localStorage.getItem("flowsound_blacklist") || "[]"); } catch { return []; }
-  });
+  // 黑名单在挂载后再读取，避免 SSR/CSR 首帧不一致导致 hydration 报错
+  const [blacklist, setBlacklist] = useState<number[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    try { setBlacklist(JSON.parse(localStorage.getItem("flowsound_blacklist") || "[]")); } catch { /* ignore */ }
     try { setPlaylists(JSON.parse(localStorage.getItem("flowsound_playlists") || "[]")); } catch { setPlaylists([]); }
   }, []);
 
@@ -240,8 +239,12 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
       onClick: async () => {
         if (!menuSong) return;
         try {
-          const url = `/api/music?fn=song/url&id=${menuSong.id}`;
-          const res = await fetch(url);
+          // 带上歌曲来源平台，否则 QQ/酷狗歌曲会拿 netease 的接口去查而永远失败
+          const platform = menuSong.platform || "netease";
+          const params = new URLSearchParams({ fn: "song/url", platform });
+          params.set("id", platform !== "netease" ? (menuSong.platformId || String(menuSong.id)) : String(menuSong.id));
+          if (menuSong.platformId) params.set("platformId", menuSong.platformId);
+          const res = await fetch(`/api/music?${params.toString()}`);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
           const songUrl = data.data?.[0]?.url;

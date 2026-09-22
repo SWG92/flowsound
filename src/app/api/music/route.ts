@@ -26,7 +26,8 @@ const searchHandler: HandlerFn = async (params) => {
 
 const songUrlHandler: HandlerFn = async (params) => {
   const id = params.id || params.platformId || "";
-  const url = await getAdapter(params._platform as MusicPlatform).getSongUrl(id);
+  const br = params.br || "320000";
+  const url = await getAdapter(params._platform as MusicPlatform).getSongUrl(id, br);
   // 客户端 api.ts 期望 { data: [{ url }] } 格式
   return { data: [{ url }] };
 };

@@ -12,16 +12,18 @@ import { getCoverUrl } from "@/lib/utils";
  * - 显示播放进度条
  */
 export function useMediaSession() {
-  const { currentSong, isPlaying, currentTime, duration, togglePlay, nextSong, prevSong } =
+  const { currentSong, isPlaying, currentTime, duration, speed, togglePlay, nextSong, prevSong } =
     usePlayerStore();
   const positionRef = useRef(0);
   const durationRef = useRef(0);
+  const speedRef = useRef(1);
 
   // 更新播放位置（用于系统进度条）
   useEffect(() => {
     positionRef.current = currentTime;
     durationRef.current = duration;
-  }, [currentTime, duration]);
+    speedRef.current = speed;
+  }, [currentTime, duration, speed]);
 
   // 设置元数据 + 操作处理器
   useEffect(() => {
@@ -57,7 +59,7 @@ export function useMediaSession() {
       try {
         navigator.mediaSession.setPositionState({
           duration: durationRef.current || 0,
-          playbackRate: 1,
+          playbackRate: speedRef.current || 1,
           position: positionRef.current || 0,
         });
       } catch {
@@ -75,7 +77,7 @@ export function useMediaSession() {
         try {
           navigator.mediaSession.setPositionState({
             duration: durationRef.current || 0,
-            playbackRate: 1,
+            playbackRate: speedRef.current || 1,
             position: positionRef.current || 0,
           });
         } catch { /* ignore */ }
@@ -130,5 +132,5 @@ export function useMediaSession() {
         } catch { /* ignore */ }
       }
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps — 只设置一次，通过 store getState 获取最新状态
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- 只设置一次，通过 store getState 获取最新状态
 }
