@@ -53,10 +53,11 @@ export function DailyRecommend() {
   const loadSongs = useCallback(async (forceRefresh = false) => {
     setLoading(true);
 
-    // 检查缓存
+    // 检查缓存（只在"今天"的缓存有效，跨天自动刷新）
     if (!forceRefresh) {
       const cached = loadCachedSongs();
-      if (cached && cached.songs.length > 0) {
+      const today = new Date().toLocaleDateString("zh-CN");
+      if (cached && cached.songs.length > 0 && cached.date === today) {
         setSongs(cached.songs);
         setLoading(false);
         return;
