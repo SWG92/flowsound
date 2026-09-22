@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import "../styles/shadcn-tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -228,11 +228,9 @@
   background-clip: text;
 }
 
-/* 歌词高亮 */
+/* 歌词高亮（字号/字重由组件的 Tailwind 类控制，避免这里的规则覆盖工具类） */
 .lyric-active {
   color: oklch(0.75 0.25 280);
-  font-size: 1.1em;
-  font-weight: 600;
   transition: all 0.3s ease;
 }
 
