@@ -5,6 +5,7 @@ import { usePlayerStore } from "./store";
 import { useToastStore } from "./toast-store";
 import { useEQStore } from "./eq-store";
 import { setupEQForHowl, setEQBypass, applyBands, getAnalyser } from "./equalizer";
+import { installHowlerCorsHook, setPendingCors, probeCors } from "./howler-cors";
 import { logError } from "./logger";
 
 type SongStartCallback = (howl: Howl) => void;
@@ -22,9 +23,10 @@ class AudioPlayer {
   // 拖拽进度条时暂停 rAF 时间更新，防止滑块抽搐
   private isSeeking = false;
 
-  // EQ 静音看门狗：跨域无 CORS 的音源经过 Web Audio 会输出静音，需检测并回退
+  // EQ 静音看门狗：跨域音频未带 crossOrigin 时接 Web Audio 会输出静音，需检测并回退
   private eqWatchdog: ReturnType<typeof setInterval> | null = null;
   private eqSilentCount = 0;
+  private eqUnsupportedNotified = false;
 
   // 当前播放参数（供 EQ 回退时原地重建播放）
   private lastUrl = "";
@@ -62,7 +64,7 @@ class AudioPlayer {
   }
 
   // 播放新歌曲
-  play(url: string, volume: number, speed: number) {
+  async play(url: string, volume: number, speed: number) {
     // 取消待执行的 onend 回调
     if (this.endTimeout) {
       clearTimeout(this.endTimeout);
@@ -73,68 +75,93 @@ class AudioPlayer {
     this.lastVolume = volume;
     this.lastSpeed = speed;
 
-    // 停止当前播放
-    this.stopInternal();
-
-    this.sound = new Howl({
-      src: [url],
-      html5: true, // HTML5 Audio 模式：兼容性好，支持 CDN 跨域音频流
-      volume,
-      rate: speed,
-      onplay: () => {
-        const duration = this.sound?.duration() || 0;
-        usePlayerStore.getState().setDuration(duration);
-        usePlayerStore.getState().setPlaying(true);
-        this.startTimeUpdate();
-        // 通知可视化器等模块：新的音频元素已就绪
-        this.notifySongStart();
-        // EQ 开启时为新音频元素建立 Web Audio 图
-        this.setupEQ();
-        // 恢复重建前的播放进度（EQ 静音回退场景）
-        if (this.pendingSeek > 0) {
-          const t = this.pendingSeek;
-          this.pendingSeek = 0;
-          try {
-            this.sound?.seek(t);
-          } catch { /* ignore */ }
-        }
-      },
-      // HTML5 流媒体在 onplay 触发时 duration 可能还是 0，元数据加载完成后补一次
-      onload: () => {
-        const d = this.sound?.duration() || 0;
-        if (d > 0) usePlayerStore.getState().setDuration(d);
-      },
-      onpause: () => {
-        this.stopTimeUpdate();
-      },
-      onend: () => {
-        this.stopTimeUpdate();
-        // 保存当前 sound 引用，避免被新 play() 清除
-        const endedSound = this.sound;
-        this.endTimeout = setTimeout(() => {
-          // 只在 sound 没有被替换时才执行
-          if (this.sound !== endedSound) return;
-          const { playMode } = usePlayerStore.getState();
-          if (playMode === "single") {
-            this.sound?.play();
-          } else {
-            usePlayerStore.getState().nextSong();
-          }
-        }, 100);
-      },
-      onloaderror: (_id, err: unknown) => {
-        logError("Audio load error:", err);
-        usePlayerStore.getState().setPlaying(false);
-        usePlayerStore.getState().setLoading(false);
+    // EQ 开启时：先探测音源是否允许跨域，允许才用带 crossOrigin 的元素加载并接入 Web Audio。
+    // 不支持跨域的音源若硬加 crossOrigin 会直接加载失败，因此这种情况跳过 EQ、保持原生播放。
+    const eqEnabled = useEQStore.getState().enabled;
+    let useCors = false;
+    if (eqEnabled) {
+      installHowlerCorsHook();
+      useCors = await probeCors(url);
+      setPendingCors(useCors);
+      if (!useCors) {
+        this.eqUnsupportedNotified = true;
         try {
           useToastStore
             .getState()
-            .showToast("歌曲加载失败，请切换音质或稍后重试", "error");
-        } catch {
-          // toast store 可能未初始化
-        }
-      },
-    });
+            .showToast("当前音源不支持均衡器，已按原音质播放", "warning");
+        } catch { /* ignore */ }
+      }
+    } else {
+      setPendingCors(false);
+    }
+
+    // 停止当前播放
+    this.stopInternal();
+
+    try {
+      this.sound = new Howl({
+        src: [url],
+        html5: true, // HTML5 Audio 模式：兼容性好，支持 CDN 跨域音频流
+        volume,
+        rate: speed,
+        onplay: () => {
+          const duration = this.sound?.duration() || 0;
+          usePlayerStore.getState().setDuration(duration);
+          usePlayerStore.getState().setPlaying(true);
+          this.startTimeUpdate();
+          // 通知可视化器等模块：新的音频元素已就绪
+          this.notifySongStart();
+          // EQ 开启且音源支持跨域时，为新音频元素建立 Web Audio 图
+          if (useCors) this.setupEQ();
+          // 恢复重建前的播放进度（EQ 静音回退场景）
+          if (this.pendingSeek > 0) {
+            const t = this.pendingSeek;
+            this.pendingSeek = 0;
+            try {
+              this.sound?.seek(t);
+            } catch { /* ignore */ }
+          }
+        },
+        // HTML5 流媒体在 onplay 触发时 duration 可能还是 0，元数据加载完成后补一次
+        onload: () => {
+          const d = this.sound?.duration() || 0;
+          if (d > 0) usePlayerStore.getState().setDuration(d);
+        },
+        onpause: () => {
+          this.stopTimeUpdate();
+        },
+        onend: () => {
+          this.stopTimeUpdate();
+          // 保存当前 sound 引用，避免被新 play() 清除
+          const endedSound = this.sound;
+          this.endTimeout = setTimeout(() => {
+            // 只在 sound 没有被替换时才执行
+            if (this.sound !== endedSound) return;
+            const { playMode } = usePlayerStore.getState();
+            if (playMode === "single") {
+              this.sound?.play();
+            } else {
+              usePlayerStore.getState().nextSong();
+            }
+          }, 100);
+        },
+        onloaderror: (_id, err: unknown) => {
+          logError("Audio load error:", err);
+          usePlayerStore.getState().setPlaying(false);
+          usePlayerStore.getState().setLoading(false);
+          try {
+            useToastStore
+              .getState()
+              .showToast("歌曲加载失败，请切换音质或稍后重试", "error");
+          } catch {
+            // toast store 可能未初始化
+          }
+        },
+      });
+    } finally {
+      // 元素已创建，恢复默认（后续非 EQ 加载不受影响）
+      setPendingCors(false);
+    }
 
     this.sound.play();
   }

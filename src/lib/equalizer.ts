@@ -5,20 +5,26 @@ import type { EQBand } from "./eq-store";
 
 // Web Audio EQ 引擎。
 //
-// 关键约束：
-// 1. createMediaElementSource 对同一个音频元素只能调用一次 —— 每首歌是新元素，
-//    因此每次切歌都要重建 source；旧元素被 Howler unload 后其节点直接丢弃。
-// 2. 一旦元素被 MediaElementSourceNode 捕获，其输出就永远走 Web Audio 图。
-//    所以"关闭 EQ"不能断开 source，而是把 source 直连 destination 旁路 EQ 链，
-//    否则会直接静音。
-// 3. 跨域无 CORS 的音源（部分平台 CDN）经过 Web Audio 会输出静音 ——
-//    由 audio-player.ts 的静音看门狗检测并自动回退，本模块只负责建图。
+// 三个必须遵守的约束（踩过的坑都记在这里）：
+// 1. createMediaElementSource 对同一个音频元素只能调用一次 —— 必须按元素缓存整条音频图，
+//    不能每次切歌都重建（Howler 的 html5 模式会复用音频元素）。
+// 2. 元素一旦被 MediaElementSource 捕获，其输出就永远走 Web Audio 图 ——
+//    所以"关闭 EQ"不能断开 source，只能把 source 直连 destination 旁路，否则会静音。
+// 3. 跨域音频必须带 crossOrigin="anonymous" 加载，否则元素被污染、Web Audio 拿到的是静音
+//    （Howler 不会设置 crossOrigin，由 audio-player 按需注入）。
+
+interface EQGraph {
+  element: HTMLAudioElement;
+  source: MediaElementAudioSourceNode;
+  filters: BiquadFilterNode[];
+  analyser: AnalyserNode;
+}
 
 let audioContext: AudioContext | null = null;
-let sourceNode: MediaElementAudioSourceNode | null = null;
-let filterNodes: BiquadFilterNode[] = [];
-let analyserNode: AnalyserNode | null = null;
-let connectedEl: HTMLAudioElement | null = null;
+// 按音频元素缓存图：同一元素复用，不会第二次调用 createMediaElementSource
+const graphs = new WeakMap<HTMLAudioElement, EQGraph>();
+// 当前正在使用（被路由）的图
+let activeGraph: EQGraph | null = null;
 
 function getAudioContext(): AudioContext | null {
   if (!audioContext || audioContext.state === "closed") {
@@ -50,87 +56,50 @@ function getAudioElement(howl: Howl): HTMLAudioElement | null {
   return null;
 }
 
-/** 供可视化/静音检测读取的频谱分析节点 */
+/** 供静音看门狗读取的频谱分析节点 */
 export function getAnalyser(): AnalyserNode | null {
-  return analyserNode;
+  return activeGraph?.analyser ?? null;
 }
 
 // source → filters → analyser → destination
-function routeThroughEQ() {
-  if (!sourceNode || !audioContext || !analyserNode) return;
+function routeThroughEQ(graph: EQGraph) {
+  if (!audioContext) return;
   try {
-    sourceNode.disconnect();
-    for (const f of filterNodes) f.disconnect();
-    analyserNode.disconnect();
+    graph.source.disconnect();
+    for (const f of graph.filters) f.disconnect();
+    graph.analyser.disconnect();
 
-    let prev: AudioNode = sourceNode;
-    for (const filter of filterNodes) {
+    let prev: AudioNode = graph.source;
+    for (const filter of graph.filters) {
       prev.connect(filter);
       prev = filter;
     }
-    prev.connect(analyserNode);
-    analyserNode.connect(audioContext.destination);
+    prev.connect(graph.analyser);
+    graph.analyser.connect(audioContext.destination);
   } catch {
     // ignore
   }
 }
 
-// source → destination（EQ 旁路，音频继续出声）
-function routeDirect() {
-  if (!sourceNode || !audioContext) return;
+// source → destination（EQ 旁路，但音频仍在 Web Audio 图里，不会断声）
+function routeDirect(graph: EQGraph) {
+  if (!audioContext) return;
   try {
-    sourceNode.disconnect();
-    for (const f of filterNodes) f.disconnect();
-    analyserNode?.disconnect();
-    sourceNode.connect(audioContext.destination);
+    graph.source.disconnect();
+    for (const f of graph.filters) f.disconnect();
+    graph.analyser.disconnect();
+    graph.source.connect(audioContext.destination);
   } catch {
     // ignore
   }
 }
 
-function teardownOldGraph() {
-  try {
-    sourceNode?.disconnect();
-  } catch { /* ignore */ }
-  for (const f of filterNodes) {
-    try {
-      f.disconnect();
-    } catch { /* ignore */ }
-  }
-  try {
-    analyserNode?.disconnect();
-  } catch { /* ignore */ }
-  sourceNode = null;
-  filterNodes = [];
-  connectedEl = null;
-}
-
-/**
- * 为当前歌曲的音频元素建立 Web Audio 图。
- * 每次切歌调用一次；enabled=false 时不捕获元素（音频完全走原生输出，零风险）。
- */
-export function setupEQForHowl(howl: Howl, bands: EQBand[], enabled: boolean): boolean {
-  if (!enabled) return false;
-
+function createGraph(element: HTMLAudioElement, bands: EQBand[]): EQGraph | null {
   const ctx = getAudioContext();
-  const audioEl = getAudioElement(howl);
-  if (!ctx || !audioEl) return false;
-
-  // 同一元素重复调用（例如快速切歌后同 URL 复用）只需重连
-  if (connectedEl === audioEl && sourceNode) {
-    applyBands(bands);
-    routeThroughEQ();
-    return true;
-  }
-
-  // 上一首歌的元素已被回收，丢弃旧节点
-  teardownOldGraph();
-
+  if (!ctx) return null;
   try {
-    sourceNode = ctx.createMediaElementSource(audioEl);
-    connectedEl = audioEl;
-
-    filterNodes = bands.map((band) => {
+    const source = ctx.createMediaElementSource(element);
+    const filters = bands.map((band) => {
       const filter = ctx.createBiquadFilter();
       filter.type = "peaking";
       filter.frequency.value = band.frequency;
@@ -138,45 +107,67 @@ export function setupEQForHowl(howl: Howl, bands: EQBand[], enabled: boolean): b
       filter.gain.value = band.gain;
       return filter;
     });
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 64;
+    analyser.smoothingTimeConstant = 0.8;
 
-    if (!analyserNode) {
-      analyserNode = ctx.createAnalyser();
-      analyserNode.fftSize = 64;
-      analyserNode.smoothingTimeConstant = 0.8;
-    }
-
-    routeThroughEQ();
-    return true;
+    const graph: EQGraph = { element, source, filters, analyser };
+    graphs.set(element, graph);
+    return graph;
   } catch {
-    teardownOldGraph();
-    return false;
+    // 元素已被其他节点捕获等情况：放弃 EQ，保持原生播放
+    return null;
   }
+}
+
+/**
+ * 为当前歌曲建立/复用 Web Audio 图。
+ * 元素已建过图则直接复用（切歌/切回同一元素都安全）。
+ */
+export function setupEQForHowl(howl: Howl, bands: EQBand[], enabled: boolean): boolean {
+  if (!enabled) return false;
+
+  const element = getAudioElement(howl);
+  if (!element) return false;
+
+  let graph = graphs.get(element) ?? null;
+  if (!graph) {
+    graph = createGraph(element, bands);
+  } else {
+    applyBands(bands, graph);
+  }
+  if (!graph) return false;
+
+  activeGraph = graph;
+  routeThroughEQ(graph);
+  return true;
 }
 
 /** EQ 开关切换（元素已被捕获时旁路/恢复 EQ 链） */
 export function setEQBypass(bypass: boolean) {
   if (bypass) {
-    routeDirect();
-  } else {
-    routeThroughEQ();
+    if (activeGraph) routeDirect(activeGraph);
+  } else if (activeGraph) {
+    routeThroughEQ(activeGraph);
   }
 }
 
 /** 应用新的频段增益（拖动滑块/切换预设时实时生效） */
-export function applyBands(bands: EQBand[]) {
-  for (let i = 0; i < bands.length && i < filterNodes.length; i++) {
-    filterNodes[i].gain.value = bands[i].gain;
+export function applyBands(bands: EQBand[], graph?: EQGraph | null) {
+  const target = graph ?? activeGraph;
+  if (!target) return;
+  for (let i = 0; i < bands.length && i < target.filters.length; i++) {
+    target.filters[i].gain.value = bands[i].gain;
   }
 }
 
-/** 彻底断开并丢弃整条链（目前仅在异常恢复时使用） */
-export function disconnectEQ() {
-  teardownOldGraph();
+/** 当前激活的音频元素是否已建立 Web Audio 图 */
+export function hasActiveGraph(): boolean {
+  return activeGraph !== null;
 }
 
 export function destroyEQ() {
-  teardownOldGraph();
+  activeGraph = null;
   audioContext?.close();
   audioContext = null;
-  analyserNode = null;
 }
