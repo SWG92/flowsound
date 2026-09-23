@@ -2,6 +2,7 @@
 
 import type { Howl } from "howler";
 import type { EQBand } from "./eq-store";
+import { markRouted } from "./howler-cors";
 
 // Web Audio EQ 引擎。
 //
@@ -130,6 +131,11 @@ export function setupEQForHowl(howl: Howl, bands: EQBand[], enabled: boolean): b
   const element = getAudioElement(howl);
   if (!element) return false;
 
+  // 安全闸门：只有以跨域方式加载的元素才能接入 Web Audio。
+  // 否则元素被污染，接入后输出恒为静音；而且 createMediaElementSource 不可撤销，
+  // 该元素会永久静音并可能被 Howler 回收到元素池，导致后续歌曲一起变哑。
+  if (element.crossOrigin !== "anonymous") return false;
+
   let graph = graphs.get(element) ?? null;
   if (!graph) {
     graph = createGraph(element, bands);
@@ -139,6 +145,7 @@ export function setupEQForHowl(howl: Howl, bands: EQBand[], enabled: boolean): b
   if (!graph) return false;
 
   activeGraph = graph;
+  markRouted(element);
   routeThroughEQ(graph);
   return true;
 }

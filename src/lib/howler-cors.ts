@@ -20,6 +20,15 @@ interface MarkedElement extends HTMLAudioElement {
   [MARK]?: boolean;
 }
 
+// 已接入 Web Audio 图的元素：绝不能回池复用。
+// 这类元素的输出永久走 Web Audio，若音源本身不是跨域加载的，复用后就是静音。
+const routed = new WeakSet<HTMLAudioElement>();
+
+/** 标记元素已接入 Web Audio 图（由 equalizer 调用） */
+export function markRouted(el: HTMLAudioElement) {
+  routed.add(el);
+}
+
 // 由 audio-player 在创建 Howl 前设置：本次加载是否需要 CORS 化的音频元素
 let pendingCors = false;
 
@@ -55,8 +64,8 @@ export function installHowlerCorsHook() {
 
   if (originalRelease) {
     howler._releaseHtml5Audio = function (audio: HTMLAudioElement) {
-      // 已接入 Web Audio 的元素绝不回池：复用给不支持 CORS 的音源会变静音
-      if ((audio as MarkedElement)[MARK]) return;
+      // 已接入 Web Audio 的元素绝不回池：复用给不支持跨域的音源会变静音
+      if (routed.has(audio) || (audio as MarkedElement)[MARK]) return;
       originalRelease(audio);
     };
   }

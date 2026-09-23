@@ -168,23 +168,51 @@ class AudioPlayer {
 
   // ===== EQ 接入 =====
 
-  private setupEQ() {
-    if (!this.sound) return;
+  private setupEQ(): boolean {
+    if (!this.sound) return false;
     const { enabled, bands } = useEQStore.getState();
-    if (!enabled) return;
+    if (!enabled) return false;
+    // setupEQForHowl 内部有安全闸门：元素不是跨域加载的会拒绝接入（避免静音）
     const ok = setupEQForHowl(this.sound, bands, true);
     if (ok) {
       this.startEQWatchdog();
     }
+    return ok;
   }
 
-  // 面板里手动开启 EQ 时对当前歌曲立即生效
-  enableEQNow() {
-    this.setupEQ();
+  /**
+   * 播放中途打开 EQ 时调用。
+   * 当前音频元素若是普通加载的（没带 crossOrigin），直接接入 Web Audio 会永久静音，
+   * 因此改为：先探测音源是否支持跨域 → 支持则按跨域重新加载当前歌曲再接入 EQ。
+   */
+  async enableEQNow() {
+    const url = this.lastUrl;
+    if (!this.sound || !url) return;
+
+    // 元素已带跨域属性 → 直接接入
+    if (this.setupEQ()) return;
+
+    const ok = await probeCors(url);
+    if (!ok) {
+      // 音源不支持跨域：EQ 无法作用于它，关掉开关并告知，避免"开了没效果"
+      useEQStore.setState({ enabled: false });
+      try {
+        localStorage.setItem("flowsound_eq_enabled", "0");
+      } catch { /* ignore */ }
+      try {
+        useToastStore
+          .getState()
+          .showToast("当前音源不支持均衡器，已关闭均衡器", "warning");
+      } catch { /* ignore */ }
+      return;
+    }
+
+    // 重新加载当前歌曲：play() 会带上 crossOrigin 并接入 EQ，同时恢复播放进度
+    this.restartCurrent();
   }
 
   // 静音看门狗：EQ 接入后若持续 2 秒无频谱输出（但确实在播放），
-  // 判定该音源不支持 Web Audio（跨域受限），自动关闭 EQ 并原地重建直连播放。
+  // 判定音源异常，自动关闭 EQ 并原地重建直连播放。
   private startEQWatchdog() {
     this.stopEQWatchdog();
     this.eqSilentCount = 0;
