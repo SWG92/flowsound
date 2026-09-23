@@ -1,19 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, Music, Monitor, Database, Info, Sun, Moon } from "lucide-react";
+import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
-import { AUDIO_QUALITY, APP_INFO } from "@/lib/constants";
+import { APP_INFO } from "@/lib/constants";
 import { clearApiCache } from "@/lib/api";
-import type { AudioQuality } from "@/lib/constants";
-
-const QUALITY_OPTIONS = Object.entries(AUDIO_QUALITY).map(([key, val]) => ({
-  value: key as AudioQuality,
-  label: val.label,
-  bitrate: val.bitrate,
-}));
 
 // 清除缓存时保留的键：全部用户数据与偏好设置。
 // 只有真正的缓存（每日推荐、内存接口缓存、Service Worker 离线资源）会被清掉。
@@ -43,8 +36,6 @@ const PRESERVE_KEYS = [
 const PRESERVE_PREFIXES = ["fc_"];
 
 export default function SettingsPage() {
-  const audioQuality = usePlayerStore((s) => s.audioQuality);
-  const setAudioQuality = usePlayerStore((s) => s.setAudioQuality);
   const theme = usePlayerStore((s) => s.theme);
   const setTheme = usePlayerStore((s) => s.setTheme);
   const { showToast } = useToast();
@@ -108,41 +99,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* 音频设置 */}
-      <section className="glass rounded-xl p-6 space-y-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Music className="h-5 w-5 text-primary" />
-          音频设置
-        </h2>
-
-        <div>
-          <p className="text-sm text-muted-foreground mb-3">音质选择</p>
-          <div className="grid grid-cols-2 gap-2">
-            {QUALITY_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => {
-                  setAudioQuality(opt.value);
-                  showToast(`已切换至 ${opt.label}`, "success");
-                }}
-                // 高亮依赖 localStorage 里的音质（客户端才有）：
-                // 服务端渲染的是默认值，直接比较会导致 hydration 不匹配，
-                // 因此挂载完成后再显示选中态（与其他页面读取本地数据的做法一致）
-                className={`flex flex-col items-center p-3 rounded-lg border transition-all cursor-pointer ${
-                  mounted && audioQuality === opt.value
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border hover:border-primary/50"
-                }`}
-              >
-                <span className="font-medium text-sm">{opt.label}</span>
-                <span className="text-xs text-muted-foreground">
-                  {opt.bitrate === "999000" ? "无损" : `${parseInt(opt.bitrate) / 1000}kbps`}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* 音频设置：音质选择已移至播放栏（倍速按钮左侧），随时可切 */}
 
       {/* 界面设置 */}
       <section className="glass rounded-xl p-6 space-y-4">

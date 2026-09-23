@@ -276,6 +276,20 @@ class AudioPlayer {
     this.play(url, this.lastVolume, this.lastSpeed);
   }
 
+  /** 当前播放进度（秒），供切换音质等场景保留位置 */
+  getCurrentTime(): number {
+    if (!this.sound) return 0;
+    const t = this.sound.seek();
+    return typeof t === "number" && !isNaN(t) ? t : 0;
+  }
+
+  /** 用新的音频地址重新加载当前歌曲并保留播放进度（切换音质用） */
+  reloadAtPosition(url: string, position: number) {
+    if (!this.sound) return;
+    this.pendingSeek = position > 1 ? position : 0;
+    this.play(url, this.lastVolume, this.lastSpeed);
+  }
+
   // ===== 基础控制 =====
 
   // 暂停

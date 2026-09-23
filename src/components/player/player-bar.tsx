@@ -23,9 +23,13 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePlayerStore } from "@/lib/store";
+import { getSongUrl } from "@/lib/api";
+import { AUDIO_QUALITY } from "@/lib/constants";
+import type { AudioQuality } from "@/lib/constants";
+import { useToast } from "@/components/ui/toast";
 import { useAudioPlayer } from "@/hooks/use-player";
 import { audioPlayer } from "@/lib/audio-player";
-import type { PlayMode } from "@/lib/types";
+import type { PlayMode, MusicPlatform } from "@/lib/types";
 import { cn, getCoverUrl } from "@/lib/utils";
 import { LyricsDisplay } from "./lyrics";
 import { EQPanel } from "./equalizer-panel";
@@ -56,10 +60,27 @@ const SLEEP_OPTIONS = [
   { label: "60分钟", value: 60 },
 ];
 
+// 播放栏按钮上的短标签（空间有限）
+const QUALITY_SHORT_LABELS: Record<AudioQuality, string> = {
+  smooth: "96K",
+  standard: "128K",
+  high: "320K",
+  lossless: "无损",
+};
+
+const QUALITY_OPTIONS = (Object.entries(AUDIO_QUALITY) as [AudioQuality, { label: string; bitrate: string }][]).map(
+  ([value, val]) => ({
+    value,
+    label: val.label,
+    short: val.bitrate === "999000" ? "无损" : `${parseInt(val.bitrate) / 1000}K`,
+  })
+);
+
 export function PlayerBar() {
   const { seek, formatTime } = useAudioPlayer();
   const [showLyrics, setShowLyrics] = useState(false);
   const [showSpeed, setShowSpeed] = useState(false);
+  const [showQuality, setShowQuality] = useState(false);
   const [sleepMinutes, setSleepMinutes] = useState(0);
   const [showSleep, setShowSleep] = useState(false);
   const [showEQ, setShowEQ] = useState(false);
@@ -73,6 +94,7 @@ export function PlayerBar() {
   const origVolumeRef = useRef<number>(0.8);
   const speedRef = useRef<HTMLDivElement>(null);
   const sleepRef = useRef<HTMLDivElement>(null);
+  const qualityRef = useRef<HTMLDivElement>(null);
 
   // 启用桌面悬浮歌词广播
   useLyricsBroadcast();
@@ -100,7 +122,11 @@ export function PlayerBar() {
     isLoading,
     setShowFloatingLyrics,
     showFloatingLyrics,
+    audioQuality,
+    setAudioQuality,
   } = usePlayerStore();
+
+  const { showToast } = useToast();
 
   const ModeIcon = MODE_ICONS[playMode];
 
@@ -114,6 +140,37 @@ export function PlayerBar() {
   const handleSpeedChange = (newSpeed: number) => {
     setSpeed(newSpeed);
     setShowSpeed(false);
+  };
+
+  // 音质切换：写入设置后，若正在播放则按新音质重新加载当前歌曲（保留播放进度），
+  // 否则用户会以为"切了没反应"（音质只影响新加载的地址）
+  const handleQualityChange = async (quality: AudioQuality) => {
+    setAudioQuality(quality);
+    setShowQuality(false);
+    const label = AUDIO_QUALITY[quality].label;
+
+    const song = usePlayerStore.getState().currentSong;
+    if (!song) {
+      showToast(`已切换至${label}`);
+      return;
+    }
+    const position = audioPlayer.getCurrentTime();
+    try {
+      const url = await getSongUrl(
+        song.id,
+        quality,
+        (song.platform || "netease") as MusicPlatform,
+        song.platformId
+      );
+      if (url) {
+        audioPlayer.reloadAtPosition(url, position);
+        showToast(`已切换至${label}，正在重新加载`);
+      } else {
+        showToast(`${label}暂不可用（可能需会员），已保留原音质`, "warning");
+      }
+    } catch {
+      showToast("切换音质失败，请稍后重试", "error");
+    }
   };
 
   // 定时关闭（带渐弱效果）
@@ -182,6 +239,9 @@ export function PlayerBar() {
       }
       if (sleepRef.current && !sleepRef.current.contains(e.target as Node)) {
         setShowSleep(false);
+      }
+      if (qualityRef.current && !qualityRef.current.contains(e.target as Node)) {
+        setShowQuality(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -297,8 +357,41 @@ export function PlayerBar() {
           </div>
         </div>
 
-        {/* 右侧：倍速 + 定时 + 队列 + 音量 */}
-        <div className="flex items-center gap-1 md:gap-2 shrink-0 justify-end w-auto md:w-64">
+        {/* 右侧：音质 + 倍速 + 定时 + 队列 + 音量 */}
+        <div className="flex items-center gap-1 md:gap-2 shrink-0 justify-end w-auto md:w-72">
+          {/* 音质选择 - 下拉菜单 */}
+          <div className="relative" ref={qualityRef}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "cursor-pointer h-8 px-1.5 md:px-2 text-[11px] md:text-xs font-medium tabular-nums",
+                audioQuality !== "high" && "text-primary"
+              )}
+              onClick={() => { setShowQuality(!showQuality); setShowSpeed(false); setShowSleep(false); }}
+              title={`音质：${AUDIO_QUALITY[audioQuality].label}${currentSong ? "（切换后当前歌曲按新音质重新加载）" : ""}`}
+            >
+              {QUALITY_SHORT_LABELS[audioQuality]}
+            </Button>
+            {showQuality && (
+              <div className="absolute bottom-full right-0 mb-2 glass rounded-lg p-1 min-w-[132px] shadow-lg z-[60]">
+                {QUALITY_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    className={cn(
+                      "w-full py-1.5 px-3 rounded text-sm transition-colors cursor-pointer text-left flex items-center justify-between gap-2",
+                      audioQuality === opt.value ? "bg-primary text-primary-foreground" : "hover:bg-muted/50"
+                    )}
+                    onClick={() => handleQualityChange(opt.value)}
+                  >
+                    <span>{opt.label}</span>
+                    <span className="text-[10px] opacity-70">{opt.short}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* 倍速 - 下拉菜单 */}
           <div className="relative hidden md:block" ref={speedRef}>
             <Button
