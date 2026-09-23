@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import type { Song, PlayMode, LyricLine, MusicPlatform } from "./types";
 import { getSongUrl, getLyrics, prefetchSongUrl, searchSongs } from "./api";
-import { STORAGE_KEYS, MAX_HISTORY } from "./constants";
+import { STORAGE_KEYS, MAX_HISTORY, THEME_COOKIE } from "./constants";
 import { useToastStore } from "./toast-store";
 import type { AudioQuality } from "./constants";
 
@@ -85,6 +85,16 @@ function saveToStorage(key: string, value: unknown) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // ignore
+  }
+}
+
+/** 写入主题 Cookie（服务端根布局据此渲染首屏主题类） */
+export function writeThemeCookie(theme: "light" | "dark") {
+  if (typeof document === "undefined") return;
+  try {
+    document.cookie = `${THEME_COOKIE}=${theme}; path=/; max-age=31536000; SameSite=Lax`;
   } catch {
     // ignore
   }
@@ -360,6 +370,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   setTheme: (theme) => {
     saveToStorage("flowsound_theme", theme);
+    // 同步写入 Cookie：根布局在服务端读取它并直接渲染出正确的 html class，
+    // 这样首屏就是正确主题，不需要任何内联脚本（React 19 会警告组件内渲染 script）
+    writeThemeCookie(theme);
     set({ theme });
   },
 

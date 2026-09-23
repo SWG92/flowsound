@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
 import { ClientWrapper } from "@/components/layout/client-wrapper";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { ToastContainer } from "@/components/ui/toast";
 import { ConditionalLayout } from "@/components/layout/conditional-layout";
+import { THEME_COOKIE } from "@/lib/constants";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -40,26 +41,27 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // 主题在服务端按 Cookie 渲染：首屏 HTML 直接带正确的 class，
+  // 不需要任何内联脚本，也就不存在 React 19 "组件内渲染 script" 的警告与首屏闪烁。
+  const cookieStore = await cookies();
+  const theme = cookieStore.get(THEME_COOKIE)?.value;
+  const themeClass = theme === "dark" ? "dark" : "";
+
   return (
     <html
       lang="zh-CN"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased ${themeClass}`.trim()}
       suppressHydrationWarning
     >
       <head>
         <link rel="apple-touch-icon" href="/icon-192.svg" />
       </head>
       <body className="h-screen overflow-hidden bg-gradient-main text-foreground flex">
-        {/* 在水合前根据 localStorage/系统偏好设置主题 class，避免深色模式首屏闪白。
-            beforeInteractive 会被注入到初始 HTML 的 head 中，先于任何 Next.js 代码执行。
-            用外链而非内联：内联形式的 beforeInteractive 会被放进 __next_s 队列延后执行，
-            起不到防闪烁作用；外链会被预加载并优先执行。 */}
-        <Script src="/theme-init.js" strategy="beforeInteractive" />
         <ThemeProvider>
           <ClientWrapper>
             <ConditionalLayout>

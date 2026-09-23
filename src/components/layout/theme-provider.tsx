@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePlayerStore } from "@/lib/store";
+import { usePlayerStore, writeThemeCookie } from "@/lib/store";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = usePlayerStore((s) => s.theme);
 
+  // 主题类由服务端按 Cookie 渲染；这里负责客户端切换时同步，
+  // 并补写 Cookie（老用户只有 localStorage、还没有 Cookie 的情况）
   useEffect(() => {
     const html = document.documentElement;
     if (theme === "dark") {
@@ -13,37 +15,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       html.classList.remove("dark");
     }
+    writeThemeCookie(theme);
   }, [theme]);
 
-  // 监听系统主题变化
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (e: MediaQueryListEvent) => {
-      // 只在用户未手动设置主题时跟随系统
-      const stored = localStorage.getItem("flowsound_theme");
-      if (!stored) {
-        const html = document.documentElement;
-        if (e.matches) {
-          html.classList.add("dark");
-        } else {
-          html.classList.remove("dark");
-        }
-      }
-    };
-    mq.addEventListener("change", handleChange);
-    return () => mq.removeEventListener("change", handleChange);
-  }, []);
-
-  // 首次加载时检测系统偏好
+  // 首次访问（没有任何记录）时跟随系统偏好
   useEffect(() => {
     const stored = localStorage.getItem("flowsound_theme");
     if (!stored) {
       const prefersDark = window.matchMedia(
         "(prefers-color-scheme: dark)"
       ).matches;
-      if (prefersDark) {
-        usePlayerStore.getState().setTheme("dark");
-      }
+      usePlayerStore.getState().setTheme(prefersDark ? "dark" : "light");
     }
   }, []);
 
