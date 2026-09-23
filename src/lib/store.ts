@@ -108,7 +108,19 @@ const initialVolume = loadFromStorage<number>(STORAGE_KEYS.volume, 0.8);
 const initialPlayMode = loadFromStorage<PlayMode>(STORAGE_KEYS.playMode, "list");
 const initialSpeed = loadFromStorage<number>(STORAGE_KEYS.speed, 1);
 const initialAudioQuality = loadFromStorage<AudioQuality>(STORAGE_KEYS.audioQuality, "high");
-const initialTheme = loadFromStorage<"light" | "dark">("flowsound_theme", "light");
+
+// 首屏主题以服务端渲染的 html class 为准（它来自 Cookie）：这样客户端首次渲染与
+// 服务端完全一致，不会出现 hydration 不匹配；老用户（只有 localStorage、没有 Cookie）
+// 由 ThemeProvider 在挂载后补写 Cookie 并同步主题。
+function readInitialTheme(): "light" | "dark" {
+  if (typeof document !== "undefined") {
+    const cls = document.documentElement.classList;
+    if (cls.contains("dark")) return "dark";
+    if (cls.contains("light")) return "light";
+  }
+  return loadFromStorage<"light" | "dark">("flowsound_theme", "light");
+}
+const initialTheme = readInitialTheme();
 
 // 从 favoriteSongs 派生 favorites ID 列表
 const initialFavorites = initialFavoriteSongs.map((s) => s.id);

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Settings as SettingsIcon, Music, Monitor, Database, Info, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/lib/store";
@@ -47,6 +48,13 @@ export default function SettingsPage() {
   const theme = usePlayerStore((s) => s.theme);
   const setTheme = usePlayerStore((s) => s.setTheme);
   const { showToast } = useToast();
+  // 音质等偏好存在 localStorage，服务端渲染时只能拿到默认值；
+  // 挂载后再显示客户端状态，避免 hydration 不匹配（异步置位以满足 set-state-in-effect 规则）
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
+  }, []);
 
   const handleClearCache = async () => {
     // 1. 内存中的接口缓存（搜索结果、歌曲地址、歌词等）
@@ -117,8 +125,11 @@ export default function SettingsPage() {
                   setAudioQuality(opt.value);
                   showToast(`已切换至 ${opt.label}`, "success");
                 }}
+                // 高亮依赖 localStorage 里的音质（客户端才有）：
+                // 服务端渲染的是默认值，直接比较会导致 hydration 不匹配，
+                // 因此挂载完成后再显示选中态（与其他页面读取本地数据的做法一致）
                 className={`flex flex-col items-center p-3 rounded-lg border transition-all cursor-pointer ${
-                  audioQuality === opt.value
+                  mounted && audioQuality === opt.value
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border hover:border-primary/50"
                 }`}
@@ -143,13 +154,15 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="font-medium text-sm">主题模式</p>
+            {/* 主题存在 localStorage/Cookie，服务端渲染时只有默认值：
+                挂载后再显示实际状态，避免 hydration 不匹配（与侧栏做法一致） */}
             <p className="text-xs text-muted-foreground">
-              {theme === "dark" ? "当前：深色模式" : "当前：浅色模式"}
+              {mounted ? (theme === "dark" ? "当前：深色模式" : "当前：浅色模式") : "主题模式"}
             </p>
           </div>
           <div className="flex gap-2">
             <Button
-              variant={theme === "light" ? "default" : "outline"}
+              variant={mounted && theme === "light" ? "default" : "outline"}
               size="sm"
               onClick={() => setTheme("light")}
               className="cursor-pointer"
@@ -158,7 +171,7 @@ export default function SettingsPage() {
               浅色
             </Button>
             <Button
-              variant={theme === "dark" ? "default" : "outline"}
+              variant={mounted && theme === "dark" ? "default" : "outline"}
               size="sm"
               onClick={() => setTheme("dark")}
               className="cursor-pointer"

@@ -50,7 +50,9 @@ export default async function RootLayout({
   // 不需要任何内联脚本，也就不存在 React 19 "组件内渲染 script" 的警告与首屏闪烁。
   const cookieStore = await cookies();
   const theme = cookieStore.get(THEME_COOKIE)?.value;
-  const themeClass = theme === "dark" ? "dark" : "";
+  // 显式渲染 light/dark 两个类之一：客户端 store 以这个类名作为首屏主题值，
+  // 从而保证水合前后一致（无类名时无法区分"服务端判定为浅色"和"没有服务端信息"）
+  const themeClass = theme === "dark" ? "dark" : "light";
 
   return (
     <html
