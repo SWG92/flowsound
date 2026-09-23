@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { AUDIO_QUALITY, APP_INFO } from "@/lib/constants";
+import { clearApiCache } from "@/lib/api";
 import type { AudioQuality } from "@/lib/constants";
 
 const QUALITY_OPTIONS = Object.entries(AUDIO_QUALITY).map(([key, val]) => ({
@@ -13,6 +14,33 @@ const QUALITY_OPTIONS = Object.entries(AUDIO_QUALITY).map(([key, val]) => ({
   bitrate: val.bitrate,
 }));
 
+// 清除缓存时保留的键：全部用户数据与偏好设置。
+// 只有真正的缓存（每日推荐、内存接口缓存、Service Worker 离线资源）会被清掉。
+const PRESERVE_KEYS = [
+  // 用户数据
+  "flowsound_favorite_songs",
+  "flowsound_history",
+  "flowsound_playlists",
+  "flowsound_blacklist",
+  "flowsound_blacklist_songs",
+  "flowsound_play_counts",
+  "fc_likes",
+  // 偏好设置
+  "flowsound_theme",
+  "flowsound_audio_quality",
+  "flowsound_volume",
+  "flowsound_play_mode",
+  "flowsound_speed",
+  "flowsound_search_history",
+  "flowsound_eq_settings",
+  "flowsound_eq_preset",
+  "flowsound_eq_enabled",
+  "flowsound_lyric_color",
+  "flowsound_lyrics_pos",
+];
+// 动态键（本地评论按歌曲 ID 存储：fc_<songId>）
+const PRESERVE_PREFIXES = ["fc_"];
+
 export default function SettingsPage() {
   const audioQuality = usePlayerStore((s) => s.audioQuality);
   const setAudioQuality = usePlayerStore((s) => s.setAudioQuality);
@@ -20,32 +48,44 @@ export default function SettingsPage() {
   const setTheme = usePlayerStore((s) => s.setTheme);
   const { showToast } = useToast();
 
-  const handleClearCache = () => {
-    // 保留收藏、历史、歌单，清除其他缓存
-    const keysToKeep = [
-      "flowsound_favorite_songs",
-      "flowsound_history",
-      "flowsound_playlists",
-      "flowsound_theme",
-      "flowsound_audio_quality",
-      "flowsound_volume",
-      "flowsound_play_mode",
-      "flowsound_speed",
-    ];
+  const handleClearCache = async () => {
+    // 1. 内存中的接口缓存（搜索结果、歌曲地址、歌词等）
+    clearApiCache();
 
+    // 2. localStorage：只清缓存类数据，其余（用户数据/偏好）原样保留
     const preserved: Record<string, string> = {};
-    keysToKeep.forEach((key) => {
-      const value = localStorage.getItem(key);
-      if (value) preserved[key] = value;
-    });
+    const removable: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      const isPreserved =
+        PRESERVE_KEYS.includes(key) ||
+        PRESERVE_PREFIXES.some((p) => key.startsWith(p));
+      if (isPreserved) {
+        const value = localStorage.getItem(key);
+        if (value !== null) preserved[key] = value;
+      } else {
+        removable.push(key);
+      }
+    }
+    removable.forEach((key) => localStorage.removeItem(key));
 
-    localStorage.clear();
+    // 3. Service Worker 离线资源缓存
+    let swCleared = false;
+    try {
+      if (typeof caches !== "undefined") {
+        const names = await caches.keys();
+        await Promise.all(names.map((n) => caches.delete(n)));
+        swCleared = names.length > 0;
+      }
+    } catch {
+      // 不支持 Cache API 时忽略
+    }
 
-    Object.entries(preserved).forEach(([key, value]) => {
-      localStorage.setItem(key, value);
-    });
-
-    showToast("缓存已清除", "success");
+    showToast(
+      swCleared ? "缓存已清除（含离线资源）" : "缓存已清除",
+      "success"
+    );
   };
 
   return (
@@ -141,7 +181,7 @@ export default function SettingsPage() {
           <div>
             <p className="font-medium text-sm">清除缓存</p>
             <p className="text-xs text-muted-foreground">
-              将保留收藏、歌单、播放历史等数据
+              清理接口缓存、每日推荐与离线资源；收藏、歌单、播放记录、黑名单、本地评论等数据会完整保留
             </p>
           </div>
           <Button

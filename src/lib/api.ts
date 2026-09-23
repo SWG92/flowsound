@@ -18,6 +18,11 @@ function setCache(key: string, data: unknown) {
   cache.set(key, { data, time: Date.now() });
 }
 
+/** 清空内存中的接口缓存（搜索结果、歌曲地址、歌词等）。供设置页"清除缓存"调用。 */
+export function clearApiCache() {
+  cache.clear();
+}
+
 async function fetchJSON<T>(
   fn: string,
   params?: Record<string, string>
@@ -233,8 +238,20 @@ function parseLRC(lrc: string, tlyric?: string): LyricLine[] {
 function getStoredQuality(): AudioQuality {
   if (typeof window === "undefined") return "high";
   try {
-    const stored = localStorage.getItem(STORAGE_KEYS.audioQuality);
-    if (stored && stored in AUDIO_QUALITY) return stored as AudioQuality;
+    const raw = localStorage.getItem(STORAGE_KEYS.audioQuality);
+    if (!raw) return "high";
+    // 设置页通过 saveToStorage 写入，值是 JSON 编码的（"smooth" 带引号），
+    // 必须解析后再比较，否则带引号的字符串匹配不上 AUDIO_QUALITY 的键，
+    // 会静默回落到默认音质（此前音质设置一直不生效就是这个原因）
+    let value: unknown = raw;
+    try {
+      value = JSON.parse(raw);
+    } catch {
+      // 兼容可能存在的裸字符串
+    }
+    if (typeof value === "string" && value in AUDIO_QUALITY) {
+      return value as AudioQuality;
+    }
   } catch {
     // ignore
   }
