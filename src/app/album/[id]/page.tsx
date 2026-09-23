@@ -45,7 +45,9 @@ export default function AlbumPage() {
           artist: data.album?.artist?.name || "",
           publishTime: data.album?.publishTime || 0,
         });
-        setSongs(data.songs || []);
+        // 网易云专辑接口把歌曲放置在顶层 songs（v1 接口）或 album.songs，两者都兼容
+        setSongs(data.songs || data.album?.songs || []);
+        if (!data.album) throw new Error(data.error || "专辑数据为空");
       } catch (error) {
         logError("Failed to load album info:", error);
         showToast("加载专辑信息失败", "error");
@@ -133,7 +135,14 @@ export default function AlbumPage() {
       {/* 歌曲列表 */}
       <div>
         <h2 className="text-lg font-semibold mb-4">歌曲列表</h2>
-        <SongList songs={songs} showAlbum={false} virtual />
+        {songs.length > 0 ? (
+          <SongList songs={songs} showAlbum={false} virtual />
+        ) : (
+          <div className="text-center py-16 text-muted-foreground">
+            <Disc3 className="h-12 w-12 mx-auto mb-4 opacity-30" />
+            <p className="text-sm">该专辑暂无歌曲</p>
+          </div>
+        )}
       </div>
     </div>
   );
