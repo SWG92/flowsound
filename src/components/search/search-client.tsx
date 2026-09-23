@@ -23,7 +23,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hotKeywords, setHotKeywords] = useState<string[]>([]);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+
   // 搜索代际号：快速切换关键词时丢弃过期响应，防止旧结果追加到新结果后面
   const searchGenRef = useRef(0);
   const { showToast } = useToast();
@@ -89,26 +89,6 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
     };
   }, [query]);
 
-  // 无限滚动
-  useEffect(() => {
-    if (!hasMore || loading) return;
-
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
-          doSearch(query, page + 1);
-        }
-      },
-      { rootMargin: "300px" }
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore, loading, query, page, doSearch]);
-
   const handleSearch = (q: string) => {
     router.push(`/search?q=${encodeURIComponent(q)}`);
   };
@@ -141,16 +121,13 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
           ))}
         </div>
       ) : songs.length > 0 ? (
-        <>
-          <SongList songs={songs} virtual />
-          {hasMore && (
-            <div ref={sentinelRef} className="flex justify-center py-4">
-              {loading && (
-                <span className="text-sm text-muted-foreground">加载中...</span>
-              )}
-            </div>
-          )}
-        </>
+        <SongList
+          songs={songs}
+          virtual
+          onEndReached={() => {
+            if (hasMore && !loading) doSearch(query, page + 1);
+          }}
+        />
       ) : query ? (
         <div className="text-center py-20 text-muted-foreground">
           <p className="text-lg mb-2">未找到相关歌曲</p>

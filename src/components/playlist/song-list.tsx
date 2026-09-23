@@ -43,6 +43,10 @@ interface SongListProps {
   virtual?: boolean;
   /** 虚拟滚动容器最大高度，默认填充父容器 */
   maxHeight?: string;
+  /** 列表滚动到底部附近时触发（用于无限滚动加载下一页） */
+  onEndReached?: () => void;
+  /** 距离底部多少像素触发 onEndReached，默认 240 */
+  endReachedThreshold?: number;
 }
 
 function SongRow({
@@ -158,7 +162,7 @@ function SongRow({
   );
 }
 
-export function SongList({ songs, showIndex = true, showAlbum = true, virtual = false, maxHeight }: SongListProps) {
+export function SongList({ songs, showIndex = true, showAlbum = true, virtual = false, maxHeight, onEndReached, endReachedThreshold = 240 }: SongListProps) {
   const router = useRouter();
   const { currentSong, isPlaying, isLoading, playSong, toggleFavorite, isFavorite, setQueue } =
     usePlayerStore();
@@ -317,6 +321,19 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
             ref={scrollRef}
             className="overflow-y-auto"
             style={{ maxHeight: maxHeight || "calc(100vh - 320px)" }}
+            // 无限滚动必须挂在列表自身的滚动上：虚拟列表有自己的滚动条，
+            // 页面几乎不滚动，若把哨兵放在页面流里会一直停在视口内、把全部页一次加载完
+            onScroll={
+              onEndReached
+                ? () => {
+                    const el = scrollRef.current;
+                    if (!el) return;
+                    if (el.scrollHeight - el.scrollTop - el.clientHeight < endReachedThreshold) {
+                      onEndReached();
+                    }
+                  }
+                : undefined
+            }
           >
             <div
               style={{
