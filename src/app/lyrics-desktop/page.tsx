@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { onLyricsBroadcast, sendLyricsCommand, type LyricsMessage } from "@/lib/lyrics-broadcast";
+import { onLyricsBroadcast, sendLyricsCommand, isHeartbeatFresh, type LyricsMessage } from "@/lib/lyrics-broadcast";
 
 const LYRIC_COLORS = [
   { name: "绿", hex: "#1ed760", glow: "rgba(30,215,96,0.5)" },
@@ -32,13 +32,15 @@ export default function DesktopLyricsPage() {
       }
     });
 
-    // localStorage 轮询备用
+    // localStorage 兜底：部分环境（多标签页隔离的浏览器）BroadcastChannel 不跨窗口，
+    // 只能靠主窗口写的快照。快照仅在内容变化时更新，因此用"心跳是否新鲜"判断
+    // 主窗口是否在线，而不是快照自身的 3 秒时效。
     const interval = setInterval(() => {
       try {
         const stored = localStorage.getItem("flowsound_lyrics_state");
-        if (stored) {
+        if (stored && isHeartbeatFresh()) {
           const data = JSON.parse(stored);
-          if (Date.now() - data._ts < 3000 && data.type === "sync") {
+          if (data.type === "sync") {
             setState(data);
             if (data.lyricColorIdx !== undefined) setColorIdx(data.lyricColorIdx);
           }
@@ -48,7 +50,12 @@ export default function DesktopLyricsPage() {
 
     document.title = "FlowSound 桌面歌词";
 
-    return () => { unsub(); clearInterval(interval); };
+    // 向主窗口索要一次全量状态：广播通道可用时立刻收到应答；
+    // 不可用时，上面的兜底轮询会在心跳 + 快照就绪后拿到数据。
+    sendLyricsCommand({ type: "ping" });
+    const pingTimer = setInterval(() => sendLyricsCommand({ type: "ping" }), 5000);
+
+    return () => { unsub(); clearInterval(interval); clearInterval(pingTimer); };
   }, []);
 
   // 歌词透明度渐变

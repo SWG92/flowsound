@@ -5,6 +5,8 @@ import type { Song, SearchResult, LyricLine } from "@/lib/types";
 import { NETEASE_API, NETEASE_BASE, NETEASE_HEADERS, FETCH_TIMEOUT } from "@/lib/constants";
 
 let neteaseCookie = "";
+// 最近一次 getSongUrl 实际提供的音质等级（供路由层透传给客户端）
+let lastSongLevel: string | undefined;
 
 export function setNeteaseCookie(cookie: string) {
   neteaseCookie = cookie;
@@ -111,10 +113,18 @@ export const neteaseAdapter: PlatformAdapter = {
     await ensureLogin();
 
     const data = await fetchJSON<{
-      data: { url: string }[];
+      data: { url: string; level?: string }[];
     }>(`${NETEASE_API.songUrl}?ids=[${songId}]&br=${br}`);
 
-    return data.data?.[0]?.url || "";
+    // 记录实际提供的音质等级：匿名账号请求无损时上游会降级（level=exhigh 即 320k），
+    // 客户端据此给出"无损需会员"的明确提示
+    const item = data.data?.[0];
+    lastSongLevel = item?.level ?? undefined;
+    return item?.url || "";
+  },
+
+  getLastLevel() {
+    return lastSongLevel;
   },
 
   async getLyrics(songId) {

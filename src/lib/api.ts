@@ -154,6 +154,51 @@ export async function getSongUrl(
   return url;
 }
 
+// 网易云音质等级 → 中文说明（客户端提示用）
+const NETEASE_LEVEL_LABELS: Record<string, string> = {
+  standard: "标准 128K",
+  higher: "较高 192K",
+  exhigh: "高品质 320K",
+  lossless: "无损",
+  hires: "Hi-Res",
+};
+
+/**
+ * 获取歌曲地址及实际音质信息（切换音质时用）。
+ * 与 getSongUrl 的区别：不读缓存、返回上游真实提供的音质等级 ——
+ * 匿名账号请求无损时网易云会静默降级为 320k，客户端据此提示而不是让用户以为无损生效了。
+ */
+export async function getSongUrlDetailed(
+  id: number | string,
+  quality?: AudioQuality,
+  platform: MusicPlatform = "netease",
+  platformId?: string
+): Promise<{ url: string; level?: string; levelLabel?: string }> {
+  const q = quality || getStoredQuality();
+  const bitrate = AUDIO_QUALITY[q].bitrate;
+  const pid = platformId || String(id);
+
+  const params: Record<string, string> = {
+    id: platform !== "netease" ? pid : String(id),
+    br: bitrate,
+    platform,
+  };
+  if (platformId) params.platformId = platformId;
+
+  const data = await fetchJSON<{
+    data?: Array<{ url: string; level?: string }>;
+  }>("song/url", params);
+
+  const item = data.data?.[0];
+  const url = item?.url || "";
+  const level = item?.level;
+  return {
+    url,
+    level,
+    levelLabel: level ? NETEASE_LEVEL_LABELS[level] : undefined,
+  };
+}
+
 // ============ 歌词 ============
 
 export async function getLyrics(

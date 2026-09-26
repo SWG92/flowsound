@@ -27,9 +27,11 @@ const searchHandler: HandlerFn = async (params) => {
 const songUrlHandler: HandlerFn = async (params) => {
   const id = params.id || params.platformId || "";
   const br = params.br || "320000";
-  const url = await getAdapter(params._platform as MusicPlatform).getSongUrl(id, br);
-  // 客户端 api.ts 期望 { data: [{ url }] } 格式
-  return { data: [{ url }] };
+  const adapter = getAdapter(params._platform as MusicPlatform);
+  const url = await adapter.getSongUrl(id, br);
+  // 客户端 api.ts 期望 { data: [{ url }] } 格式；网易云还会带上实际音质等级
+  const level = adapter.getLastLevel?.();
+  return { data: [{ url, ...(level ? { level } : {}) }] };
 };
 
 const lyricHandler: HandlerFn = async (params) => {

@@ -23,7 +23,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePlayerStore } from "@/lib/store";
-import { getSongUrl } from "@/lib/api";
+import { getSongUrlDetailed } from "@/lib/api";
 import { AUDIO_QUALITY } from "@/lib/constants";
 import type { AudioQuality } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
@@ -156,7 +156,9 @@ export function PlayerBar() {
     }
     const position = audioPlayer.getCurrentTime();
     try {
-      const url = await getSongUrl(
+      // 用带音质等级的版本：匿名账号请求无损时网易云会静默降级为 320k，
+      // 拿到真实等级才能给用户明确提示
+      const { url, level, levelLabel } = await getSongUrlDetailed(
         song.id,
         quality,
         (song.platform || "netease") as MusicPlatform,
@@ -164,7 +166,11 @@ export function PlayerBar() {
       );
       if (url) {
         audioPlayer.reloadAtPosition(url, position);
-        showToast(`已切换至${label}，正在重新加载`);
+        if (quality === "lossless" && level && level !== "lossless" && level !== "hires") {
+          showToast(`无损需会员，实际为${levelLabel || "320K"}，已按此播放`, "warning");
+        } else {
+          showToast(`已切换至${label}，正在重新加载`);
+        }
       } else {
         showToast(`${label}暂不可用（可能需会员），已保留原音质`, "warning");
       }
