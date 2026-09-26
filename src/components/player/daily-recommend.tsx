@@ -92,7 +92,8 @@ export function DailyRecommend() {
   }, [showToast]);
 
   useEffect(() => {
-    loadSongs(false);
+    const t = setTimeout(() => loadSongs(false), 0);
+    return () => clearTimeout(t);
   }, [loadSongs]);
 
   const handleRefresh = () => {

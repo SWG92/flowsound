@@ -28,10 +28,14 @@ export function Sidebar() {
   const setTheme = usePlayerStore((s) => s.setTheme);
   const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  // 异步置位，避免同步 setState 触发级联渲染告警
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
+  }, []);
 
-  // 导航后自动关闭移动侧栏
-  useEffect(() => { setMobileOpen(false); }, [pathname]);
+  // 导航后关闭移动抽屉：在各导航链接的 onClick 里直接收起
+  // （React 对相同 state 值会自动跳过渲染，桌面端无副作用），不用 effect 监听
 
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
 
@@ -64,7 +68,7 @@ export function Sidebar() {
           const Icon = item.icon;
           const active = pathname === item.href;
           return (
-            <Link key={item.href} href={item.href} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors", active ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+            <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors", active ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
               <Icon className="h-4 w-4" />{item.label}
             </Link>
           );
@@ -77,7 +81,7 @@ export function Sidebar() {
           const Icon = item.icon;
           const active = pathname === item.href;
           return (
-            <Link key={item.href} href={item.href} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors", active ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+            <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors", active ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
               <Icon className="h-4 w-4" />{item.label}
             </Link>
           );
@@ -85,7 +89,7 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-border/50 pt-3 space-y-1">
-        <Link href="/settings" className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors", pathname === "/settings" ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+        <Link href="/settings" onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors", pathname === "/settings" ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
           <Settings className="h-4 w-4" />设置
         </Link>
         <button onClick={toggleTheme} className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors w-full text-left cursor-pointer">

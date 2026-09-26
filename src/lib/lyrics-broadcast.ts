@@ -20,10 +20,18 @@ export interface LyricsMessage {
 export interface LyricsCommand {
   type: "togglePlay" | "toggleFavorite" | "setColor" | "setLocked" | "close" | "ping";
   value?: number | boolean;
+  /** 去重 ID：广播与 localStorage 两条通道都会送达，主窗口按 ID 只处理一次 */
+  id?: string;
 }
 
 const STATE_KEY = "flowsound_lyrics_state";
 const HEARTBEAT_KEY = "flowsound_lyrics_hb";
+const CMD_KEY = "flowsound_lyrics_cmd";
+
+/** 生成命令去重 ID */
+function makeCmdId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 let channel: BroadcastChannel | null = null;
 let cmdChannel: BroadcastChannel | null = null;
@@ -85,11 +93,32 @@ export function onLyricsBroadcast(callback: (data: LyricsMessage) => void): () =
   return () => bc.removeEventListener("message", handler);
 }
 
-/** 悬浮窗：向主窗口发送控制命令 */
+/** 悬浮窗：向主窗口发送控制命令。
+ * 广播通道与 localStorage 队列双写：广播在正常浏览器里低延迟到达，
+ * 队列在标签页隔离的环境里由主窗口轮询消费。主窗口按命令 ID 去重。 */
 export function sendLyricsCommand(cmd: LyricsCommand) {
+  const full = { ...cmd, id: makeCmdId() };
   try {
-    getCmdChannel().postMessage(cmd);
+    getCmdChannel().postMessage(full);
   } catch { /* ignore */ }
+  try {
+    const queue = JSON.parse(localStorage.getItem(CMD_KEY) || "[]");
+    queue.push({ ...full, _ts: Date.now() });
+    localStorage.setItem(CMD_KEY, JSON.stringify(queue.slice(-20)));
+  } catch { /* ignore */ }
+}
+
+/** 主窗口：读取并清空 localStorage 命令队列（广播不可用环境的兜底通道） */
+export function takePendingCommands(): LyricsCommand[] {
+  try {
+    const raw = localStorage.getItem(CMD_KEY);
+    if (!raw) return [];
+    localStorage.removeItem(CMD_KEY);
+    const queue = JSON.parse(raw);
+    return Array.isArray(queue) ? queue : [];
+  } catch {
+    return [];
+  }
 }
 
 /** 打开桌面悬浮歌词窗口 */

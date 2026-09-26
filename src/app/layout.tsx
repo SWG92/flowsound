@@ -61,7 +61,8 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <link rel="apple-touch-icon" href="/icon-192.svg" />
+        {/* iOS 不支持 SVG 的 apple-touch-icon，用 PNG */}
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className="h-screen overflow-hidden bg-gradient-main text-foreground flex">
         <ThemeProvider>

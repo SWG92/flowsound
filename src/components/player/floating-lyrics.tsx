@@ -38,21 +38,21 @@ export function FloatingLyrics() {
 
   const lyricColor = LYRIC_COLORS[colorIdx];
 
-  // 初始化位置
+  // 初始化位置（异步置位，避免同步 setState 触发级联渲染告警）
   useEffect(() => {
     if (!initialized.current && typeof window !== "undefined") {
       initialized.current = true;
-      try {
-        const saved = localStorage.getItem("flowsound_lyrics_pos");
-        if (saved) setPos(JSON.parse(saved));
-        else {
-          const w = Math.min(560, window.innerWidth - 16);
-          setPos({ x: (window.innerWidth - w) / 2 + 60, y: (window.innerHeight - 400) / 4 });
+      const fallback = { x: (window.innerWidth - Math.min(560, window.innerWidth - 16)) / 2 + 60, y: (window.innerHeight - 400) / 4 };
+      const t = setTimeout(() => {
+        try {
+          const saved = localStorage.getItem("flowsound_lyrics_pos");
+          if (saved) setPos(JSON.parse(saved));
+          else setPos(fallback);
+        } catch {
+          setPos(fallback);
         }
-      } catch {
-        const w = Math.min(560, window.innerWidth - 16);
-        setPos({ x: (window.innerWidth - w) / 2 + 60, y: (window.innerHeight - 400) / 4 });
-      }
+      }, 0);
+      return () => clearTimeout(t);
     }
   }, []);
 

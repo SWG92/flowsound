@@ -143,14 +143,17 @@ export function CommentsDialog({ song, open, onOpenChange }: CommentsDialogProps
 
     const controller = new AbortController();
     abortRef.current = controller;
-    offsetRef.current = 0;
-    setError(null);
-    setInput("");
-    setLikedMap(loadLikes());
 
-    fetchComments(song.id, 0);
+    // 状态重置与请求延后一拍，避免同步 setState 触发级联渲染告警
+    const t = setTimeout(() => {
+      offsetRef.current = 0;
+      setError(null);
+      setInput("");
+      setLikedMap(loadLikes());
+      fetchComments(song.id, 0);
+    }, 0);
 
-    return () => controller.abort();
+    return () => { clearTimeout(t); controller.abort(); };
   }, [song, open]);
 
   // 加载更多

@@ -11,7 +11,10 @@ export default function HistoryPage() {
   const { playHistory, clearHistory, playCounts } = usePlayerStore();
   const [mounted, setMounted] = useState(false);
   const [view, setView] = useState<"recent" | "top">("recent");
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
+  }, []);
 
   // 听歌排行：按播放次数排序（歌曲对象从播放历史中取，播放过的歌几乎都在历史里）
   const topSongs = useMemo(() => {

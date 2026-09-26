@@ -9,7 +9,10 @@ export default function FavoritesPage() {
   const { favoriteSongs } = usePlayerStore();
   // 避免 hydration 不匹配：favorites 来自 localStorage，SSR 时为 []
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
+  }, []);
 
   const count = mounted ? favoriteSongs.length : 0;
 

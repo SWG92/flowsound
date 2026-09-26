@@ -55,13 +55,16 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
 
   // 关键词变化时重新搜索（服务端导航会传入新的 initialQuery）
   useEffect(() => {
-    if (query) {
-      doSearch(query, 1);
-    } else {
-      setSongs([]);
-      setTotal(0);
-      setHasMore(false);
-    }
+    const t = setTimeout(() => {
+      if (query) {
+        doSearch(query, 1);
+      } else {
+        setSongs([]);
+        setTotal(0);
+        setHasMore(false);
+      }
+    }, 0);
+    return () => clearTimeout(t);
   }, [query, doSearch]);
 
   // 空状态下展示"大家都在搜"（取自热歌榜歌手，无需额外接口）

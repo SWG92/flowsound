@@ -20,15 +20,17 @@ export default function BlacklistPage() {
   const { currentSong, isPlaying, isLoading, playSong, setQueue } = usePlayerStore();
   const { showToast } = useToast();
 
-  useEffect(() => { loadData(); }, []);
-
-  function loadData() {
-    try {
-      const blackIds: number[] = JSON.parse(localStorage.getItem("flowsound_blacklist") || "[]");
-      const saved: Song[] = JSON.parse(localStorage.getItem("flowsound_blacklist_songs") || "[]");
-      setSongs(saved.filter((s) => blackIds.includes(s.id)));
-    } catch { setSongs([]); }
-  }
+  // 从 localStorage 加载黑名单歌曲（异步置位，避免同步 setState 触发级联渲染告警）
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        const blackIds: number[] = JSON.parse(localStorage.getItem("flowsound_blacklist") || "[]");
+        const saved: Song[] = JSON.parse(localStorage.getItem("flowsound_blacklist_songs") || "[]");
+        setSongs(saved.filter((s) => blackIds.includes(s.id)));
+      } catch { setSongs([]); }
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
 
   function removeOne(songId: number) {
     const blackIds: number[] = JSON.parse(localStorage.getItem("flowsound_blacklist") || "[]");

@@ -29,9 +29,10 @@ export default function AlbumPage() {
   const { showToast } = useToast();
 
   useEffect(() => {
+    // 无效 id 直接结束 loading（异步置位，避免同步 setState 级联渲染告警）
     if (!id || id === "0") {
-      setLoading(false);
-      return;
+      const t = setTimeout(() => setLoading(false), 0);
+      return () => clearTimeout(t);
     }
     async function load() {
       try {
