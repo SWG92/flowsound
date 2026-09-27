@@ -72,7 +72,7 @@
   --chart-3: oklch(0.6 0.15 250);
   --chart-4: oklch(0.55 0.18 200);
   --chart-5: oklch(0.5 0.12 160);
-  --radius: 0.75rem;
+  --radius: 1rem;
   --sidebar: oklch(1 0 0 / 0.5);
   --sidebar-foreground: oklch(0.2 0.01 270);
   --sidebar-primary: oklch(0.55 0.22 280);
@@ -130,21 +130,141 @@
   --sidebar-ring: oklch(0.65 0.22 280);
 }
 
-/* 深色模式毛玻璃 */
+/* ===== Liquid Glass 液态玻璃材质系统 =====
+ * 设计语言（参照 iPadOS 26 Liquid Glass）：
+ * - 多层半透明折射：背景渐变高光 + 强饱和背景模糊
+ * - 边缘镜面高光：上缘亮、下缘微亮的 inset 阴影模拟玻璃厚度
+ * - 悬浮感：大而柔的外阴影 + 大圆角
+ * - 底层流动色彩：body 上的两个光斑缓慢漂移，让玻璃"活"起来
+ */
+
+/* 光斑漂移动画（GPU 合成，低开销） */
+@keyframes liquid-drift-a {
+  0%, 100% { transform: translate3d(-6%, -4%, 0) scale(1); }
+  33% { transform: translate3d(10%, 6%, 0) scale(1.15); }
+  66% { transform: translate3d(-2%, 10%, 0) scale(0.92); }
+}
+@keyframes liquid-drift-b {
+  0%, 100% { transform: translate3d(8%, 6%, 0) scale(1.05); }
+  50% { transform: translate3d(-8%, -8%, 0) scale(0.9); }
+}
+
+/* 底层流动光斑（挂在 body 伪元素上，位于内容之下、画布背景之上） */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: -1;
+  will-change: transform;
+}
+body::before {
+  width: 65vmax;
+  height: 65vmax;
+  left: -12vmax;
+  top: -18vmax;
+  animation: liquid-drift-a 32s ease-in-out infinite;
+}
+body::after {
+  width: 55vmax;
+  height: 55vmax;
+  right: -15vmax;
+  bottom: -20vmax;
+  animation: liquid-drift-b 38s ease-in-out infinite;
+}
+
+/* 浅色光斑 */
+body::before {
+  background: radial-gradient(circle at 40% 40%, oklch(0.82 0.16 285 / 0.75), transparent 65%);
+}
+body::after {
+  background: radial-gradient(circle at 55% 55%, oklch(0.85 0.13 210 / 0.6), transparent 65%);
+}
+
+/* 深色光斑：更饱和、更暗，让深色玻璃有折射内容 */
+.dark body::before {
+  background: radial-gradient(circle at 40% 40%, oklch(0.42 0.2 285 / 0.55), transparent 65%);
+}
+.dark body::after {
+  background: radial-gradient(circle at 55% 55%, oklch(0.38 0.15 215 / 0.5), transparent 65%);
+}
+
+/* ===== 液态玻璃面板（浅色为默认，深色在 .dark 下覆盖） ===== */
+.glass {
+  /* 多层背景：左上高光 → 中段透 → 底部微反光，模拟弧面折射 */
+  background:
+    linear-gradient(
+      135deg,
+      oklch(1 0 0 / 0.5),
+      oklch(1 0 0 / 0.16) 42%,
+      oklch(1 0 0 / 0.38)
+    ),
+    oklch(1 0 0 / 0.22);
+  backdrop-filter: blur(24px) saturate(1.8) brightness(1.04);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8) brightness(1.04);
+  border: 1px solid oklch(1 0 0 / 0.55);
+  /* 镜面边缘：上缘亮线 + 下缘微光 + 悬浮外阴影 */
+  box-shadow:
+    inset 0 1px 1px oklch(1 0 0 / 0.75),
+    inset 0 -1px 1px oklch(1 0 0 / 0.22),
+    0 12px 40px oklch(0.35 0.06 270 / 0.14);
+}
+
+.glass-light {
+  background:
+    linear-gradient(
+      135deg,
+      oklch(1 0 0 / 0.38),
+      oklch(1 0 0 / 0.1) 42%,
+      oklch(1 0 0 / 0.26)
+    ),
+    oklch(1 0 0 / 0.14);
+  backdrop-filter: blur(18px) saturate(1.6);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  border: 1px solid oklch(1 0 0 / 0.4);
+  box-shadow:
+    inset 0 1px 1px oklch(1 0 0 / 0.55),
+    inset 0 -1px 1px oklch(1 0 0 / 0.14),
+    0 8px 28px oklch(0.35 0.06 270 / 0.1);
+}
+
+/* 深色液态玻璃 */
 .dark .glass {
-  background: oklch(0.18 0.005 270 / 0.35);
-  backdrop-filter: blur(20px) saturate(1.6);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6);
-  border: 1px solid oklch(1 0 0 / 0.12);
-  box-shadow: 0 8px 32px oklch(0 0 0 / 0.3);
+  background:
+    linear-gradient(
+      135deg,
+      oklch(1 0 0 / 0.12),
+      oklch(1 0 0 / 0.035) 42%,
+      oklch(1 0 0 / 0.08)
+    ),
+    oklch(0.22 0.015 270 / 0.4);
+  backdrop-filter: blur(24px) saturate(1.8) brightness(1.1);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8) brightness(1.1);
+  border: 1px solid oklch(1 0 0 / 0.16);
+  box-shadow:
+    inset 0 1px 1px oklch(1 0 0 / 0.3),
+    inset 0 -1px 1px oklch(1 0 0 / 0.07),
+    0 12px 40px oklch(0 0 0 / 0.4);
 }
 
 .dark .glass-light {
-  background: oklch(0.18 0.005 270 / 0.25);
-  backdrop-filter: blur(14px) saturate(1.4);
-  -webkit-backdrop-filter: blur(14px) saturate(1.4);
-  border: 1px solid oklch(1 0 0 / 0.08);
-  box-shadow: 0 4px 24px oklch(0 0 0 / 0.25);
+  background:
+    linear-gradient(
+      135deg,
+      oklch(1 0 0 / 0.08),
+      oklch(1 0 0 / 0.02) 42%,
+      oklch(1 0 0 / 0.05)
+    ),
+    oklch(0.22 0.015 270 / 0.28);
+  backdrop-filter: blur(16px) saturate(1.6) brightness(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6) brightness(1.08);
+  border: 1px solid oklch(1 0 0 / 0.1);
+  box-shadow:
+    inset 0 1px 1px oklch(1 0 0 / 0.2),
+    inset 0 -1px 1px oklch(1 0 0 / 0.05),
+    0 8px 28px oklch(0 0 0 / 0.3);
 }
 
 /* 深色渐变背景 */
@@ -192,22 +312,7 @@
   background: oklch(0.7 0.25 280);
 }
 
-/* 毛玻璃效果 - 真正的透明毛玻璃 */
-.glass {
-  background: oklch(1 0 0 / 0.25);
-  backdrop-filter: blur(20px) saturate(1.6);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6);
-  border: 1px solid oklch(1 0 0 / 0.3);
-  box-shadow: 0 8px 32px oklch(0 0 0 / 0.08);
-}
-
-.glass-light {
-  background: oklch(1 0 0 / 0.18);
-  backdrop-filter: blur(14px) saturate(1.4);
-  -webkit-backdrop-filter: blur(14px) saturate(1.4);
-  border: 1px solid oklch(1 0 0 / 0.2);
-  box-shadow: 0 4px 24px oklch(0 0 0 / 0.06);
-}
+/* （毛玻璃材质已升级为 Liquid Glass，见文件头部的材质系统） */
 
 /* 渐变背景 - 鲜艳色彩，让毛玻璃有东西可以透 */
 .bg-gradient-main {
