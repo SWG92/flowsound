@@ -371,6 +371,78 @@ body::after {
   background: oklch(0 0 0 / 0.04);
 }
 
+/* ===== 交互反馈系统（Liquid Glass 触感） =====
+ * 按压缩放 + 弹性曲线，模拟 iPad 系统的即时触感反馈。
+ * transform 不影响布局，性能安全。
+ */
+button:not(:disabled),
+[role="button"]:not(:disabled),
+a,
+.song-row {
+  transition:
+    transform 0.18s cubic-bezier(0.2, 0.8, 0.3, 1.15),
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.18s ease,
+    filter 0.15s ease,
+    color 0.15s ease;
+}
+
+button:not(:disabled):active,
+[role="button"]:not(:disabled):active {
+  transform: scale(0.96);
+  filter: brightness(0.94);
+}
+
+a:active {
+  transform: scale(0.97);
+}
+
+.song-row:active {
+  transform: scale(0.995);
+}
+
+/* 弹窗进出改用弹性曲线（覆盖默认的线性时长） */
+[data-slot="dialog-content"],
+[data-slot="dialog-overlay"] {
+  animation-duration: 0.32s;
+  animation-timing-function: cubic-bezier(0.22, 1.16, 0.36, 1);
+}
+
+[data-slot="dialog-content"][data-closed] {
+  animation-duration: 0.16s;
+  animation-timing-function: ease-in;
+}
+
+/* 路由切换的 View Transition：略带位移的交叉淡化，比默认更"系统" */
+::view-transition-old(root) {
+  animation: 0.22s cubic-bezier(0.3, 0, 0.4, 1) both fade-out-slide;
+}
+::view-transition-new(root) {
+  animation: 0.28s cubic-bezier(0.22, 1, 0.36, 1) both fade-in-slide;
+}
+
+@keyframes fade-out-slide {
+  to { opacity: 0; transform: translateY(-6px) scale(0.99); }
+}
+@keyframes fade-in-slide {
+  from { opacity: 0; transform: translateY(8px) scale(0.995); }
+}
+
+/* 无障碍：用户偏好减少动效时全部关闭 */
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
 /* 播放动画 */
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 15px oklch(0.65 0.25 280 / 0.3); }
