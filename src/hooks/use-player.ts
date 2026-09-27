@@ -19,7 +19,8 @@ export function useAudioPlayer() {
       prevSongUrl.current = url;
       audioPlayer.play(url, volume, speed);
     }
-  }, [currentSong?.url]); // 只依赖 URL，volume/speed 改变时不重新加载
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 刻意只依赖 URL：volume/speed 各有独立 effect 同步到播放器，不应触发整首重载
+  }, [currentSong?.url]);
 
   // 播放/暂停控制
   useEffect(() => {
@@ -30,6 +31,7 @@ export function useAudioPlayer() {
     } else {
       audioPlayer.pause();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 刻意只依赖 isPlaying：URL 变化由上面的 effect 负责，切歌时的 resume 会导致双重起播
   }, [isPlaying]);
 
   // 音量控制

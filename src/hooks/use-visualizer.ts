@@ -10,7 +10,7 @@ import { audioPlayer } from "@/lib/audio-player";
  * 无法使用 Web Audio API（createMediaElementSource / decodeAudioData 均会失败）。
  * 因此可视化条使用 CSS 动画作为可靠的降级方案。
  */
-export function useVisualizer(_fftSize = 64) {
+export function useVisualizer() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {

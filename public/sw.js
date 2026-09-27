@@ -2,7 +2,7 @@
 const CACHE_NAME = "flowsound-v2";
 
 // 安装
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 

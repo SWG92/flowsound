@@ -47,7 +47,7 @@ export default function Home() {
     }
     load();
     return () => { cancelled = true; };
-  }, []);
+  }, [showToast]);
 
   const handlePlayAll = (songList: Song[]) => {
     if (songList.length === 0) return;

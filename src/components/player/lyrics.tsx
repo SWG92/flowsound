@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useState } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { usePlayerStore } from "@/lib/store";
 import { audioPlayer } from "@/lib/audio-player";
 import { cn, getCoverUrl } from "@/lib/utils";
@@ -10,7 +10,6 @@ export function LyricsDisplay() {
   const containerRef = useRef<HTMLDivElement>(null);
   const hasScrolledOnMount = useRef(false);
   // 用户手动滚动时暂停自动滚动，停止后 2 秒恢复
-  const [userScrolling, setUserScrolling] = useState(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isUserScrollRef = useRef(false);
 
@@ -49,13 +48,11 @@ export function LyricsDisplay() {
     const handleScroll = () => {
       if (!isUserScrollRef.current) {
         isUserScrollRef.current = true;
-        setUserScrolling(true);
       }
       // 重置计时器：停止滚动 2 秒后恢复自动滚动
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
       scrollTimeoutRef.current = setTimeout(() => {
         isUserScrollRef.current = false;
-        setUserScrolling(false);
       }, 2000);
     };
 
@@ -71,7 +68,6 @@ export function LyricsDisplay() {
     audioPlayer.seek(time);
     // 点击跳转后立即恢复自动滚动
     isUserScrollRef.current = false;
-    setUserScrolling(false);
   }, []);
 
   if (!currentSong) {

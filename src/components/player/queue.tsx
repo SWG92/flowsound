@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePlayerStore } from "@/lib/store";
 import { cn, getCoverUrl } from "@/lib/utils";
-import type { Song } from "@/lib/types";
 
 export function PlayQueue() {
   const {

@@ -19,7 +19,7 @@ export function VisualizerBars({
   className,
   maxHeight = 40,
 }: VisualizerBarsProps) {
-  const { isActive } = useVisualizer(64);
+  const { isActive } = useVisualizer();
 
   return (
     <div

@@ -45,7 +45,7 @@ export default function BlacklistPage() {
     showToast("黑名单已清空");
   }
 
-  function handlePlay(song: Song, idx: number) {
+  function handlePlay(song: Song) {
     if (song.fee === 1) return;
     const playable = songs.filter((s) => s.fee !== 1);
     setQueue(playable);
@@ -97,7 +97,7 @@ export default function BlacklistPage() {
                   isCurrent && "bg-primary/10",
                   isPaid ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
                 )}
-                onDoubleClick={() => handlePlay(song, index)}
+                onDoubleClick={() => handlePlay(song)}
               >
                 {/* 序号 / 播放状态 */}
                 <div className="flex items-center justify-center">
@@ -116,7 +116,7 @@ export default function BlacklistPage() {
                       <span className="text-sm text-muted-foreground group-hover:hidden">{index + 1}</span>
                       <Play
                         className="h-4 w-4 text-foreground hidden group-hover:block"
-                        onClick={(e) => { e.stopPropagation(); handlePlay(song, index); }}
+                        onClick={(e) => { e.stopPropagation(); handlePlay(song); }}
                       />
                     </>
                   )}

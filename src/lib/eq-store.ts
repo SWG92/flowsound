@@ -44,7 +44,7 @@ export const EQ_PRESETS: Record<EQPresetName, number[]> = {
 };
 
 function getDefaultBands(): EQBand[] {
-  return EQ_BANDS.map((b, i) => ({ ...b, gain: 0 }));
+  return EQ_BANDS.map((b) => ({ ...b, gain: 0 }));
 }
 
 function loadPreset(): EQPresetName {
