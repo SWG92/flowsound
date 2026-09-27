@@ -39,7 +39,6 @@ interface PlayerState {
   // 主题与设置
   theme: "light" | "dark";
   audioQuality: AudioQuality;
-  preferredPlatform: MusicPlatform; // 全局首选平台（影响首页/搜索/播放）
 
   // 操作
   playSong: (song: Song, queue?: Song[]) => Promise<void>;
@@ -67,7 +66,6 @@ interface PlayerState {
   setLoading: (loading: boolean) => void;
   setTheme: (theme: "light" | "dark") => void;
   setAudioQuality: (quality: AudioQuality) => void;
-  setPreferredPlatform: (platform: MusicPlatform) => void;
   setShowFloatingLyrics: (show: boolean) => void;
 }
 
@@ -152,7 +150,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   showFloatingLyrics: false,
   theme: initialTheme,
   audioQuality: initialAudioQuality,
-  preferredPlatform: "netease",
 
   playSong: async (song, queue) => {
     const gen = ++playGeneration;
@@ -411,10 +408,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setAudioQuality: (quality) => {
     saveToStorage(STORAGE_KEYS.audioQuality, quality);
     set({ audioQuality: quality });
-  },
-
-  setPreferredPlatform: (platform) => {
-    set({ preferredPlatform: platform });
   },
 
   setShowFloatingLyrics: (show) => {

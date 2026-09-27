@@ -1,2 +1,3 @@
-Set-Location "C:\Users\苏文贵\Desktop\vscode项目\c++项目\flowsound"
+# FlowSound 启动脚本：定位到脚本所在目录后启动开发服务器
+Set-Location $PSScriptRoot
 npm run dev
