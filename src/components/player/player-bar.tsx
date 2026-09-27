@@ -155,6 +155,7 @@ export function PlayerBar() {
       return;
     }
     const position = audioPlayer.getCurrentTime();
+    const wasPlaying = usePlayerStore.getState().isPlaying;
     try {
       // 用带音质等级的版本：匿名账号请求无损时网易云会静默降级为 320k，
       // 拿到真实等级才能给用户明确提示
@@ -165,11 +166,12 @@ export function PlayerBar() {
         song.platformId
       );
       if (url) {
-        audioPlayer.reloadAtPosition(url, position);
+        // 暂停状态下切音质：加载后保持暂停，不突然开始播放
+        audioPlayer.reloadAtPosition(url, position, !wasPlaying);
         if (quality === "lossless" && level && level !== "lossless" && level !== "hires") {
           showToast(`无损需会员，实际为${levelLabel || "320K"}，已按此播放`, "warning");
         } else {
-          showToast(`已切换至${label}，正在重新加载`);
+          showToast(wasPlaying ? `已切换至${label}，正在重新加载` : `已切换至${label}`);
         }
       } else {
         showToast(`${label}暂不可用（可能需会员），已保留原音质`, "warning");

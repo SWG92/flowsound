@@ -26,6 +26,8 @@ class AudioPlayer {
   // EQ 静音看门狗：跨域音频未带 crossOrigin 时接 Web Audio 会输出静音，需检测并回退
   private eqWatchdog: ReturnType<typeof setInterval> | null = null;
   private eqSilentCount = 0;
+  // 本次起播是否需要加载后立即暂停（切音质且原本暂停的场景）
+  private startPaused = false;
   private eqUnsupportedNotified = false;
 
   // 当前播放参数（供 EQ 回退时原地重建播放）
@@ -63,8 +65,14 @@ class AudioPlayer {
     }
   }
 
-  // 播放新歌曲
-  async play(url: string, volume: number, speed: number) {
+  // 播放新歌曲。opts.startAt：加载后定位到的进度（秒）；
+  // opts.startPaused：加载后保持暂停（切音质时避免"暂停着切音质却突然开始播"）
+  async play(
+    url: string,
+    volume: number,
+    speed: number,
+    opts?: { startPaused?: boolean; startAt?: number }
+  ) {
     // 取消待执行的 onend 回调
     if (this.endTimeout) {
       clearTimeout(this.endTimeout);
@@ -74,6 +82,11 @@ class AudioPlayer {
     this.lastUrl = url;
     this.lastVolume = volume;
     this.lastSpeed = speed;
+
+    if (opts?.startAt !== undefined) {
+      this.pendingSeek = opts.startAt > 1 ? opts.startAt : 0;
+    }
+    this.startPaused = !!opts?.startPaused;
 
     // EQ 开启时：先探测音源是否允许跨域，允许才用带 crossOrigin 的元素加载并接入 Web Audio。
     // 不支持跨域的音源若硬加 crossOrigin 会直接加载失败，因此这种情况跳过 EQ、保持原生播放。
@@ -122,10 +135,18 @@ class AudioPlayer {
             } catch { /* ignore */ }
           }
         },
-        // HTML5 流媒体在 onplay 触发时 duration 可能还是 0，元数据加载完成后补一次
+        // HTML5 流媒体在 onplay 触发时 duration 可能还是 0，元数据加载完成后补一次；
+        // startPaused 路径也在这里定位到原进度（加载后不发声，等用户点播放）
         onload: () => {
           const d = this.sound?.duration() || 0;
           if (d > 0) usePlayerStore.getState().setDuration(d);
+          if (this.startPaused && this.pendingSeek > 0) {
+            const t = this.pendingSeek;
+            this.pendingSeek = 0;
+            try {
+              this.sound?.seek(t);
+            } catch { /* ignore */ }
+          }
         },
         onpause: () => {
           this.stopTimeUpdate();
@@ -161,6 +182,15 @@ class AudioPlayer {
     } finally {
       // 元素已创建，恢复默认（后续非 EQ 加载不受影响）
       setPendingCors(false);
+    }
+
+    // 暂停态切音质：只预加载并定位进度，不起播。
+    // Howler 在 play() 锁定期内会丢弃 pause()（源码 _queue 行为），"起播再暂停"
+    // 不可靠；预加载方案零漏音、零竞态，用户点播放时从原进度继续。
+    if (this.startPaused) {
+      this.startPaused = false;
+      usePlayerStore.getState().setPlaying(false);
+      return;
     }
 
     this.sound.play();
@@ -283,11 +313,14 @@ class AudioPlayer {
     return typeof t === "number" && !isNaN(t) ? t : 0;
   }
 
-  /** 用新的音频地址重新加载当前歌曲并保留播放进度（切换音质用） */
-  reloadAtPosition(url: string, position: number) {
+  /** 用新的音频地址重新加载当前歌曲并保留播放进度（切换音质用）；
+   * paused 为 true 时加载完成后保持暂停，不会突然开始播放 */
+  reloadAtPosition(url: string, position: number, paused = false) {
     if (!this.sound) return;
-    this.pendingSeek = position > 1 ? position : 0;
-    this.play(url, this.lastVolume, this.lastSpeed);
+    this.play(url, this.lastVolume, this.lastSpeed, {
+      startAt: position,
+      startPaused: paused,
+    });
   }
 
   // ===== 基础控制 =====

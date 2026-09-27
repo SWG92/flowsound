@@ -23,7 +23,7 @@ export function ShareDialog({ song, open, onOpenChange }: ShareDialogProps) {
 
   if (!song) return null;
 
-  const link = SHARE_LINK(song.id);
+  const link = SHARE_LINK(song);
   const text = `${song.name} - ${song.artists?.map((a) => a.name).join(" / ")}`;
 
   const handleCopyLink = async () => {

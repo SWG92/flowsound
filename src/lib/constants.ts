@@ -101,6 +101,11 @@ export const APP_INFO = {
   tech: "Next.js 16 + React 19 + TypeScript + Tailwind CSS 4",
 } as const;
 
-// 分享链接
-export const SHARE_LINK = (id: number) =>
-  `https://music.163.com/song?id=${id}`;
+// 分享链接：按歌曲来源平台生成（QQ 的 songmid、酷狗的 hash 拼到网易云链接是无效地址）
+export const SHARE_LINK = (song: { id: number; platform?: string; platformId?: string }): string => {
+  const platform = song.platform || "netease";
+  const pid = song.platformId || String(song.id);
+  if (platform === "qq") return `https://y.qq.com/n/ryqq/songDetail/${pid}`;
+  if (platform === "kugou") return `https://www.kugou.com/mixsong/${pid}.html`;
+  return `https://music.163.com/song?id=${song.id}`;
+};

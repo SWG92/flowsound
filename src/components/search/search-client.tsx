@@ -37,7 +37,18 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
       try {
         const result = await searchAllPlatforms(q, p, PAGE_SIZE);
         if (gen !== searchGenRef.current) return;
-        setSongs(p === 1 ? result.songs : (prev) => [...prev, ...result.songs]);
+        // 翻页去重：同一首歌可能在第 1 页来自 A 平台、第 2 页又出现在 B 平台
+        // （聚合去重只在单次调用内部生效），追加时对照已有列表再过滤一次
+        setSongs((prev) => {
+          if (p === 1) return result.songs;
+          const seen = new Set(
+            prev.map((s) => `${s.name}|${s.artists?.[0]?.name || ""}`)
+          );
+          const fresh = result.songs.filter(
+            (s) => !seen.has(`${s.name}|${s.artists?.[0]?.name || ""}`)
+          );
+          return [...prev, ...fresh];
+        });
         setTotal(result.total);
         setHasMore(result.hasMore);
         setPage(p);
