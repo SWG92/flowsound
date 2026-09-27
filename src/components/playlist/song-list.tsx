@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Play, Heart, Clock, Loader2, Lock, Plus, MoreHorizontal,
-  ListPlus, Info, Share2, UserRound, Disc3, Ban, Download, MessageCircle
+  ListPlus, ListEnd, ListMinus, Info, Share2, UserRound, Disc3, Ban, Download, MessageCircle
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +47,10 @@ interface SongListProps {
   onEndReached?: () => void;
   /** 距离底部多少像素触发 onEndReached，默认 240 */
   endReachedThreshold?: number;
+  /** 传入后菜单显示"从歌单移除"（歌单详情页上下文） */
+  playlistId?: string;
+  /** 从歌单移除歌曲后的回调（由父页面更新并持久化） */
+  onRemoveFromPlaylist?: (song: Song) => void;
 }
 
 function SongRow({
@@ -162,9 +166,9 @@ function SongRow({
   );
 }
 
-export function SongList({ songs, showIndex = true, showAlbum = true, virtual = false, maxHeight, onEndReached, endReachedThreshold = 240 }: SongListProps) {
+export function SongList({ songs, showIndex = true, showAlbum = true, virtual = false, maxHeight, onEndReached, endReachedThreshold = 240, playlistId, onRemoveFromPlaylist }: SongListProps) {
   const router = useRouter();
-  const { currentSong, isPlaying, isLoading, playSong, toggleFavorite, isFavorite, setQueue } =
+  const { currentSong, isPlaying, isLoading, playSong, playNext, toggleFavorite, isFavorite, setQueue } =
     usePlayerStore();
   const { showToast } = useToast();
 
@@ -232,7 +236,18 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
   };
 
   const menuItems = [
+    {
+      icon: ListEnd, label: "下一首播放",
+      onClick: () => { if (menuSong) { playNext(menuSong); showToast("已加入下一首播放"); } setMenuSong(null); },
+    },
     { icon: ListPlus, label: "添加到歌单", onClick: () => setShowAddToPlaylist(true) },
+    ...(playlistId && onRemoveFromPlaylist
+      ? [{
+          icon: ListMinus as typeof ListPlus,
+          label: "从歌单移除",
+          onClick: () => { if (menuSong) onRemoveFromPlaylist(menuSong); setMenuSong(null); },
+        }]
+      : []),
     {
       icon: Heart,
       label: menuSong && isFavorite(menuSong.id) ? "取消收藏" : "收藏",

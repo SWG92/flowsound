@@ -239,6 +239,16 @@ export function PlayerBar() {
     }
   };
 
+  // 滚轮调音量（悬停在播放栏上滚动即可，向上加向下减）
+  const handleWheelVolume = (e: React.WheelEvent) => {
+    const current = usePlayerStore.getState().volume;
+    const delta = e.deltaY < 0 ? 0.05 : -0.05;
+    const next = Math.min(1, Math.max(0, Math.round((current + delta) * 100) / 100));
+    if (next !== current) {
+      setVolume(next);
+    }
+  };
+
   // 点击外部关闭下拉菜单
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -269,7 +279,11 @@ export function PlayerBar() {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 h-16 md:h-20 glass z-50 flex items-center px-2 md:px-4 gap-2 md:gap-4">
+      <div
+        className="fixed bottom-0 left-0 right-0 h-16 md:h-20 glass z-50 flex items-center px-2 md:px-4 gap-2 md:gap-4"
+        onWheel={handleWheelVolume}
+        title="滚轮可调节音量"
+      >
         {/* 歌曲信息 + 封面 */}
         <div className="flex items-center gap-2 md:gap-3 w-28 md:w-64 shrink-0">
           <div

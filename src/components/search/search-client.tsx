@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { SearchBar } from "@/components/search/search-bar";
 import { SongList } from "@/components/playlist/song-list";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { searchAllPlatforms, getHotSongs } from "@/lib/api";
+import { usePlayerStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { logError } from "@/lib/logger";
-import { Flame } from "lucide-react";
+import { Flame, Play } from "lucide-react";
 import type { Song } from "@/lib/types";
 
 const PAGE_SIZE = 30;
@@ -16,6 +18,8 @@ const PAGE_SIZE = 30;
 export function SearchClient({ initialQuery }: { initialQuery: string }) {
   const router = useRouter();
   const query = initialQuery;
+  const setQueue = usePlayerStore((s) => s.setQueue);
+  const playSong = usePlayerStore((s) => s.playSong);
 
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(false);
@@ -117,11 +121,27 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
       </div>
 
       {query && (
-        <p className="text-sm text-muted-foreground">
-          {loading && songs.length === 0
-            ? "全平台搜索中..."
-            : `找到 ${total} 首歌曲`}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            {loading && songs.length === 0
+              ? "全平台搜索中..."
+              : `找到 ${total} 首歌曲`}
+          </p>
+          {songs.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setQueue(songs);
+                playSong(songs[0], songs);
+              }}
+              className="cursor-pointer"
+            >
+              <Play className="h-4 w-4 mr-1.5" />
+              播放全部
+            </Button>
+          )}
+        </div>
       )}
 
       {loading && songs.length === 0 ? (

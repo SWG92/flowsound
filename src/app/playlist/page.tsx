@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ListMusic, Plus, Music2, X } from "lucide-react";
+import { ListMusic, Plus, Music2, X, Pencil, Play } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { usePlayerStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { logWarn } from "@/lib/logger";
+import { getCoverUrl } from "@/lib/utils";
 import type { Song } from "@/lib/types";
 
 interface Playlist {
@@ -96,6 +97,35 @@ export default function PlaylistPage() {
     playSong(songs[0], songs);
   };
 
+  // 从歌单移除歌曲（歌单详情页菜单）
+  const handleRemoveFromPlaylist = (song: Song) => {
+    if (!activePlaylist) return;
+    const updated = playlists.map((p) =>
+      p.id === activePlaylist.id
+        ? { ...p, songs: p.songs.filter((s) => s.id !== song.id) }
+        : p
+    );
+    savePlaylists(updated);
+    setPlaylists(updated);
+    showToast("已从歌单移除");
+  };
+
+  // 重命名歌单
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameName, setRenameName] = useState("");
+
+  const handleRename = () => {
+    if (!renameId || !renameName.trim()) return;
+    const updated = playlists.map((p) =>
+      p.id === renameId ? { ...p, name: renameName.trim() } : p
+    );
+    savePlaylists(updated);
+    setPlaylists(updated);
+    showToast(`已重命名为「${renameName.trim()}」`, "success");
+    setRenameId(null);
+    setRenameName("");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -153,9 +183,22 @@ export default function PlaylistPage() {
                   onClick={() => handlePlayAll(activePlaylist.songs)}
                   className="cursor-pointer"
                 >
+                  <Play className="h-4 w-4 mr-1.5" />
                   播放全部
                 </Button>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setRenameId(activePlaylist.id);
+                  setRenameName(activePlaylist.name);
+                }}
+                className="cursor-pointer"
+              >
+                <Pencil className="h-4 w-4 mr-1.5" />
+                重命名
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -167,7 +210,12 @@ export default function PlaylistPage() {
             </div>
           </div>
           {activePlaylist.songs.length > 0 ? (
-            <SongList songs={activePlaylist.songs} virtual />
+            <SongList
+              songs={activePlaylist.songs}
+              virtual
+              playlistId={activePlaylist.id}
+              onRemoveFromPlaylist={handleRemoveFromPlaylist}
+            />
           ) : (
             <div className="text-center py-20 text-muted-foreground">
               <Music2 className="h-12 w-12 mx-auto mb-4 opacity-30" />
@@ -197,9 +245,18 @@ export default function PlaylistPage() {
                   <X className="h-3 w-3" />
                 </Button>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Music2 className="h-6 w-6 text-primary" />
-                  </div>
+                  {/* 歌单封面：用第一首歌的专辑封面，没有则回退图标 */}
+                  {getCoverUrl(playlist.songs[0]) ? (
+                    <img
+                      src={getCoverUrl(playlist.songs[0]) + "?param=120y120"}
+                      alt={playlist.name}
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Music2 className="h-6 w-6 text-primary" />
+                    </div>
+                  )}
                   <div>
                     <h3 className="font-semibold">{playlist.name}</h3>
                     <p className="text-xs text-muted-foreground">
@@ -243,6 +300,31 @@ export default function PlaylistPage() {
               className="cursor-pointer"
             >
               删除
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 重命名歌单弹窗 */}
+      <Dialog open={!!renameId} onOpenChange={() => setRenameId(null)}>
+        <DialogContent className="glass">
+          <DialogHeader>
+            <DialogTitle>重命名歌单</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <Input
+              placeholder="输入新的歌单名称..."
+              value={renameName}
+              onChange={(e) => setRenameName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleRename()}
+              autoFocus
+            />
+            <Button
+              onClick={handleRename}
+              className="w-full cursor-pointer"
+              disabled={!renameName.trim()}
+            >
+              保存
             </Button>
           </div>
         </DialogContent>

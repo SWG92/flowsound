@@ -56,6 +56,7 @@ interface PlayerState {
   reorderQueue: (from: number, to: number) => void;
   removeFromQueue: (index: number) => void;
   clearQueue: () => void;
+  playNext: (song: Song) => void;
   setCurrentLyricIndex: (index: number) => void;
   toggleFavorite: (song: Song) => void;
   isFavorite: (songId: number) => boolean;
@@ -341,6 +342,25 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   clearQueue: () => {
     const { currentSong } = get();
     set({ queue: currentSong ? [currentSong] : [], queueIndex: currentSong ? 0 : -1 });
+  },
+
+  // 下一首播放：把歌曲插到当前播放歌曲之后（若已在队列其他位置则先移除，避免重复）
+  playNext: (song) => {
+    const { queue, queueIndex, currentSong } = get();
+    if (queue.length === 0 || queueIndex < 0 || !currentSong) {
+      // 没有播放上下文：直接把队列设为这一首并从它开始播
+      set({ queue: [song], queueIndex: 0 });
+      get().playSong(song, [song]);
+      return;
+    }
+    // 移除队列中已有的同一首（正在播放的那首除外）
+    const filtered = queue.filter(
+      (s, i) => !(s.id === song.id && i !== queueIndex)
+    );
+    // 插到当前歌曲之后（queueIndex 不变：插入点在其后）
+    const insertAt = Math.min(queueIndex + 1, filtered.length);
+    filtered.splice(insertAt, 0, song);
+    set({ queue: filtered, queueIndex });
   },
 
   setCurrentLyricIndex: (index) => set({ currentLyricIndex: index }),
