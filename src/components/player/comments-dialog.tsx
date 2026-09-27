@@ -98,33 +98,55 @@ export function CommentsDialog({ song, open, onOpenChange }: CommentsDialogProps
     })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((data) => {
-        const raw = data.hotComments || data.comments || [];
+        // 网易云响应里 hotComments（热门，固定不变）与 comments（最新，按 offset 分页）
+        // 是两个列表：首页合并展示两者；"加载更多"只取 comments 继续分页 ——
+        // 若仍优先取 hotComments，会把同样的热门评论再次追加，导致 React 重复 key
+        const hot = Array.isArray(data.hotComments) ? data.hotComments : [];
+        const latest = Array.isArray(data.comments) ? data.comments : [];
+        const rawList = append ? latest : [...hot, ...latest];
         const hasMoreRemote = (data.moreHot || data.more) ?? false;
         const totalRemote = data.total ?? 0;
         setHasMore(hasMoreRemote);
         if (totalRemote > 0) setTotal(totalRemote);
 
-        if (!Array.isArray(raw) || raw.length === 0) {
+        if (!Array.isArray(rawList) || rawList.length === 0) {
           if (!append) setError("暂无评论，快来发表第一条吧");
+          else setHasMore(false);
           return;
         }
-        const remote: Comment[] = raw.map((c: Record<string, unknown>) => ({
-          id: String(c.commentId || ""),
-          user: {
-            nickname: String((c.user as Record<string, string>)?.nickname || "匿名"),
-            avatarUrl: String((c.user as Record<string, string>)?.avatarUrl || ""),
-          },
-          content: String(c.content || ""),
-          likedCount: Number(c.likedCount || 0),
-          time: Number(c.time || 0),
-        }));
+        // 页内去重（热门与最新可能有交集）
+        const seenPage = new Set<string>();
+        const remote: Comment[] = [];
+        for (const c of rawList as Record<string, unknown>[]) {
+          const id = String(c.commentId || "");
+          if (!id || seenPage.has(id)) continue;
+          seenPage.add(id);
+          remote.push({
+            id,
+            user: {
+              nickname: String((c.user as Record<string, string>)?.nickname || "匿名"),
+              avatarUrl: String((c.user as Record<string, string>)?.avatarUrl || ""),
+            },
+            content: String(c.content || ""),
+            likedCount: Number(c.likedCount || 0),
+            time: Number(c.time || 0),
+          });
+        }
 
         if (append) {
-          setComments((prev) => [...prev, ...remote]);
+          // 追加时对照已有列表去重（含本地评论），成功后推进"最新评论"的分页偏移
+          setComments((prev) => {
+            const ids = new Set(prev.map((c) => c.id));
+            const fresh = remote.filter((r) => !ids.has(r.id));
+            return [...prev, ...fresh];
+          });
+          offsetRef.current += PAGE_SIZE;
         } else {
           const local = loadLocalComments(songId);
           const localIds = new Set(local.map((l) => l.id));
           setComments([...local, ...remote.filter((r) => !localIds.has(r.id))]);
+          // 首页已消费 comments 的第 1 页（limit 条）
+          offsetRef.current = PAGE_SIZE;
         }
       })
       .catch((err) => {
@@ -156,10 +178,9 @@ export function CommentsDialog({ song, open, onOpenChange }: CommentsDialogProps
     return () => { clearTimeout(t); controller.abort(); };
   }, [song, open]);
 
-  // 加载更多
+  // 加载更多：offset 指向"最新评论"分页（首页已消费第 1 页），由 fetchComments 成功后推进
   const loadMore = () => {
     if (!song) return;
-    offsetRef.current += PAGE_SIZE;
     fetchComments(song.id, offsetRef.current, true);
   };
 
