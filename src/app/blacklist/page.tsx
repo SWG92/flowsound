@@ -95,7 +95,7 @@ export default function BlacklistPage() {
                 className={cn(
                   "grid grid-cols-[3rem_2.5rem_1fr_1fr_5rem_3rem] gap-3 px-4 py-2 rounded-lg group items-center",
                   isCurrent && "bg-primary/10",
-                  isPaid ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                  isPaid ? "cursor-not-allowed" : "cursor-pointer"
                 )}
                 onDoubleClick={() => handlePlay(song)}
               >
@@ -140,7 +140,7 @@ export default function BlacklistPage() {
                       {song.name}
                     </p>
                     {isPaid && (
-                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-amber-500/40 text-amber-500 shrink-0">VIP</Badge>
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">VIP</Badge>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">

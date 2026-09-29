@@ -87,7 +87,7 @@ function SongRow({
       className={cn(
         "grid grid-cols-[2rem_2.5rem_1fr_3rem_1.5rem] md:grid-cols-[3rem_2.5rem_1fr_1fr_5rem_2.5rem] gap-2 md:gap-3 px-2 md:px-4 py-2 rounded-lg song-row group items-center",
         isCurrent && "bg-primary/10",
-        isPaid ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+        isPaid ? "cursor-not-allowed" : "cursor-pointer"
       )}
       style={{ height: ROW_HEIGHT }}
       onDoubleClick={onPlay}
@@ -130,7 +130,7 @@ function SongRow({
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <p className={cn("text-sm truncate", isCurrent && "text-primary font-medium", isPaid && "text-muted-foreground")}>{song.name}</p>
-          {isPaid && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-amber-500/50 text-amber-500 shrink-0">VIP</Badge>}
+          {isPaid && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">VIP</Badge>}
         </div>
         <p className="text-xs text-muted-foreground truncate">{song.artists?.map((a) => a.name).join(" / ")}</p>
       </div>

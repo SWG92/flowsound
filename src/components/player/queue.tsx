@@ -108,7 +108,7 @@ export function PlayQueue() {
                   isCurrent && "bg-primary/15",
                   isDragging && "opacity-50",
                   isOver && (index > (dragIdx ?? -1) ? "border-t-2 border-primary/50" : "border-b-2 border-primary/50"),
-                  isPaid ? "opacity-45 cursor-not-allowed" : "cursor-pointer hover:bg-muted/30"
+                  isPaid ? "cursor-not-allowed" : "cursor-pointer hover:bg-muted/30"
                 )}
                 onClick={() => !isPaid && playSong(song, queue)}
                 onDragStart={(e) => handleDragStart(e, index)}
@@ -161,7 +161,7 @@ export function PlayQueue() {
                       {song.name}
                     </p>
                     {isPaid && (
-                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-amber-500/40 text-amber-500 shrink-0">VIP</Badge>
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">VIP</Badge>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">{song.artists?.map((a) => a.name).join(" / ")}</p>
