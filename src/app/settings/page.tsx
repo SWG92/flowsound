@@ -5,7 +5,7 @@ import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon } from "lu
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
-import { APP_INFO } from "@/lib/constants";
+import { APP_INFO, PERFORMANCE_KEY } from "@/lib/constants";
 import { clearApiCache } from "@/lib/api";
 
 // 清除缓存时保留的键：全部用户数据与偏好设置。
@@ -42,10 +42,22 @@ export default function SettingsPage() {
   // 音质等偏好存在 localStorage，服务端渲染时只能拿到默认值；
   // 挂载后再显示客户端状态，避免 hydration 不匹配（异步置位以满足 set-state-in-effect 规则）
   const [mounted, setMounted] = useState(false);
+  const [performanceOn, setPerformanceOn] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 0);
+    const t = setTimeout(() => {
+      setMounted(true);
+      setPerformanceOn(localStorage.getItem(PERFORMANCE_KEY) === "1");
+    }, 0);
     return () => clearTimeout(t);
   }, []);
+
+  const togglePerformance = () => {
+    const next = !performanceOn;
+    setPerformanceOn(next);
+    localStorage.setItem(PERFORMANCE_KEY, next ? "1" : "0");
+    document.documentElement.classList.toggle("performance", next);
+    showToast(next ? "性能模式已开启" : "性能模式已关闭", "success");
+  };
 
   const handleClearCache = async () => {
     // 1. 内存中的接口缓存（搜索结果、歌曲地址、歌词等）
@@ -107,6 +119,23 @@ export default function SettingsPage() {
           <Monitor className="h-5 w-5 text-primary" />
           界面设置
         </h2>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-sm">性能模式</p>
+            <p className="text-xs text-muted-foreground">
+              关闭背景模糊与光斑动画，低配设备更流畅（开启后玻璃质感会简化）
+            </p>
+          </div>
+          <Button
+            variant={mounted && performanceOn ? "default" : "outline"}
+            size="sm"
+            onClick={togglePerformance}
+            className="cursor-pointer"
+          >
+            {mounted && performanceOn ? "已开启" : "已关闭"}
+          </Button>
+        </div>
 
         <div className="flex items-center justify-between">
           <div>

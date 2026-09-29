@@ -67,6 +67,9 @@ export const SLEEP_TIMER_OPTIONS = [
   { label: "60 分钟", value: 60 },
 ] as const;
 
+// 性能模式 localStorage 键：开启后 html 加 performance 类，关闭背景模糊与光斑动画
+export const PERFORMANCE_KEY = "flowsound_performance";
+
 // 主题 Cookie 名：根布局（服务端）读取它渲染首屏主题类，客户端切换主题时写入。
 // 必须放在非 "use client" 模块里 —— 从客户端模块导入的常量在服务端会变成引用代理对象，
 // 拿到的不是字符串本身（会导致 Cookie 读不到）。

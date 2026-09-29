@@ -371,6 +371,26 @@ body::after {
   background: oklch(0 0 0 / 0.04);
 }
 
+/* ===== 性能模式 =====
+ * 低配设备可关闭背景模糊与光斑动画（设置页开关）。
+ * 玻璃面板退化为半透明纯色，保留配色失去折射，滚动/动画开销大幅下降。
+ */
+html.performance .glass,
+html.performance .glass-light {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: oklch(0.22 0.015 270 / 0.82);
+  border-color: oklch(1 0 0 / 0.12);
+  box-shadow: 0 6px 20px oklch(0 0 0 / 0.3);
+}
+
+html.performance body::before,
+html.performance body::after {
+  animation: none;
+  opacity: 0.55;
+  filter: blur(60px);
+}
+
 /* ===== 交互反馈系统（Liquid Glass 触感） =====
  * 按压缩放 + 弹性曲线，模拟 iPad 系统的即时触感反馈。
  * transform 不影响布局，性能安全。

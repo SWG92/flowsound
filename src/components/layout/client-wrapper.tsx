@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useKeyboard } from "@/hooks/use-keyboard";
+import { PERFORMANCE_KEY } from "@/lib/constants";
 
 export function ClientWrapper({ children }: { children: React.ReactNode }) {
   useKeyboard();
@@ -10,6 +11,13 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
+
+  // 应用性能模式（设置页开关）：关闭背景模糊与光斑动画，低配设备更流畅
+  useEffect(() => {
+    if (localStorage.getItem(PERFORMANCE_KEY) === "1") {
+      document.documentElement.classList.add("performance");
     }
   }, []);
 
