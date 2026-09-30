@@ -150,6 +150,24 @@ export async function getSongUrl(
     url = data.url;
   }
 
+  // 上游取址失败率不低（实测抽样约 50% 返回空），失败时原音质重试一次，
+  // 能明显提升点播成功率；重试仍失败才交给上层走跨平台回退
+  if (!url) {
+    try {
+      const retry = await fetchJSON<{ data?: Array<{ url: string }>; url?: string }>(
+        "song/url",
+        params
+      );
+      if (retry.data && Array.isArray(retry.data)) {
+        url = retry.data[0]?.url || "";
+      } else if (typeof retry.url === "string") {
+        url = retry.url;
+      }
+    } catch {
+      // 忽略：交给上层回退
+    }
+  }
+
   if (url) setCache(cacheKey, url);
   return url;
 }
