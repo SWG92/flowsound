@@ -98,6 +98,10 @@ export default function BlacklistPage() {
                   isPaid ? "cursor-not-allowed" : "cursor-pointer"
                 )}
                 onDoubleClick={() => handlePlay(song)}
+                onClick={() => {
+                  // 触屏设备单击播放（与歌曲列表行为一致）
+                  if (window.matchMedia("(pointer: coarse)").matches) handlePlay(song);
+                }}
               >
                 {/* 序号 / 播放状态 */}
                 <div className="flex items-center justify-center">

@@ -90,7 +90,12 @@ function SongRow({
         isPaid ? "cursor-not-allowed" : "cursor-pointer"
       )}
       style={{ height: ROW_HEIGHT }}
+      // 桌面双击播放（防误触）；触屏设备单击播放（移动端没有 hover，
+      // 行内 Play 按钮依赖 hover 显示，双击在手机上也不顺手 —— 主流 App 均为单击）
       onDoubleClick={onPlay}
+      onClick={() => {
+        if (window.matchMedia("(pointer: coarse)").matches) onPlay();
+      }}
     >
       {/* 序号 */}
       <div className="flex items-center justify-center">

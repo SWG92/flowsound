@@ -340,7 +340,7 @@ body::after {
 }
 
 .lyric-inactive {
-  color: oklch(0.5 0.01 270);
+  color: oklch(0.42 0.015 270);
   transition: all 0.3s ease;
 }
 
