@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdapter } from "@/lib/platforms";
 import type { MusicPlatform } from "@/lib/types";
 import { logError } from "@/lib/logger";
+import { NETEASE_BASE, NETEASE_HEADERS, FETCH_TIMEOUT } from "@/lib/constants";
 
 type HandlerFn = (params: Record<string, string>) => Promise<unknown>;
 
@@ -46,6 +47,25 @@ const playlistDetailHandler: HandlerFn = async (params) => {
   return { result: { tracks }, playlist: { tracks } };
 };
 
+// 搜索联想（网易云 suggest 接口，供搜索框输入时实时建议）
+const suggestHandler: HandlerFn = async (params) => {
+  const kw = (params.keywords || "").trim();
+  if (!kw) return { artists: [], songs: [] };
+  const res = await fetch(`${NETEASE_BASE}/api/search/suggest/web?s=${encodeURIComponent(kw)}`, {
+    headers: NETEASE_HEADERS,
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+  });
+  const data = await res.json();
+  const result = data.result || {};
+  return {
+    artists: (result.artists || []).slice(0, 4).map((a: { name: string; id: number }) => ({ name: a.name, id: a.id })),
+    songs: (result.songs || []).slice(0, 5).map((s: { name: string; artists?: { name: string }[] }) => ({
+      name: s.name,
+      artist: (s.artists || []).map((x) => x.name).join(" / "),
+    })),
+  };
+};
+
 // ============ 路由映射 ============
 
 const HANDLERS: Record<string, HandlerFn> = {
@@ -53,6 +73,7 @@ const HANDLERS: Record<string, HandlerFn> = {
   "song/url": songUrlHandler,
   lyric: lyricHandler,
   "playlist/detail": playlistDetailHandler,
+  suggest: suggestHandler,
 };
 
 // ============ Route handler ============

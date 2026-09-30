@@ -199,6 +199,26 @@ export async function getSongUrlDetailed(
   };
 }
 
+// ============ 搜索联想 ============
+
+export interface SearchSuggest {
+  artists: { name: string; id: number }[];
+  songs: { name: string; artist: string }[];
+}
+
+const EMPTY_SUGGEST: SearchSuggest = { artists: [], songs: [] };
+
+/** 搜索联想（输入时实时建议）。失败静默返回空，不打扰输入。 */
+export async function searchSuggest(keywords: string): Promise<SearchSuggest> {
+  const kw = keywords.trim();
+  if (!kw) return EMPTY_SUGGEST;
+  try {
+    return await fetchJSON<SearchSuggest>("suggest", { keywords: kw });
+  } catch {
+    return EMPTY_SUGGEST;
+  }
+}
+
 // ============ 歌词 ============
 
 export async function getLyrics(
