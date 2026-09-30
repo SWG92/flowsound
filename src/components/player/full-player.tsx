@@ -25,9 +25,28 @@ export function FullPlayer() {
   const [showLyricsView, setShowLyricsView] = useState(true);
   // 下滑关闭手势（iOS 风格）
   const [dragY, setDragY] = useState(0);
+  // 3 秒无操作隐藏控制区（沉浸歌词模式，触摸恢复）
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hasScrolled = useRef(false);
+
+  // 3 秒无操作自动隐藏控制区；触摸/移动鼠标恢复
+  const pokeControls = () => {
+    setControlsVisible(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
+  };
+  useEffect(() => {
+    if (!fullOpen) return;
+    // 延后一拍启动计时器，避免同步 setState 告警
+    const t = setTimeout(() => pokeControls(), 0);
+    return () => {
+      clearTimeout(t);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, [fullOpen, currentSong?.id]);
 
   // Esc 收起
   useEffect(() => {
@@ -60,8 +79,10 @@ export function FullPlayer() {
   // 下滑关闭：仅从顶部之外区域起始，下滑超过 120px 关闭
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartRef.current = e.touches[0].clientY;
+    pokeControls();
   };
   const onTouchMove = (e: React.TouchEvent) => {
+    pokeControls();
     if (touchStartRef.current === null) return;
     const dy = e.touches[0].clientY - touchStartRef.current;
     if (dy > 0) setDragY(dy);
@@ -99,7 +120,10 @@ export function FullPlayer() {
       <div className="absolute inset-0 bg-black/55" />
 
       {/* 顶部：收起 + 标题 */}
-      <div className="relative z-10 flex items-center justify-between px-6 pt-6">
+      <div
+        className="relative z-10 flex items-center justify-between px-6 pt-6 transition-opacity duration-300"
+        style={{ opacity: controlsVisible ? 1 : 0, pointerEvents: controlsVisible ? "auto" : "none", paddingTop: "calc(1.5rem + var(--safe-top))" }}
+      >
         <button
           onClick={() => setFullOpen(false)}
           className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
@@ -176,7 +200,10 @@ export function FullPlayer() {
       </div>
 
       {/* 底部控制区 */}
-      <div className="relative z-10 px-8 pb-10 pt-2 max-w-xl mx-auto w-full">
+      <div
+        className="relative z-10 px-8 pt-2 max-w-xl mx-auto w-full transition-opacity duration-300"
+        style={{ opacity: controlsVisible ? 1 : 0, pointerEvents: controlsVisible ? "auto" : "none", paddingBottom: "calc(2.5rem + var(--safe-bottom))" }}
+      >
         {/* 视图切换：封面 / 歌词 */}
         <div className="flex justify-center mb-3 gap-2">
           <button
