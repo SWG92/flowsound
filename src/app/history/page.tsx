@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Clock, Trash2, Flame, History as HistoryIcon } from "lucide-react";
+import { Clock, Trash2, Flame, History as HistoryIcon, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SongList } from "@/components/playlist/song-list";
 import { usePlayerStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export default function HistoryPage() {
-  const { playHistory, clearHistory, playCounts } = usePlayerStore();
+  const { playHistory, clearHistory, playCounts, setQueue, playSong } = usePlayerStore();
   const [mounted, setMounted] = useState(false);
   const [view, setView] = useState<"recent" | "top">("recent");
   useEffect(() => {
@@ -43,15 +43,29 @@ export default function HistoryPage() {
           </p>
         </div>
         {showContent && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={clearHistory}
-            className="cursor-pointer"
-          >
-            <Trash2 className="h-4 w-4 mr-1.5" />
-            清空
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setQueue(playHistory);
+                playSong(playHistory[0], playHistory);
+              }}
+              className="cursor-pointer"
+            >
+              <Play className="h-4 w-4 mr-1.5" />
+              播放全部
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearHistory}
+              className="cursor-pointer"
+            >
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              清空
+            </Button>
+          </div>
         )}
       </div>
 

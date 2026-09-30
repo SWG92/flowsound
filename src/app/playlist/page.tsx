@@ -215,6 +215,18 @@ export default function PlaylistPage() {
               virtual
               playlistId={activePlaylist.id}
               onRemoveFromPlaylist={handleRemoveFromPlaylist}
+              onReorder={(from, to) => {
+                const updated = playlists.map((p) => {
+                  if (p.id !== activePlaylist.id) return p;
+                  const reordered = [...p.songs];
+                  const [moved] = reordered.splice(from, 1);
+                  if (!moved) return p;
+                  reordered.splice(to, 0, moved);
+                  return { ...p, songs: reordered };
+                });
+                savePlaylists(updated);
+                setPlaylists(updated);
+              }}
             />
           ) : (
             <div className="text-center py-20 text-muted-foreground">

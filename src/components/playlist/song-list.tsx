@@ -51,6 +51,8 @@ interface SongListProps {
   playlistId?: string;
   /** 从歌单移除歌曲后的回调（由父页面更新并持久化） */
   onRemoveFromPlaylist?: (song: Song) => void;
+  /** 歌单内拖拽排序回调（传入后行可拖拽，虚拟列表） */
+  onReorder?: (from: number, to: number) => void;
 }
 
 function SongRow({
@@ -171,7 +173,7 @@ function SongRow({
   );
 }
 
-export function SongList({ songs, showIndex = true, showAlbum = true, virtual = false, maxHeight, onEndReached, endReachedThreshold = 240, playlistId, onRemoveFromPlaylist }: SongListProps) {
+export function SongList({ songs, showIndex = true, showAlbum = true, virtual = false, maxHeight, onEndReached, endReachedThreshold = 240, playlistId, onRemoveFromPlaylist, onReorder }: SongListProps) {
   const router = useRouter();
   const { currentSong, isPlaying, isLoading, playSong, playNext, toggleFavorite, isFavorite, setQueue } =
     usePlayerStore();
@@ -195,6 +197,31 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
 
   // 过滤黑名单
   const filteredSongs = songs.filter(s => !blacklist.includes(s.id));
+
+  // 歌单内拖拽排序（仅歌单详情上下文提供 onReorder 时启用，虚拟列表分支）
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+  const dragHandlers = (i: number) =>
+    onReorder
+      ? {
+          draggable: true,
+          onDragStart: () => setDragFrom(i),
+          onDragOver: (e: React.DragEvent) => {
+            e.preventDefault();
+            if (dragOver !== i) setDragOver(i);
+          },
+          onDrop: (e: React.DragEvent) => {
+            e.preventDefault();
+            if (dragFrom !== null && dragFrom !== i) onReorder(dragFrom, i);
+            setDragFrom(null);
+            setDragOver(null);
+          },
+          onDragEnd: () => {
+            setDragFrom(null);
+            setDragOver(null);
+          },
+        }
+      : {};
 
   // 虚拟滚动
   const virtualizer = useVirtualizer({
@@ -364,6 +391,7 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
             >
               {virtualizer.getVirtualItems().map((vItem) => {
                 const song = filteredSongs[vItem.index];
+                const drag = dragHandlers(vItem.index);
                 return (
                   <div
                     key={song.id}
@@ -374,6 +402,11 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
                       width: "100%",
                       transform: `translateY(${vItem.start}px)`,
                     }}
+                    {...drag}
+                    className={cn(
+                      dragFrom === vItem.index && "opacity-40",
+                      dragOver === vItem.index && dragFrom !== null && dragFrom !== vItem.index && "ring-1 ring-primary/60 rounded-lg"
+                    )}
                   >
                     {renderRow(song, vItem.index)}
                   </div>

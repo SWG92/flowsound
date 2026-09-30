@@ -106,7 +106,7 @@ export function FullPlayer() {
               <p className="text-center text-white/50 mt-16">暂无歌词</p>
             ) : (
               lyrics.map((line, i) => (
-                <p
+                <div
                   key={i}
                   data-lyric-index={i}
                   onClick={() => audioPlayer.seek(line.time)}
@@ -118,7 +118,12 @@ export function FullPlayer() {
                   )}
                 >
                   {line.text}
-                </p>
+                  {line.transText && (
+                    <p className={cn("text-sm mt-0.5", i === currentLyricIndex ? "text-white/85" : "text-white/25")}>
+                      {line.transText}
+                    </p>
+                  )}
+                </div>
               ))
             )}
           </div>
