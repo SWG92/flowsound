@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Flame, TrendingUp, Sparkles, Play } from "lucide-react";
+import { Flame, TrendingUp, Sparkles, Play, WifiOff, RotateCw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -18,36 +18,39 @@ export default function Home() {
   const [risingSongs, setRisingSongs] = useState<Song[]>([]);
   const [newSongs, setNewSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const { setQueue, playSong } = usePlayerStore();
   const { showToast } = useToast();
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      const [hot, rising, newRes] = await Promise.allSettled([
-        getHotSongs(),
-        getRisingSongs(),
-        getNewSongs(),
-      ]);
-      if (cancelled) return;
-      if (hot.status === "fulfilled") setHotSongs(hot.value);
-      if (rising.status === "fulfilled") setRisingSongs(rising.value);
-      if (newRes.status === "fulfilled") setNewSongs(newRes.value);
+  const load = async () => {
+    setLoading(true);
+    setLoadFailed(false);
+    const [hot, rising, newRes] = await Promise.allSettled([
+      getHotSongs(),
+      getRisingSongs(),
+      getNewSongs(),
+    ]);
+    if (hot.status === "fulfilled") setHotSongs(hot.value);
+    if (rising.status === "fulfilled") setRisingSongs(rising.value);
+    if (newRes.status === "fulfilled") setNewSongs(newRes.value);
 
-      const failures = [hot, rising, newRes].filter(
-        (r) => r.status === "rejected"
-      );
-      if (failures.length > 0) {
-        logWarn("部分榜单数据加载失败:", failures.length);
-        if (failures.length === 3) {
-          showToast("加载榜单数据失败，请检查网络", "error");
-        }
+    const failures = [hot, rising, newRes].filter((r) => r.status === "rejected");
+    if (failures.length > 0) {
+      logWarn("部分榜单数据加载失败:", failures.length);
+      if (failures.length === 3) {
+        setLoadFailed(true);
+        showToast("加载榜单数据失败，请检查网络", "error");
       }
-      setLoading(false);
     }
-    load();
-    return () => { cancelled = true; };
-  }, [showToast]);
+    setLoading(false);
+  };
+
+  // 首次加载（load 内部有 setLoadFailed 等状态，延迟到 effect 中调用）
+  useEffect(() => {
+    const t = setTimeout(() => load(), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅首挂载加载，重试由按钮手动触发
+  }, []);
 
   const handlePlayAll = (songList: Song[]) => {
     if (songList.length === 0) return;
@@ -92,6 +95,8 @@ export default function Home() {
         <TabsContent value="hot">
           {loading ? (
             <SkeletonList />
+          ) : loadFailed ? (
+            <LoadFailed onRetry={load} />
           ) : (
             <>
               <PlayAllBtn onClick={() => handlePlayAll(hotSongs)} />
@@ -145,6 +150,19 @@ function PlayAllBtn({ onClick }: { onClick: () => void }) {
     <div className="flex justify-end mb-1">
       <Button variant="outline" size="sm" onClick={onClick} className="cursor-pointer">
         <Play className="h-4 w-4 mr-1.5" />播放全部
+      </Button>
+    </div>
+  );
+}
+
+function LoadFailed({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center py-16 text-muted-foreground">
+      <WifiOff className="h-10 w-10 mb-3 opacity-40" />
+      <p className="mb-4">榜单加载失败，请检查网络后重试</p>
+      <Button variant="outline" size="sm" onClick={onRetry} className="cursor-pointer">
+        <RotateCw className="h-4 w-4 mr-1.5" />
+        重新加载
       </Button>
     </div>
   );

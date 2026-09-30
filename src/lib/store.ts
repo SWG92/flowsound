@@ -129,6 +129,66 @@ let playGeneration = 0;
 // 自动跳过无版权歌曲的计数器（防止死循环）
 let autoSkipCount = 0;
 
+// ===== 真洗牌随机播放 =====
+// 以歌曲 id 维护一个乱序序列：随机模式下按序列顺序播放，整轮不重复，
+// 一轮播完自动重新洗牌。队列增删/手动切歌时序列自动同步。
+let shuffleIds: number[] = [];
+let shuffleCursor = 0;
+
+function syncShuffleOrder(queue: Song[], currentId?: number) {
+  const ids = queue.map((s) => s.id);
+  if (ids.length === 0) {
+    shuffleIds = [];
+    return;
+  }
+  // 队列里已消失的 id 移除；新出现的 id 随机插入序列
+  shuffleIds = shuffleIds.filter((id) => ids.includes(id));
+  for (const id of ids) {
+    if (!shuffleIds.includes(id)) {
+      shuffleIds.splice(Math.floor(Math.random() * (shuffleIds.length + 1)), 0, id);
+    }
+  }
+  // 游标对齐到正在播放的歌曲
+  if (currentId !== undefined) {
+    const pos = shuffleIds.indexOf(currentId);
+    if (pos >= 0) shuffleCursor = pos;
+  } else if (shuffleCursor >= shuffleIds.length) {
+    shuffleCursor = 0;
+  }
+}
+
+function nextShuffleIndex(queue: Song[], currentIndex: number): number {
+  const currentId = queue[currentIndex]?.id;
+  syncShuffleOrder(queue, currentId);
+  if (shuffleIds.length <= 1) return currentIndex;
+  // 一轮播完 → 重新洗牌开启新一轮
+  if (shuffleCursor >= shuffleIds.length - 1) {
+    for (let i = shuffleIds.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffleIds[i], shuffleIds[j]] = [shuffleIds[j], shuffleIds[i]];
+    }
+    // 避免新一轮第一首与刚播完的相同
+    if (shuffleIds[0] === currentId) {
+      const swapWith = 1 + Math.floor(Math.random() * (shuffleIds.length - 1));
+      [shuffleIds[0], shuffleIds[swapWith]] = [shuffleIds[swapWith], shuffleIds[0]];
+    }
+    shuffleCursor = 0;
+  } else {
+    shuffleCursor++;
+  }
+  const idx = queue.findIndex((s) => s.id === shuffleIds[shuffleCursor]);
+  return idx >= 0 ? idx : currentIndex;
+}
+
+function prevShuffleIndex(queue: Song[], currentIndex: number): number {
+  const currentId = queue[currentIndex]?.id;
+  syncShuffleOrder(queue, currentId);
+  if (shuffleIds.length <= 1) return currentIndex;
+  shuffleCursor = shuffleCursor > 0 ? shuffleCursor - 1 : shuffleIds.length - 1;
+  const idx = queue.findIndex((s) => s.id === shuffleIds[shuffleCursor]);
+  return idx >= 0 ? idx : currentIndex;
+}
+
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentSong: null,
   isPlaying: false,
@@ -243,6 +303,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       isLoading: false,
     });
 
+    // 洗牌游标对齐到刚播放的歌曲（手动点选/自动连播都保持序列一致）
+    syncShuffleOrder(newQueue, song.id);
+
     // 预加载下一首
     const nextIdx = (index >= 0 ? index : 0) + 1;
     if (nextIdx < newQueue.length) {
@@ -287,11 +350,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     let nextIndex: number;
     if (playMode === "shuffle") {
-      // 随机但不重复当前歌曲（队列只有一首时原地循环）
-      nextIndex =
-        queue.length > 1
-          ? (queueIndex + 1 + Math.floor(Math.random() * (queue.length - 1))) % queue.length
-          : queueIndex;
+      // 真洗牌：按洗牌序列顺序播，整轮不重复；一轮播完重新洗牌开始新一轮
+      nextIndex = nextShuffleIndex(queue, queueIndex);
     } else if (playMode === "single") {
       nextIndex = queueIndex;
     } else {
@@ -302,9 +362,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   prevSong: () => {
-    const { queue, queueIndex } = get();
+    const { queue, queueIndex, playMode } = get();
     if (queue.length === 0) return;
 
+    if (playMode === "shuffle") {
+      // 随机模式下"上一首"沿洗牌序列回退
+      const prevIndex = prevShuffleIndex(queue, queueIndex);
+      get().playSong(queue[prevIndex], queue);
+      return;
+    }
     const prevIndex = queueIndex <= 0 ? queue.length - 1 : queueIndex - 1;
     get().playSong(queue[prevIndex], queue);
   },
