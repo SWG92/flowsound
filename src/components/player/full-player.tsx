@@ -23,6 +23,9 @@ export function FullPlayer() {
   } = usePlayerStore();
 
   const [showLyricsView, setShowLyricsView] = useState(true);
+  // 下滑关闭手势（iOS 风格）
+  const [dragY, setDragY] = useState(0);
+  const touchStartRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hasScrolled = useRef(false);
 
@@ -54,6 +57,21 @@ export function FullPlayer() {
     hasScrolled.current = false;
   }, [fullOpen, currentSong?.id]);
 
+  // 下滑关闭：仅从顶部之外区域起始，下滑超过 120px 关闭
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartRef.current = e.touches[0].clientY;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (touchStartRef.current === null) return;
+    const dy = e.touches[0].clientY - touchStartRef.current;
+    if (dy > 0) setDragY(dy);
+  };
+  const onTouchEnd = () => {
+    if (dragY > 120) setFullOpen(false);
+    setDragY(0);
+    touchStartRef.current = null;
+  };
+
   if (!fullOpen || !currentSong) return null;
 
   const cover = getCoverUrl(currentSong);
@@ -65,7 +83,11 @@ export function FullPlayer() {
   const fav = isFavorite(currentSong.id);
 
   return (
-    <div className="fixed inset-0 z-[80] overflow-hidden flex flex-col animate-in fade-in-0 duration-300">
+    <div className="fixed inset-0 z-[80] overflow-hidden flex flex-col animate-in fade-in-0 duration-300"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{ transform: dragY ? `translateY(${dragY}px)` : undefined, transition: dragY ? "none" : "transform 0.3s ease" }}>
       {/* 背景：封面高斯模糊放大 + 深色遮罩 */}
       {cover && (
         <img

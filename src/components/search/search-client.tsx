@@ -6,12 +6,13 @@ import { SearchBar } from "@/components/search/search-bar";
 import { SongList } from "@/components/playlist/song-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { searchAllPlatforms, getHotSongs } from "@/lib/api";
+import { searchAllPlatforms, searchSongs, getHotSongs } from "@/lib/api";
 import { usePlayerStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { logError } from "@/lib/logger";
+import { cn } from "@/lib/utils";
 import { Flame, Play } from "lucide-react";
-import type { Song } from "@/lib/types";
+import type { Song, MusicPlatform } from "@/lib/types";
 
 const PAGE_SIZE = 30;
 
@@ -27,6 +28,8 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hotKeywords, setHotKeywords] = useState<string[]>([]);
+  // 平台筛选：auto=聚合搜索，其他=单平台
+  const [platform, setPlatform] = useState<"auto" | MusicPlatform>("auto");
 
   // 搜索代际号：快速切换关键词时丢弃过期响应，防止旧结果追加到新结果后面
   const searchGenRef = useRef(0);
@@ -39,7 +42,10 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
       if (p === 1) setSongs([]); // 换关键词时先清空，避免旧结果闪烁
       setLoading(true);
       try {
-        const result = await searchAllPlatforms(q, p, PAGE_SIZE);
+        const result =
+          platform === "auto"
+            ? await searchAllPlatforms(q, p, PAGE_SIZE)
+            : await searchSongs(q, p, PAGE_SIZE, platform);
         if (gen !== searchGenRef.current) return;
         // 翻页去重：同一首歌可能在第 1 页来自 A 平台、第 2 页又出现在 B 平台
         // （聚合去重只在单次调用内部生效），追加时对照已有列表再过滤一次
@@ -65,7 +71,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
         if (gen === searchGenRef.current) setLoading(false);
       }
     },
-    [showToast]
+    [showToast, platform]
   );
 
   // 关键词变化时重新搜索（服务端导航会传入新的 initialQuery）
@@ -81,6 +87,15 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
     }, 0);
     return () => clearTimeout(t);
   }, [query, doSearch]);
+
+  // 切换平台后按新平台重新搜索（延后一拍，避免同步 setState 告警）
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (query) doSearch(query, 1);
+    }, 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 平台切换触发重搜，query 变化由上面的 effect 负责
+  }, [platform]);
 
   // 空状态下展示"大家都在搜"（取自热歌榜歌手，无需额外接口）
   useEffect(() => {
@@ -121,26 +136,46 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
       </div>
 
       {query && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {loading && songs.length === 0
-              ? "全平台搜索中..."
-              : `找到 ${total} 首歌曲`}
-          </p>
-          {songs.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setQueue(songs);
-                playSong(songs[0], songs);
-              }}
-              className="cursor-pointer"
-            >
-              <Play className="h-4 w-4 mr-1.5" />
-              播放全部
-            </Button>
-          )}
+        <div className="space-y-3">
+          {/* 平台筛选：想找特定平台的版本时非常实用 */}
+          <div className="flex gap-1.5">
+            {([["auto", "全平台"], ["netease", "网易云"], ["qq", "QQ音乐"], ["kugou", "酷狗"]] as const).map(([val, label]) => (
+              <button
+                key={val}
+                onClick={() => setPlatform(val)}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs transition-colors cursor-pointer",
+                  platform === val
+                    ? "bg-primary text-primary-foreground"
+                    : "glass text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {loading && songs.length === 0
+                ? platform === "auto" ? "全平台搜索中..." : "搜索中..."
+                : `找到 ${total} 首歌曲`}
+            </p>
+            {songs.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setQueue(songs);
+                  playSong(songs[0], songs);
+                }}
+                className="cursor-pointer"
+              >
+                <Play className="h-4 w-4 mr-1.5" />
+                播放全部
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
