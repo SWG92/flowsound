@@ -24,6 +24,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // 让页面延伸到 iPhone 刘海屏/手势条区域，配合 CSS safe-area 变量使用
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {

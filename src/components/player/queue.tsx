@@ -56,7 +56,8 @@ export function PlayQueue() {
   if (!showQueue) return null;
 
   return (
-    <div className="fixed right-3 top-3 bottom-[104px] md:bottom-[112px] w-80 glass rounded-[26px] z-[55] flex flex-col shadow-xl overflow-hidden">
+    <div className="fixed right-3 top-3 w-80 glass rounded-[26px] z-[55] flex flex-col shadow-xl overflow-hidden"
+      style={{ bottom: "calc(96px + var(--safe-bottom))" }}>
       {/* 头部 */}
       <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
         <h3 className="font-semibold text-sm">

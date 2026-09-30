@@ -282,7 +282,8 @@ export function PlayerBar() {
   return (
     <>
       <div
-        className="fixed bottom-2 left-2 right-2 md:bottom-3 md:left-3 md:right-3 h-16 md:h-20 glass rounded-[28px] z-50 flex items-center px-3 md:px-5 gap-2 md:gap-4"
+        className="fixed left-2 right-2 md:left-3 md:right-3 h-16 md:h-20 glass rounded-[28px] z-50 flex items-center px-3 md:px-5 gap-2 md:gap-4"
+        style={{ bottom: `calc(0.5rem + var(--safe-bottom))` }}
         onWheel={handleWheelVolume}
         title="滚轮可调节音量"
       >

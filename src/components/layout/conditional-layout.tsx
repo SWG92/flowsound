@@ -13,7 +13,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Sidebar />
-      <main className="flex-1 flex flex-col overflow-hidden pb-[84px] md:pb-[104px]">
+      <main className="flex-1 flex flex-col overflow-hidden" style={{ paddingBottom: "calc(84px + var(--safe-bottom))" }}>
         <TopNav />
         <div className="flex-1 overflow-y-auto px-2 md:px-4">{children}</div>
       </main>
