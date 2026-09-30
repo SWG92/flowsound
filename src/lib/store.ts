@@ -35,6 +35,7 @@ interface PlayerState {
   showQueue: boolean;
   isLoading: boolean;
   showFloatingLyrics: boolean; // 悬浮歌词窗
+  showFullPlayer: boolean; // 全屏播放页
 
   // 主题与设置
   theme: "light" | "dark";
@@ -67,6 +68,7 @@ interface PlayerState {
   setTheme: (theme: "light" | "dark") => void;
   setAudioQuality: (quality: AudioQuality) => void;
   setShowFloatingLyrics: (show: boolean) => void;
+  setShowFullPlayer: (show: boolean) => void;
 }
 
 // localStorage 工具函数
@@ -208,6 +210,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   showQueue: false,
   isLoading: false,
   showFloatingLyrics: false,
+  showFullPlayer: false,
   theme: initialTheme,
   audioQuality: initialAudioQuality,
 
@@ -478,5 +481,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   setShowFloatingLyrics: (show) => {
     set({ showFloatingLyrics: show });
+  },
+
+  setShowFullPlayer: (show) => {
+    set({ showFullPlayer: show });
   },
 }));

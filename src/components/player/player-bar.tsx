@@ -35,6 +35,7 @@ import { LyricsDisplay } from "./lyrics";
 import { EQPanel } from "./equalizer-panel";
 import { VisualizerBars } from "./visualizer-bars";
 import { CommentsDialog } from "./comments-dialog";
+import { FullPlayer } from "./full-player";
 import { PLAYER_DIALOG_SIZE } from "./dialog-sizes";
 import { useLyricsBroadcast } from "@/hooks/use-lyrics-broadcast";
 import { useMediaSession } from "@/hooks/use-media-session";
@@ -124,6 +125,7 @@ export function PlayerBar() {
     showFloatingLyrics,
     audioQuality,
     setAudioQuality,
+    setShowFullPlayer,
   } = usePlayerStore();
 
   const { showToast } = useToast();
@@ -291,7 +293,7 @@ export function PlayerBar() {
               "w-12 h-12 rounded-lg overflow-hidden shrink-0 cursor-pointer",
               isPlaying && "playing-glow"
             )}
-            onClick={() => setShowLyrics(true)}
+            onClick={() => setShowFullPlayer(true)}
           >
             {coverUrl ? (
               <img src={coverUrl + "?param=100y100"} alt="" className="w-full h-full object-cover" />
@@ -303,7 +305,7 @@ export function PlayerBar() {
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium truncate cursor-pointer hover:underline" onClick={() => setShowLyrics(true)}>
+            <p className="text-sm font-medium truncate cursor-pointer hover:underline" onClick={() => setShowFullPlayer(true)}>
               {currentSong?.name || "加载中..."}
             </p>
             <p className="text-xs text-muted-foreground truncate">
@@ -511,6 +513,9 @@ export function PlayerBar() {
           />
         </div>
       </div>
+
+      {/* 全屏播放页 */}
+      <FullPlayer />
 
       {/* 歌词弹窗 */}
       <Dialog open={showLyrics} onOpenChange={setShowLyrics}>
