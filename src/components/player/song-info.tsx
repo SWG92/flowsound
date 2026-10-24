@@ -127,13 +127,13 @@ export function SongInfoDialog({ song, open, onOpenChange }: SongInfoDialogProps
                 <div
                   key={s.id}
                   className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted/40 cursor-pointer group"
-                  onClick={() => playSong(s, similar)}
+                  onClick={() => playSong(s, [s])}
                 >
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 cursor-pointer"
-                    onClick={(e) => { e.stopPropagation(); playSong(s, similar); }}
+                    onClick={(e) => { e.stopPropagation(); playSong(s, [s]); }}
                   >
                     <Play className="h-3 w-3" />
                   </Button>

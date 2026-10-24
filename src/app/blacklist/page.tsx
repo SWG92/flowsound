@@ -22,7 +22,6 @@ export default function BlacklistPage() {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const isLoading = usePlayerStore((s) => s.isLoading);
   const playSong = usePlayerStore((s) => s.playSong);
-  const setQueue = usePlayerStore((s) => s.setQueue);
   const { showToast } = useToast();
 
   // 从 localStorage 加载黑名单歌曲（异步置位，避免同步 setState 触发级联渲染告警）
@@ -52,9 +51,8 @@ export default function BlacklistPage() {
 
   function handlePlay(song: Song) {
     if (song.fee === 1) return;
-    const playable = songs.filter((s) => s.fee !== 1);
-    setQueue(playable);
-    playSong(song, playable);
+    // 单曲播放：队列只放这一首（与其他页面点播行为一致）
+    playSong(song, [song]);
   }
 
   return (

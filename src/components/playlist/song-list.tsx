@@ -182,7 +182,6 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
   const playSong = usePlayerStore((s) => s.playSong);
   const playNext = usePlayerStore((s) => s.playNext);
   const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
-  const setQueue = usePlayerStore((s) => s.setQueue);
   // 收藏集合单独订阅（引用仅在收藏变化时更新），行内心形保持响应
   const favorites = usePlayerStore((s) => s.favorites);
   const isFavorite = useCallback((id: number) => favorites.includes(id), [favorites]);
@@ -247,8 +246,9 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
 
   const handlePlay = (song: Song) => {
     if (song.fee === 1) return;
-    setQueue(filteredSongs);
-    playSong(song, filteredSongs);
+    // 单曲播放：队列只放这一首——队列里只应出现用户明确加入的歌
+    // （"下一首播放"加单曲、"播放全部"加整列表）；播完即停，用户在页面继续点选
+    playSong(song, [song]);
   };
 
   const addToPlaylist = (playlistId: string) => {
