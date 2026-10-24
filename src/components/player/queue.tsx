@@ -8,10 +8,15 @@ import { usePlayerStore } from "@/lib/store";
 import { cn, getCoverUrl } from "@/lib/utils";
 
 export function PlayQueue() {
-  const {
-    queue, currentSong, playSong, showQueue, setShowQueue,
-    reorderQueue, removeFromQueue, clearQueue,
-  } = usePlayerStore();
+  // 字段级订阅：currentTime 等高频切片变化不再引发整个队列列表重渲染
+  const queue = usePlayerStore((s) => s.queue);
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const playSong = usePlayerStore((s) => s.playSong);
+  const showQueue = usePlayerStore((s) => s.showQueue);
+  const setShowQueue = usePlayerStore((s) => s.setShowQueue);
+  const reorderQueue = usePlayerStore((s) => s.reorderQueue);
+  const removeFromQueue = usePlayerStore((s) => s.removeFromQueue);
+  const clearQueue = usePlayerStore((s) => s.clearQueue);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dropIdx, setDropIdx] = useState<number | null>(null);
 
@@ -146,6 +151,8 @@ export function PlayQueue() {
                     <img
                       src={getCoverUrl(song) + "?param=60y60"}
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                       className={cn("w-full h-full object-cover", isPaid && "grayscale")}
                     />
                   ) : (

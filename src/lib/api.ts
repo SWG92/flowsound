@@ -4,6 +4,8 @@ import type { AudioQuality } from "./constants";
 
 // 简单内存缓存
 const cache = new Map<string, { data: unknown; time: number }>();
+// 容量上限：长时间使用（大量搜索/点播）时不至于无限增长
+const MAX_CACHE_ENTRIES = 200;
 
 function getCached<T>(key: string): T | null {
   const entry = cache.get(key);
@@ -15,6 +17,11 @@ function getCached<T>(key: string): T | null {
 }
 
 function setCache(key: string, data: unknown) {
+  if (cache.size >= MAX_CACHE_ENTRIES) {
+    // 淘汰最早插入的条目（Map 迭代按插入序）
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) cache.delete(oldest);
+  }
   cache.set(key, { data, time: Date.now() });
 }
 

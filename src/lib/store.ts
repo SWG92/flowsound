@@ -191,6 +191,10 @@ function prevShuffleIndex(queue: Song[], currentIndex: number): number {
   return idx >= 0 ? idx : currentIndex;
 }
 
+// 音量的 localStorage 写入做尾部合并：滑块拖动/滚轮/睡眠渐弱会以最高 4 次/秒
+// 的频率调 setVolume，状态需要即时更新，但没必要每次都同步写存储
+let volumeSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentSong: null,
   isPlaying: false,
@@ -335,8 +339,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setCurrentTime: (time) => set({ currentTime: time }),
   setDuration: (duration) => set({ duration }),
   setVolume: (volume) => {
-    saveToStorage(STORAGE_KEYS.volume, volume);
     set({ volume });
+    if (volumeSaveTimer) clearTimeout(volumeSaveTimer);
+    volumeSaveTimer = setTimeout(() => {
+      volumeSaveTimer = null;
+      saveToStorage(STORAGE_KEYS.volume, volume);
+    }, 500);
   },
   setPlayMode: (mode) => {
     saveToStorage(STORAGE_KEYS.playMode, mode);

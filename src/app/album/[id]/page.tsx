@@ -25,7 +25,9 @@ export default function AlbumPage() {
   const [album, setAlbum] = useState<AlbumInfo | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
-  const { setQueue, playSong } = usePlayerStore();
+  // 只订阅用到的 action：播放进度等 store 变化不再引发专辑页重渲染
+  const setQueue = usePlayerStore((s) => s.setQueue);
+  const playSong = usePlayerStore((s) => s.playSong);
   const { showToast } = useToast();
 
   useEffect(() => {

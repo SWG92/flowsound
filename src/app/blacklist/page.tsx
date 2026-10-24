@@ -17,7 +17,12 @@ function formatDuration(ms: number | undefined): string {
 
 export default function BlacklistPage() {
   const [songs, setSongs] = useState<Song[]>([]);
-  const { currentSong, isPlaying, isLoading, playSong, setQueue } = usePlayerStore();
+  // 字段级订阅：歌词/音量等无关切片变化不再引发黑名单页重渲染
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const isLoading = usePlayerStore((s) => s.isLoading);
+  const playSong = usePlayerStore((s) => s.playSong);
+  const setQueue = usePlayerStore((s) => s.setQueue);
   const { showToast } = useToast();
 
   // 从 localStorage 加载黑名单歌曲（异步置位，避免同步 setState 触发级联渲染告警）

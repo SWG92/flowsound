@@ -7,7 +7,10 @@ import { SongList } from "@/components/playlist/song-list";
 import { usePlayerStore } from "@/lib/store";
 
 export default function FavoritesPage() {
-  const { favoriteSongs, setQueue, playSong } = usePlayerStore();
+  // 字段级订阅：播放进度等 store 变化不再引发收藏页重渲染
+  const favoriteSongs = usePlayerStore((s) => s.favoriteSongs);
+  const setQueue = usePlayerStore((s) => s.setQueue);
+  const playSong = usePlayerStore((s) => s.playSong);
   // 避免 hydration 不匹配：favorites 来自 localStorage，SSR 时为 []
   const [mounted, setMounted] = useState(false);
   useEffect(() => {

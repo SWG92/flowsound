@@ -47,7 +47,9 @@ export default function PlaylistPage() {
   const [newName, setNewName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const { setQueue, playSong } = usePlayerStore();
+  // 只订阅用到的 action：播放进度等 store 变化不再引发歌单页重渲染
+  const setQueue = usePlayerStore((s) => s.setQueue);
+  const playSong = usePlayerStore((s) => s.playSong);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -262,6 +264,8 @@ export default function PlaylistPage() {
                     <img
                       src={getCoverUrl(playlist.songs[0]) + "?param=120y120"}
                       alt={playlist.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-12 h-12 rounded-lg object-cover"
                     />
                   ) : (

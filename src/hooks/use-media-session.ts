@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { usePlayerStore } from "@/lib/store";
 import { audioPlayer } from "@/lib/audio-player";
 import { getCoverUrl } from "@/lib/utils";
@@ -12,18 +12,10 @@ import { getCoverUrl } from "@/lib/utils";
  * - 显示播放进度条
  */
 export function useMediaSession() {
-  const { currentSong, isPlaying, currentTime, duration, speed, togglePlay, nextSong, prevSong } =
-    usePlayerStore();
-  const positionRef = useRef(0);
-  const durationRef = useRef(0);
-  const speedRef = useRef(1);
-
-  // 更新播放位置（用于系统进度条）
-  useEffect(() => {
-    positionRef.current = currentTime;
-    durationRef.current = duration;
-    speedRef.current = speed;
-  }, [currentTime, duration, speed]);
+  // 只订阅元数据相关的两个字段：播放进度等高频状态不订阅（避免每 250ms 重渲染），
+  // 需要时从 getState() 读取
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
 
   // 设置元数据 + 操作处理器
   useEffect(() => {
@@ -54,18 +46,7 @@ export function useMediaSession() {
     // 更新播放状态
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
 
-    // 设置进度
-    if ("setPositionState" in navigator.mediaSession) {
-      try {
-        navigator.mediaSession.setPositionState({
-          duration: durationRef.current || 0,
-          playbackRate: speedRef.current || 1,
-          position: positionRef.current || 0,
-        });
-      } catch {
-        // setPositionState 可能在某些平台抛出异常
-      }
-    }
+    syncPositionState();
   }, [currentSong, isPlaying]);
 
   // 定期同步播放位置（Media Session API 要求持续更新位置）
@@ -73,37 +54,31 @@ export function useMediaSession() {
     if (!("mediaSession" in navigator) || !("setPositionState" in navigator.mediaSession)) return;
 
     const interval = setInterval(() => {
-      if (isPlaying) {
-        try {
-          navigator.mediaSession.setPositionState({
-            duration: durationRef.current || 0,
-            playbackRate: speedRef.current || 1,
-            position: positionRef.current || 0,
-          });
-        } catch { /* ignore */ }
+      if (usePlayerStore.getState().isPlaying) {
+        syncPositionState();
       }
     }, 5000); // 每5秒同步一次
 
     return () => clearInterval(interval);
-  }, [isPlaying]);
+  }, []);
 
   // 设置操作处理器（只设置一次）
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;
 
     const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
-      ["play", () => { togglePlay(); }],
-      ["pause", () => { togglePlay(); }],
-      ["previoustrack", () => { prevSong(); }],
-      ["nexttrack", () => { nextSong(); }],
+      ["play", () => { usePlayerStore.getState().togglePlay(); }],
+      ["pause", () => { usePlayerStore.getState().togglePlay(); }],
+      ["previoustrack", () => { usePlayerStore.getState().prevSong(); }],
+      ["nexttrack", () => { usePlayerStore.getState().nextSong(); }],
       ["seekbackward", (details) => {
         const offset = details.seekOffset || 10;
-        const newTime = Math.max(0, positionRef.current - offset);
+        const newTime = Math.max(0, getPosition() - offset);
         audioPlayer.seek(newTime);
       }],
       ["seekforward", (details) => {
         const offset = details.seekOffset || 10;
-        const newTime = Math.min(durationRef.current || 0, positionRef.current + offset);
+        const newTime = Math.min(getDuration() || 0, getPosition() + offset);
         audioPlayer.seek(newTime);
       }],
       ["seekto", (details) => {
@@ -132,5 +107,29 @@ export function useMediaSession() {
         } catch { /* ignore */ }
       }
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- 只设置一次，通过 store getState 获取最新状态
+  }, []);
+}
+
+// ===== 位置状态读取（不触发 React 重渲染） =====
+
+function getPosition() {
+  return usePlayerStore.getState().currentTime;
+}
+
+function getDuration() {
+  return usePlayerStore.getState().duration;
+}
+
+function syncPositionState() {
+  if (!("mediaSession" in navigator) || !("setPositionState" in navigator.mediaSession)) return;
+  const { duration, speed, currentTime } = usePlayerStore.getState();
+  try {
+    navigator.mediaSession.setPositionState({
+      duration: duration || 0,
+      playbackRate: speed || 1,
+      position: currentTime || 0,
+    });
+  } catch {
+    // setPositionState 可能在某些平台抛出异常
+  }
 }

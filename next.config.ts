@@ -8,18 +8,8 @@ const nextConfig: NextConfig = {
   experimental: {
     viewTransition: true,
   },
-  images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "**.music.126.net",
-      },
-      {
-        protocol: "https",
-        hostname: "**.p1.music.126.net",
-      },
-    ],
-  },
+  // 说明：封面图全部用原生 <img> 直连加载（已加 ?param= 尺寸缩放与懒加载），
+  // 未使用 next/image，因此无需 images.remotePatterns 配置
 };
 
 export default nextConfig;

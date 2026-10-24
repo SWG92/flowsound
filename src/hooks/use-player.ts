@@ -7,7 +7,11 @@ import { usePlayerStore } from "@/lib/store";
 export function useAudioPlayer() {
   const prevSongUrl = useRef<string | null>(null);
 
-  const { currentSong, isPlaying, volume, speed } = usePlayerStore();
+  // 字段级订阅：store 其他切片（currentTime/lyrics 等）变化不再引发宿主组件重渲染
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const volume = usePlayerStore((s) => s.volume);
+  const speed = usePlayerStore((s) => s.speed);
 
   // 切换歌曲 - 只在 URL 变化时触发
   useEffect(() => {

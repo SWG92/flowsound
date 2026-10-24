@@ -62,6 +62,8 @@ export function ShareDialog({ song, open, onOpenChange }: ShareDialogProps) {
               <img
                 src={getCoverUrl(song) + "?param=100y100"}
                 alt={song.name}
+                loading="lazy"
+                decoding="async"
                 className="w-12 h-12 rounded object-cover"
               />
             )}

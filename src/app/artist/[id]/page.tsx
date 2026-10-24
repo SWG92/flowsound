@@ -23,7 +23,9 @@ export default function ArtistPage() {
   const [artist, setArtist] = useState<ArtistInfo | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
-  const { setQueue, playSong } = usePlayerStore();
+  // 只订阅用到的 action：播放进度等 store 变化不再引发歌手页重渲染
+  const setQueue = usePlayerStore((s) => s.setQueue);
+  const playSong = usePlayerStore((s) => s.playSong);
   const { showToast } = useToast();
 
   useEffect(() => {

@@ -46,7 +46,9 @@ export function DailyRecommend() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { setQueue, playSong } = usePlayerStore();
+  // 只订阅用到的 action：播放进度等 store 变化不再引发每日推荐重渲染
+  const setQueue = usePlayerStore((s) => s.setQueue);
+  const playSong = usePlayerStore((s) => s.playSong);
   const { showToast } = useToast();
 
   // 加载推荐歌曲（优先使用缓存）

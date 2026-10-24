@@ -6,7 +6,11 @@ import { audioPlayer } from "@/lib/audio-player";
 import { cn, getCoverUrl } from "@/lib/utils";
 
 export function LyricsDisplay() {
-  const { lyrics, currentLyricIndex, currentSong, isPlaying } = usePlayerStore();
+  // 字段级订阅：音量/队列等其他 store 切片变化不再引发歌词区重渲染
+  const lyrics = usePlayerStore((s) => s.lyrics);
+  const currentLyricIndex = usePlayerStore((s) => s.currentLyricIndex);
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
   const containerRef = useRef<HTMLDivElement>(null);
   const hasScrolledOnMount = useRef(false);
   // 用户手动滚动时暂停自动滚动，停止后 2 秒恢复
@@ -86,6 +90,8 @@ export function LyricsDisplay() {
             <img
               src={getCoverUrl(currentSong) + "?param=400y400"}
               alt={currentSong.name}
+              loading="lazy"
+              decoding="async"
               className={cn("w-full h-full object-cover", isPlaying && "animate-spin [animation-duration:20s]")}
             />
           ) : (

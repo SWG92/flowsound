@@ -248,7 +248,7 @@ export function CommentsDialog({ song, open, onOpenChange }: CommentsDialogProps
               {comments.map((c) => (
                 <div key={c.id} className="flex gap-3 group">
                   {c.user?.avatarUrl ? (
-                    <img src={c.user.avatarUrl + "?param=50y50"} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                    <img src={c.user.avatarUrl + "?param=50y50"} alt="" loading="lazy" decoding="async" className="w-8 h-8 rounded-full object-cover shrink-0" />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center shrink-0"><span className="text-xs font-bold text-primary">{(c.user?.nickname || "?")[0]}</span></div>
                   )}

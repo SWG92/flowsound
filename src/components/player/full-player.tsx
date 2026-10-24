@@ -14,13 +14,23 @@ import { cn, getCoverUrl } from "@/lib/utils";
 export function FullPlayer() {
   const fullOpen = usePlayerStore((s) => s.showFullPlayer);
   const setFullOpen = usePlayerStore((s) => s.setShowFullPlayer);
-  const {
-    currentSong, isPlaying, isLoading, currentTime, duration,
-    setShowQueue,
-    lyrics, currentLyricIndex, playMode,
-    togglePlay, nextSong, prevSong, setPlayMode,
-    toggleFavorite, isFavorite,
-  } = usePlayerStore();
+  // 字段级订阅：收藏状态用派生布尔（只在收藏与否翻转时重渲染），
+  // 音量/队列等其他切片变化不再引发全屏页重渲染
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const isLoading = usePlayerStore((s) => s.isLoading);
+  const currentTime = usePlayerStore((s) => s.currentTime);
+  const duration = usePlayerStore((s) => s.duration);
+  const setShowQueue = usePlayerStore((s) => s.setShowQueue);
+  const lyrics = usePlayerStore((s) => s.lyrics);
+  const currentLyricIndex = usePlayerStore((s) => s.currentLyricIndex);
+  const playMode = usePlayerStore((s) => s.playMode);
+  const togglePlay = usePlayerStore((s) => s.togglePlay);
+  const nextSong = usePlayerStore((s) => s.nextSong);
+  const prevSong = usePlayerStore((s) => s.prevSong);
+  const setPlayMode = usePlayerStore((s) => s.setPlayMode);
+  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
+  const fav = usePlayerStore((s) => (s.currentSong ? s.favorites.includes(s.currentSong.id) : false));
 
   const [showLyricsView, setShowLyricsView] = useState(true);
   // 下滑关闭手势（iOS 风格）
@@ -101,7 +111,6 @@ export function FullPlayer() {
     const m = Math.floor(s / 60);
     return `${m}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
   };
-  const fav = isFavorite(currentSong.id);
 
   return (
     <div className="fixed inset-0 z-[80] overflow-hidden flex flex-col animate-in fade-in-0 duration-300"

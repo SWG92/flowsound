@@ -90,6 +90,8 @@ export function SongInfoDialog({ song, open, onOpenChange }: SongInfoDialogProps
             <img
               src={getCoverUrl(song) + "?param=200y200"}
               alt={song.name}
+              loading="lazy"
+              decoding="async"
               className="w-24 h-24 rounded-lg object-cover"
             />
           ) : (

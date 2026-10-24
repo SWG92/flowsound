@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Play, Heart, Clock, Loader2, Lock, Plus, MoreHorizontal,
@@ -175,8 +175,17 @@ function SongRow({
 
 export function SongList({ songs, showIndex = true, showAlbum = true, virtual = false, maxHeight, onEndReached, endReachedThreshold = 240, playlistId, onRemoveFromPlaylist, onReorder }: SongListProps) {
   const router = useRouter();
-  const { currentSong, isPlaying, isLoading, playSong, playNext, toggleFavorite, isFavorite, setQueue } =
-    usePlayerStore();
+  // 字段级订阅：currentTime 等高频切片变化不再引发整个列表重渲染
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const isLoading = usePlayerStore((s) => s.isLoading);
+  const playSong = usePlayerStore((s) => s.playSong);
+  const playNext = usePlayerStore((s) => s.playNext);
+  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
+  const setQueue = usePlayerStore((s) => s.setQueue);
+  // 收藏集合单独订阅（引用仅在收藏变化时更新），行内心形保持响应
+  const favorites = usePlayerStore((s) => s.favorites);
+  const isFavorite = useCallback((id: number) => favorites.includes(id), [favorites]);
   const { showToast } = useToast();
 
   const [menuSong, setMenuSong] = useState<Song | null>(null);
@@ -195,8 +204,12 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
     try { setPlaylists(JSON.parse(localStorage.getItem("flowsound_playlists") || "[]")); } catch { setPlaylists([]); }
   }, []);
 
-  // 过滤黑名单
-  const filteredSongs = songs.filter(s => !blacklist.includes(s.id));
+  // 过滤黑名单（memo：仅在歌曲列表或黑名单变化时重算，避免每次渲染重建数组
+  // 导致虚拟滚动计数频繁失效）
+  const filteredSongs = useMemo(
+    () => songs.filter((s) => !blacklist.includes(s.id)),
+    [songs, blacklist]
+  );
 
   // 歌单内拖拽排序（仅歌单详情上下文提供 onReorder 时启用，虚拟列表分支）
   const [dragFrom, setDragFrom] = useState<number | null>(null);

@@ -8,7 +8,12 @@ import { usePlayerStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export default function HistoryPage() {
-  const { playHistory, clearHistory, playCounts, setQueue, playSong } = usePlayerStore();
+  // 字段级订阅：播放进度等 store 变化不再引发历史页重渲染
+  const playHistory = usePlayerStore((s) => s.playHistory);
+  const clearHistory = usePlayerStore((s) => s.clearHistory);
+  const playCounts = usePlayerStore((s) => s.playCounts);
+  const setQueue = usePlayerStore((s) => s.setQueue);
+  const playSong = usePlayerStore((s) => s.playSong);
   const [mounted, setMounted] = useState(false);
   const [view, setView] = useState<"recent" | "top">("recent");
   useEffect(() => {

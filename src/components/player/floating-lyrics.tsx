@@ -20,11 +20,17 @@ function loadColor(): number {
 }
 
 export function FloatingLyrics() {
-  const {
-    lyrics, currentLyricIndex, currentSong, isPlaying,
-    togglePlay, showFloatingLyrics, setShowFloatingLyrics,
-    toggleFavorite, isFavorite,
-  } = usePlayerStore();
+  // 字段级订阅：currentTime 等高频切片变化不再引发悬浮歌词重渲染；
+  // 收藏用派生布尔，只在收藏与否翻转时更新
+  const lyrics = usePlayerStore((s) => s.lyrics);
+  const currentLyricIndex = usePlayerStore((s) => s.currentLyricIndex);
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const togglePlay = usePlayerStore((s) => s.togglePlay);
+  const showFloatingLyrics = usePlayerStore((s) => s.showFloatingLyrics);
+  const setShowFloatingLyrics = usePlayerStore((s) => s.setShowFloatingLyrics);
+  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
+  const isFav = usePlayerStore((s) => (s.currentSong ? s.favorites.includes(s.currentSong.id) : false));
 
   const [locked, setLocked] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -109,8 +115,6 @@ export function FloatingLyrics() {
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [showFloatingLyrics, locked, setShowFloatingLyrics]);
-
-  const isFav = currentSong ? isFavorite(currentSong.id) : false;
 
   if (!currentSong || !showFloatingLyrics) return null;
 

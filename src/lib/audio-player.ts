@@ -399,14 +399,27 @@ class AudioPlayer {
             usePlayerStore.getState().setCurrentTime(time);
           }
 
-          // 歌词索引检测：每帧都执行，确保歌词同步精度
+          // 歌词索引检测：每帧都执行，确保歌词同步精度。
+          // 正常播放时时间单调递增：从当前行向后找（均摊 O(1)）；
+          // 时间早于当前行（seek 回退/切歌）时再从头完整扫描
           const { lyrics, currentLyricIndex } = usePlayerStore.getState();
           if (lyrics.length > 0) {
             let newIndex = -1;
-            for (let i = lyrics.length - 1; i >= 0; i--) {
-              if (time >= lyrics[i].time) {
-                newIndex = i;
-                break;
+            const cur = currentLyricIndex;
+            if (cur >= 0 && cur < lyrics.length && time >= lyrics[cur].time) {
+              for (let i = cur; i < lyrics.length; i++) {
+                if (time >= lyrics[i].time) {
+                  newIndex = i;
+                } else {
+                  break;
+                }
+              }
+            } else {
+              for (let i = lyrics.length - 1; i >= 0; i--) {
+                if (time >= lyrics[i].time) {
+                  newIndex = i;
+                  break;
+                }
               }
             }
             if (newIndex !== currentLyricIndex) {

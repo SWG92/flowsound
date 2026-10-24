@@ -19,7 +19,9 @@ export default function Home() {
   const [newSongs, setNewSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
-  const { setQueue, playSong } = usePlayerStore();
+  // 只订阅用到的 action：播放进度等 store 变化不再引发首页重渲染
+  const setQueue = usePlayerStore((s) => s.setQueue);
+  const playSong = usePlayerStore((s) => s.playSong);
   const { showToast } = useToast();
 
   const load = async () => {

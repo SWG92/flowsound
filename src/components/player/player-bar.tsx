@@ -102,31 +102,32 @@ export function PlayerBar() {
   // 启用系统媒体控制（锁屏/通知中心）
   useMediaSession();
 
-  const {
-    currentSong,
-    isPlaying,
-    currentTime,
-    duration,
-    volume,
-    playMode,
-    speed,
-    togglePlay,
-    setVolume,
-    setPlayMode,
-    setSpeed,
-    nextSong,
-    prevSong,
-    toggleFavorite,
-    isFavorite,
-    setShowQueue,
-    showQueue,
-    isLoading,
-    setShowFloatingLyrics,
-    showFloatingLyrics,
-    audioQuality,
-    setAudioQuality,
-    setShowFullPlayer,
-  } = usePlayerStore();
+  // 字段级订阅：收藏/主题/队列数据等无关切片变化不再引发播放栏重渲染；
+  // currentTime/duration 仍是本组件的订阅项（进度条显示需要）
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const currentTime = usePlayerStore((s) => s.currentTime);
+  const duration = usePlayerStore((s) => s.duration);
+  const volume = usePlayerStore((s) => s.volume);
+  const playMode = usePlayerStore((s) => s.playMode);
+  const speed = usePlayerStore((s) => s.speed);
+  const togglePlay = usePlayerStore((s) => s.togglePlay);
+  const setVolume = usePlayerStore((s) => s.setVolume);
+  const setPlayMode = usePlayerStore((s) => s.setPlayMode);
+  const setSpeed = usePlayerStore((s) => s.setSpeed);
+  const nextSong = usePlayerStore((s) => s.nextSong);
+  const prevSong = usePlayerStore((s) => s.prevSong);
+  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
+  const setShowQueue = usePlayerStore((s) => s.setShowQueue);
+  const showQueue = usePlayerStore((s) => s.showQueue);
+  const isLoading = usePlayerStore((s) => s.isLoading);
+  const setShowFloatingLyrics = usePlayerStore((s) => s.setShowFloatingLyrics);
+  const showFloatingLyrics = usePlayerStore((s) => s.showFloatingLyrics);
+  const audioQuality = usePlayerStore((s) => s.audioQuality);
+  const setAudioQuality = usePlayerStore((s) => s.setAudioQuality);
+  const setShowFullPlayer = usePlayerStore((s) => s.setShowFullPlayer);
+  // 收藏用派生布尔：只在"当前歌曲是否已收藏"翻转时重渲染
+  const isCurrentFavorite = usePlayerStore((s) => (s.currentSong ? s.favorites.includes(s.currentSong.id) : false));
 
   const { showToast } = useToast();
 
@@ -315,7 +316,7 @@ export function PlayerBar() {
           </div>
 
           <Button variant="ghost" size="icon" className="shrink-0 cursor-pointer h-8 w-8 hidden sm:inline-flex" onClick={() => currentSong && toggleFavorite(currentSong)}>
-            <Heart className={cn("h-4 w-4", currentSong && isFavorite(currentSong.id) && "fill-red-500 text-red-500")} />
+            <Heart className={cn("h-4 w-4", currentSong && isCurrentFavorite && "fill-red-500 text-red-500")} />
           </Button>
         </div>
 
