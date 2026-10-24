@@ -5,6 +5,7 @@ import { ChevronDown, Heart, ListMusic, Loader2, Pause, Play, SkipBack, SkipForw
 import { usePlayerStore } from "@/lib/store";
 import { audioPlayer } from "@/lib/audio-player";
 import { cn, getCoverUrl } from "@/lib/utils";
+import { ProgressFill } from "./progress";
 
 /**
  * 全屏播放页（iOS 风格）：点播放栏封面/歌名展开。
@@ -15,12 +16,11 @@ export function FullPlayer() {
   const fullOpen = usePlayerStore((s) => s.showFullPlayer);
   const setFullOpen = usePlayerStore((s) => s.setShowFullPlayer);
   // 字段级订阅：收藏状态用派生布尔（只在收藏与否翻转时重渲染），
-  // 音量/队列等其他切片变化不再引发全屏页重渲染
+  // 音量/队列等其他切片变化不再引发全屏页重渲染；
+  // 进度显示已拆到 <ProgressFill />（自订阅，250ms 更新不再重渲染本组件）
   const currentSong = usePlayerStore((s) => s.currentSong);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const isLoading = usePlayerStore((s) => s.isLoading);
-  const currentTime = usePlayerStore((s) => s.currentTime);
-  const duration = usePlayerStore((s) => s.duration);
   const setShowQueue = usePlayerStore((s) => s.setShowQueue);
   const lyrics = usePlayerStore((s) => s.lyrics);
   const currentLyricIndex = usePlayerStore((s) => s.currentLyricIndex);
@@ -106,11 +106,6 @@ export function FullPlayer() {
   if (!fullOpen || !currentSong) return null;
 
   const cover = getCoverUrl(currentSong);
-  const fmt = (s: number) => {
-    if (!s || isNaN(s)) return "0:00";
-    const m = Math.floor(s / 60);
-    return `${m}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
-  };
 
   return (
     <div className="fixed inset-0 z-[80] overflow-hidden flex flex-col animate-in fade-in-0 duration-300"
@@ -229,17 +224,8 @@ export function FullPlayer() {
           </button>
         </div>
 
-        {/* 进度条 */}
-        <div className="flex items-center gap-3 text-xs text-white/60 tabular-nums">
-          <span>{fmt(currentTime)}</span>
-          <div className="flex-1 h-1 rounded-full bg-white/20 overflow-hidden">
-            <div
-              className="h-full bg-white/85 rounded-full"
-              style={{ width: duration ? `${(currentTime / duration) * 100}%` : "0%" }}
-            />
-          </div>
-          <span>{fmt(duration)}</span>
-        </div>
+        {/* 进度条（自订阅组件） */}
+        <ProgressFill />
 
         {/* 控制按钮 */}
         <div className="flex items-center justify-center gap-8 mt-5">

@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // 明确指定项目根目录，避免检测到上层目录的 lockfile
   outputFileTracingRoot: __dirname,
+  // React Compiler：编译期自动 memo 化组件与 JSX（歌词行、弹窗、列表等免手写 useMemo）。
+  // 不兼容的组件（如 TanStack Virtual 的 useVirtualizer）会被编译器自动跳过，安全
+  reactCompiler: true,
   // 路由导航启用 React View Transitions：页面切换获得系统级过渡动画
   // （Chrome/Edge 完整支持，其他浏览器自动降级为直接切换）
   experimental: {

@@ -143,11 +143,14 @@ function syncShuffleOrder(queue: Song[], currentId?: number) {
     shuffleIds = [];
     return;
   }
-  // 队列里已消失的 id 移除；新出现的 id 随机插入序列
-  shuffleIds = shuffleIds.filter((id) => ids.includes(id));
+  // 队列里已消失的 id 移除；新出现的 id 随机插入序列（Set 查找，千首队列下 O(n) 而非 O(n²)）
+  const idSet = new Set(ids);
+  shuffleIds = shuffleIds.filter((id) => idSet.has(id));
+  const existing = new Set(shuffleIds);
   for (const id of ids) {
-    if (!shuffleIds.includes(id)) {
+    if (!existing.has(id)) {
       shuffleIds.splice(Math.floor(Math.random() * (shuffleIds.length + 1)), 0, id);
+      existing.add(id);
     }
   }
   // 游标对齐到正在播放的歌曲

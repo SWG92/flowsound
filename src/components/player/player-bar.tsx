@@ -36,6 +36,7 @@ import { EQPanel } from "./equalizer-panel";
 import { VisualizerBars } from "./visualizer-bars";
 import { CommentsDialog } from "./comments-dialog";
 import { FullPlayer } from "./full-player";
+import { ProgressBar } from "./progress";
 import { PLAYER_DIALOG_SIZE } from "./dialog-sizes";
 import { useLyricsBroadcast } from "@/hooks/use-lyrics-broadcast";
 import { useMediaSession } from "@/hooks/use-media-session";
@@ -78,7 +79,9 @@ const QUALITY_OPTIONS = (Object.entries(AUDIO_QUALITY) as [AudioQuality, { label
 );
 
 export function PlayerBar() {
-  const { seek, formatTime } = useAudioPlayer();
+  // useAudioPlayer 负责把 URL/音量/倍速同步到播放器（副作用在 hook 内），
+  // 进度显示与 seek 已拆分到 <ProgressBar />（自订阅，高频更新不再重渲染本组件）
+  useAudioPlayer();
   const [showLyrics, setShowLyrics] = useState(false);
   const [showSpeed, setShowSpeed] = useState(false);
   const [showQuality, setShowQuality] = useState(false);
@@ -87,8 +90,6 @@ export function PlayerBar() {
   const [showEQ, setShowEQ] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [prevVolume, setPrevVolume] = useState(0.8);
-  // 拖拽进度条时使用本地状态，隔离 rAF 循环的 currentTime 更新，防止抽搐
-  const [dragTime, setDragTime] = useState<number | null>(null);
   const sleepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isFadingRef = useRef(false);
@@ -102,12 +103,9 @@ export function PlayerBar() {
   // 启用系统媒体控制（锁屏/通知中心）
   useMediaSession();
 
-  // 字段级订阅：收藏/主题/队列数据等无关切片变化不再引发播放栏重渲染；
-  // currentTime/duration 仍是本组件的订阅项（进度条显示需要）
+  // 字段级订阅：收藏/主题/队列数据等无关切片变化不再引发播放栏重渲染
   const currentSong = usePlayerStore((s) => s.currentSong);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
-  const currentTime = usePlayerStore((s) => s.currentTime);
-  const duration = usePlayerStore((s) => s.duration);
   const volume = usePlayerStore((s) => s.volume);
   const playMode = usePlayerStore((s) => s.playMode);
   const speed = usePlayerStore((s) => s.speed);
@@ -358,29 +356,8 @@ export function PlayerBar() {
             </div>
           </div>
 
-          {/* 进度条行 */}
-          <div className="flex items-center gap-2 w-full">
-            <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">{formatTime(currentTime)}</span>
-            <Slider
-              value={[dragTime ?? currentTime]}
-              max={duration || 100}
-              step={0.1}
-              onValueChange={(val) => {
-                const t = Array.isArray(val) ? val[0] : val;
-                audioPlayer.setSeeking(true);
-                setDragTime(t);
-              }}
-              onValueCommitted={() => {
-                if (dragTime !== null) {
-                  seek(dragTime);
-                  setDragTime(null);
-                }
-                audioPlayer.setSeeking(false);
-              }}
-              className="flex-1"
-            />
-            <span className="text-xs text-muted-foreground w-10 tabular-nums">{formatTime(duration)}</span>
-          </div>
+          {/* 进度条行（自订阅组件：进度更新只重渲染进度条本身） */}
+          <ProgressBar />
         </div>
 
         {/* 右侧：音质 + 倍速 + 定时 + 队列 + 音量 */}
