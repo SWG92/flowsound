@@ -42,8 +42,13 @@ interface PlayerState {
   audioQuality: AudioQuality;
   autoContinueEnabled: boolean; // 队列播完后是否自动补歌续播（默认关闭：播完即停）
 
+  // 播放来源列表：点播时所在页面列表及当前歌的位置。
+  // 队列（用户加的歌）播完后按它顺序连播（"队列之外"的续播），session 内有效
+  sourceList: Song[];
+  sourceIndex: number;
+
   // 操作
-  playSong: (song: Song, queue?: Song[]) => Promise<void>;
+  playSong: (song: Song, queue?: Song[], sourceList?: Song[]) => Promise<void>;
   autoContinue: (song: Song) => Promise<void>;
   togglePlay: () => void;
   setPlaying: (playing: boolean) => void;
@@ -138,6 +143,17 @@ let autoSkipCount = 0;
 // 智能补歌进行中标记（防止连点"下一首"触发多次补歌）
 let autoContinueInFlight = false;
 
+// 从来源列表 index 起、沿 direction 方向找第一首非 VIP 歌。
+// VIP（fee=1）大概率取不到址，列表行点击本来就禁止，连播时同样跳过
+function nextPlayableInSource(list: Song[], index: number, direction: 1 | -1): Song | null {
+  let i = index + direction;
+  while (i >= 0 && i < list.length) {
+    if (list[i].fee !== 1) return list[i];
+    i += direction;
+  }
+  return null;
+}
+
 // ===== 真洗牌随机播放 =====
 // 以歌曲 id 维护一个乱序序列：随机模式下按序列顺序播放，整轮不重复，
 // 一轮播完自动重新洗牌。队列增删/手动切歌时序列自动同步。
@@ -228,8 +244,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   theme: initialTheme,
   audioQuality: initialAudioQuality,
   autoContinueEnabled: initialAutoContinue,
+  sourceList: [],
+  sourceIndex: -1,
 
-  playSong: async (song, queue) => {
+  playSong: async (song, queue, sourceList) => {
     const gen = ++playGeneration;
     set({ isLoading: true });
 
@@ -307,6 +325,18 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     // 成功获取到 URL，重置自动跳过计数器
     autoSkipCount = 0;
 
+    // 记录播放来源：显式传入的列表优先；否则在当前来源列表中定位本歌，
+    // 找不到（切到了别的列表的歌）就清除——避免沿错误的旧列表连播
+    let src = get().sourceList;
+    let srcIdx = -1;
+    if (sourceList && sourceList.length > 0) {
+      src = sourceList;
+      srcIdx = sourceList.findIndex((s) => s.id === song.id);
+    } else if (src.length > 0) {
+      srcIdx = src.findIndex((s) => s.id === song.id);
+      if (srcIdx < 0) src = [];
+    }
+
     const songWithUrl = { ...song, url };
     const index = newQueue.findIndex((s) => s.id === song.id);
 
@@ -319,6 +349,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       lyrics,
       currentLyricIndex: -1,
       isLoading: false,
+      sourceList: src,
+      sourceIndex: srcIdx,
     });
 
     // 洗牌游标对齐到刚播放的歌曲（手动点选/自动连播都保持序列一致）
@@ -395,23 +427,43 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   nextSong: (fromEnd = false) => {
-    const { queue, queueIndex, playMode, currentSong, autoContinueEnabled } = get();
+    const { queue, queueIndex, playMode, currentSong, autoContinueEnabled, sourceList, sourceIndex } = get();
     if (queue.length === 0) return;
 
-    // 单首队列且非单曲循环：
-    // - 开启"自动补歌"→ 按歌手热门歌曲补一首继续播
-    // - 关闭（默认）→ 自然播完即停止播放，等用户在外面挑歌；
-    //   手动点下一首则重播当前歌（与主流播放器一致）
-    if (queue.length <= 1 && playMode !== "single" && currentSong) {
+    const listNext = sourceIndex >= 0 ? nextPlayableInSource(sourceList, sourceIndex, 1) : null;
+
+    // 单曲队列手动切歌（未播完）：优先沿来源列表往下走
+    if (queue.length <= 1 && playMode !== "single" && currentSong && !fromEnd) {
+      if (listNext) {
+        get().playSong(listNext, [listNext]);
+        return;
+      }
       if (autoContinueEnabled) {
         get().autoContinue(currentSong);
         return;
       }
-      if (fromEnd) {
-        set({ isPlaying: false });
+      get().playSong(currentSong, queue);
+      return;
+    }
+
+    // 队列播完（自然播完且已是队列最后一首）→ 退出队列，续播来源列表的下一首。
+    // 续播的歌不进队列（队列只含用户明确加的歌），每首播完继续沿列表往下走
+    if (playMode === "list" && currentSong && fromEnd && queueIndex >= queue.length - 1) {
+      // 来源列表还有下一首、且不是绕回队列开头（绕回属于列表循环）
+      if (listNext && !(queue.length > 1 && listNext.id === queue[0].id)) {
+        get().playSong(listNext, [listNext]);
         return;
       }
-      get().playSong(currentSong, queue);
+      // 来源列表也到头：开启补歌则按歌手续播；单曲队列停止；整列表队列循环回队首
+      if (autoContinueEnabled) {
+        get().autoContinue(currentSong);
+        return;
+      }
+      if (queue.length > 1) {
+        get().playSong(queue[(queueIndex + 1) % queue.length], queue);
+        return;
+      }
+      set({ isPlaying: false });
       return;
     }
 
@@ -429,11 +481,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   prevSong: () => {
-    const { queue, queueIndex, playMode, currentSong, autoContinueEnabled } = get();
+    const { queue, queueIndex, playMode, currentSong, autoContinueEnabled, sourceList, sourceIndex } = get();
     if (queue.length === 0) return;
 
-    // 单首队列且非单曲循环：开启自动补歌则补一首，否则重播当前歌
+    // 单曲队列：优先沿来源列表往回走（上一首 = 列表里这首歌的前一首）
     if (queue.length <= 1 && playMode !== "single" && currentSong) {
+      const listPrev = sourceIndex >= 0 ? nextPlayableInSource(sourceList, sourceIndex, -1) : null;
+      if (listPrev) {
+        get().playSong(listPrev, [listPrev]);
+        return;
+      }
       if (autoContinueEnabled) {
         get().autoContinue(currentSong);
         return;

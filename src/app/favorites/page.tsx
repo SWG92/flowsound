@@ -23,7 +23,7 @@ export default function FavoritesPage() {
   const handlePlayAll = () => {
     if (favoriteSongs.length === 0) return;
     setQueue(favoriteSongs);
-    playSong(favoriteSongs[0], favoriteSongs);
+    playSong(favoriteSongs[0], favoriteSongs, favoriteSongs);
   };
 
   return (

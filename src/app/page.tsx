@@ -57,7 +57,7 @@ export default function Home() {
   const handlePlayAll = (songList: Song[]) => {
     if (songList.length === 0) return;
     setQueue(songList);
-    playSong(songList[0], songList);
+    playSong(songList[0], songList, songList);
   };
 
   return (

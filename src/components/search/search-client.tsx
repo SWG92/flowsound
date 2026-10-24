@@ -167,7 +167,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                 size="sm"
                 onClick={() => {
                   setQueue(songs);
-                  playSong(songs[0], songs);
+                  playSong(songs[0], songs, songs);
                 }}
                 className="cursor-pointer"
               >

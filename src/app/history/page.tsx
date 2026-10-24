@@ -54,7 +54,7 @@ export default function HistoryPage() {
               size="sm"
               onClick={() => {
                 setQueue(playHistory);
-                playSong(playHistory[0], playHistory);
+                playSong(playHistory[0], playHistory, playHistory);
               }}
               className="cursor-pointer"
             >

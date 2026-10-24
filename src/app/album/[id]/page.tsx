@@ -72,7 +72,7 @@ export default function AlbumPage() {
   const handlePlayAll = () => {
     if (songs.length === 0) return;
     setQueue(songs);
-    playSong(songs[0], songs);
+    playSong(songs[0], songs, songs);
   };
 
   if (loading) {

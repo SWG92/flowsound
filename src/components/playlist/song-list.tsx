@@ -246,9 +246,9 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
 
   const handlePlay = (song: Song) => {
     if (song.fee === 1) return;
-    // 单曲播放：队列只放这一首——队列里只应出现用户明确加入的歌
-    // （"下一首播放"加单曲、"播放全部"加整列表）；播完即停，用户在页面继续点选
-    playSong(song, [song]);
+    // 单曲播放：队列只放这一首；来源列表 = 当前页面列表，
+    // 队列播完后沿它顺序连播（如热歌榜点一首，播完自动接榜单下一首）
+    playSong(song, [song], filteredSongs);
   };
 
   const addToPlaylist = (playlistId: string) => {

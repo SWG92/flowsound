@@ -51,8 +51,8 @@ export default function BlacklistPage() {
 
   function handlePlay(song: Song) {
     if (song.fee === 1) return;
-    // 单曲播放：队列只放这一首（与其他页面点播行为一致）
-    playSong(song, [song]);
+    // 单曲播放：队列只放这一首；来源列表用于队列播完后沿列表连播
+    playSong(song, [song], songs);
   }
 
   return (
