@@ -43,6 +43,7 @@ interface PlayerState {
 
   // 操作
   playSong: (song: Song, queue?: Song[]) => Promise<void>;
+  autoContinue: (song: Song) => Promise<void>;
   togglePlay: () => void;
   setPlaying: (playing: boolean) => void;
   setCurrentTime: (time: number) => void;
@@ -130,6 +131,8 @@ const initialFavorites = initialFavoriteSongs.map((s) => s.id);
 let playGeneration = 0;
 // 自动跳过无版权歌曲的计数器（防止死循环）
 let autoSkipCount = 0;
+// 智能补歌进行中标记（防止连点"下一首"触发多次补歌）
+let autoContinueInFlight = false;
 
 // ===== 真洗牌随机播放 =====
 // 以歌曲 id 维护一个乱序序列：随机模式下按序列顺序播放，整轮不重复，
@@ -337,6 +340,34 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({ playCounts: trimmed });
   },
 
+  // 智能补歌：队列只剩当前一首（且非单曲循环）时，播完/切歌不再原地重播，
+  // 按当前歌曲歌手名搜索其热门歌曲，挑一首队列里没有的接在队尾继续播放。
+  // 补歌失败（无歌手信息/接口异常/没有新歌）回退为重播当前歌曲，与主流播放器行为一致。
+  autoContinue: async (song) => {
+    if (autoContinueInFlight) return;
+    autoContinueInFlight = true;
+    set({ isLoading: true });
+    try {
+      const artist = song.artists?.[0]?.name;
+      let next: Song | undefined;
+      if (artist) {
+        const result = await searchSongs(artist, 1, 20, "netease");
+        const known = new Set(get().queue.map((s) => s.id));
+        known.add(song.id);
+        next = result.songs.find((s) => !known.has(s.id) && s.name !== song.name);
+      }
+      if (!next) throw new Error("no candidate");
+      const newQueue = [...get().queue, next];
+      set({ queue: newQueue });
+      await get().playSong(next, newQueue);
+    } catch {
+      const { queue, currentSong: cur } = get();
+      if (cur) await get().playSong(cur, queue);
+    } finally {
+      autoContinueInFlight = false;
+    }
+  },
+
   togglePlay: () => set((s) => ({ isPlaying: !s.isPlaying })),
   setPlaying: (playing) => set({ isPlaying: playing }),
   setCurrentTime: (time) => set({ currentTime: time }),
@@ -359,8 +390,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   nextSong: () => {
-    const { queue, queueIndex, playMode } = get();
+    const { queue, queueIndex, playMode, currentSong } = get();
     if (queue.length === 0) return;
+
+    // 单首队列且非单曲循环：智能补歌续播，不再原地重播
+    if (queue.length <= 1 && playMode !== "single" && currentSong) {
+      get().autoContinue(currentSong);
+      return;
+    }
 
     let nextIndex: number;
     if (playMode === "shuffle") {
@@ -376,8 +413,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   prevSong: () => {
-    const { queue, queueIndex, playMode } = get();
+    const { queue, queueIndex, playMode, currentSong } = get();
     if (queue.length === 0) return;
+
+    // 单首队列且非单曲循环：与下一首一致，智能补歌换一首听
+    if (queue.length <= 1 && playMode !== "single" && currentSong) {
+      get().autoContinue(currentSong);
+      return;
+    }
 
     if (playMode === "shuffle") {
       // 随机模式下"上一首"沿洗牌序列回退
