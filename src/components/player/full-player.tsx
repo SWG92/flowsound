@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Heart, ListMusic, Loader2, Pause, Play, SkipBack, SkipForward, Repeat, Shuffle } from "lucide-react";
+import { ChevronDown, Heart, ListMusic, Loader2, MessageCircle, Pause, Play, SkipBack, SkipForward, Repeat, Shuffle } from "lucide-react";
 import { usePlayerStore } from "@/lib/store";
 import { audioPlayer } from "@/lib/audio-player";
 import { cn, getCoverUrl } from "@/lib/utils";
 import { ProgressFill } from "./progress";
+import { CommentsDialog } from "./comments-dialog";
 
 /**
  * 全屏播放页（iOS 风格）：点播放栏封面/歌名展开。
@@ -33,6 +34,7 @@ export function FullPlayer() {
   const fav = usePlayerStore((s) => (s.currentSong ? s.favorites.includes(s.currentSong.id) : false));
 
   const [showLyricsView, setShowLyricsView] = useState(true);
+  const [showComments, setShowComments] = useState(false);
   // 下滑关闭手势（iOS 风格）
   const [dragY, setDragY] = useState(0);
   // 3 秒无操作隐藏控制区（沉浸歌词模式，触摸恢复）
@@ -42,11 +44,15 @@ export function FullPlayer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const hasScrolled = useRef(false);
 
-  // 3 秒无操作自动隐藏控制区；触摸/移动鼠标恢复
+  // 3 秒无操作自动隐藏控制区；触摸/移动鼠标恢复，悬停在控制区上时保持显示
   const pokeControls = () => {
     setControlsVisible(true);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     hideTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
+  };
+  // 悬停在控制区上时取消隐藏计时（移出后重新计时）
+  const holdControls = () => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
   };
   useEffect(() => {
     if (!fullOpen) return;
@@ -112,6 +118,7 @@ export function FullPlayer() {
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
+      onMouseMove={pokeControls}
       style={{ transform: dragY ? `translateY(${dragY}px)` : undefined, transition: dragY ? "none" : "transform 0.3s ease" }}>
       {/* 背景：封面高斯模糊放大 + 深色遮罩 */}
       {cover && (
@@ -123,10 +130,12 @@ export function FullPlayer() {
       )}
       <div className="absolute inset-0 bg-black/55" />
 
-      {/* 顶部：收起 + 标题 */}
+      {/* 顶部：收起 + 标题（悬停时保持显示） */}
       <div
         className="relative z-10 flex items-center justify-between px-6 pt-6 transition-opacity duration-300"
         style={{ opacity: controlsVisible ? 1 : 0, pointerEvents: controlsVisible ? "auto" : "none", paddingTop: "calc(1.5rem + var(--safe-top))" }}
+        onMouseEnter={holdControls}
+        onMouseLeave={pokeControls}
       >
         <button
           onClick={() => setFullOpen(false)}
@@ -139,13 +148,22 @@ export function FullPlayer() {
           <p className="text-[10px] uppercase tracking-[0.25em] text-white/50">正在播放</p>
           <p className="text-sm text-white/90">{currentSong.album?.name || ""}</p>
         </div>
-        <button
-          onClick={() => toggleFavorite(currentSong)}
-          className={cn("p-2 rounded-full cursor-pointer transition-colors", fav ? "text-red-400" : "text-white/80 hover:text-white hover:bg-white/10")}
-          title={fav ? "取消收藏" : "收藏"}
-        >
-          <Heart className={cn("h-6 w-6", fav && "fill-red-400")} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setShowComments(true)}
+            className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
+            title="评论"
+          >
+            <MessageCircle className="h-6 w-6" />
+          </button>
+          <button
+            onClick={() => toggleFavorite(currentSong)}
+            className={cn("p-2 rounded-full cursor-pointer transition-colors", fav ? "text-red-400" : "text-white/80 hover:text-white hover:bg-white/10")}
+            title={fav ? "取消收藏" : "收藏"}
+          >
+            <Heart className={cn("h-6 w-6", fav && "fill-red-400")} />
+          </button>
+        </div>
       </div>
 
       {/* 中部：封面 / 歌词 */}
@@ -203,10 +221,12 @@ export function FullPlayer() {
         </p>
       </div>
 
-      {/* 底部控制区 */}
+      {/* 底部控制区（悬停时保持显示） */}
       <div
         className="relative z-10 px-8 pt-2 max-w-xl mx-auto w-full transition-opacity duration-300"
         style={{ opacity: controlsVisible ? 1 : 0, pointerEvents: controlsVisible ? "auto" : "none", paddingBottom: "calc(2.5rem + var(--safe-bottom))" }}
+        onMouseEnter={holdControls}
+        onMouseLeave={pokeControls}
       >
         {/* 视图切换：封面 / 歌词 */}
         <div className="flex justify-center mb-3 gap-2">
@@ -264,6 +284,9 @@ export function FullPlayer() {
           </button>
         </div>
       </div>
+
+      {/* 评论弹窗（层级高于全屏页） */}
+      <CommentsDialog song={currentSong} open={showComments} onOpenChange={setShowComments} />
     </div>
   );
 }
