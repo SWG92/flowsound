@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { NETEASE_HEADERS, FETCH_TIMEOUT, NETEASE_BASE } from "@/lib/constants";
 import { logError } from "@/lib/logger";
+import { getServerCache, setServerCache } from "@/lib/server-cache";
 
 export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id");
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+
+  // 专辑内容基本不变，长缓存减少回源（也降低触发上游风控的概率）
+  const cacheKey = `album?id=${id}`;
+  const cached = getServerCache<unknown>(cacheKey);
+  if (cached !== null) {
+    return NextResponse.json(cached, {
+      headers: { "Cache-Control": "private, max-age=1800" },
+    });
   }
 
   try {
@@ -20,13 +30,19 @@ export async function GET(request: NextRequest) {
       logError(`[album-api] ${id}: 上游返回 code=${data.code} ${data.message || ""}`);
       return NextResponse.json(
         { error: data.message || `上游错误 (code ${data.code})` },
-        { status: 502 }
+        { status: 502, headers: { "Cache-Control": "no-store" } }
       );
     }
-    return NextResponse.json(data);
+    setServerCache(cacheKey, data, 30 * 60 * 1000);
+    return NextResponse.json(data, {
+      headers: { "Cache-Control": "private, max-age=1800" },
+    });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Server error";
     logError(`[album-api] ${id}:`, msg);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json(
+      { error: msg },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
+    );
   }
 }

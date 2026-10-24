@@ -3,10 +3,31 @@ import { getAdapter } from "@/lib/platforms";
 import type { MusicPlatform } from "@/lib/types";
 import { logError } from "@/lib/logger";
 import { NETEASE_BASE, NETEASE_HEADERS, FETCH_TIMEOUT } from "@/lib/constants";
+import { getServerCache, setServerCache, serverCacheKey } from "@/lib/server-cache";
 
 type HandlerFn = (params: Record<string, string>) => Promise<unknown>;
 
 const VALID_PLATFORMS: MusicPlatform[] = ["netease", "qq", "kugou"];
+
+// 服务端缓存 TTL：歌词/歌单基本不变可长缓存；搜索/联想短缓存；
+// 取址 URL 会过期，只做短缓存去重（客户端重试、回退、预加载会短时间重复打同一接口）
+const SERVER_TTL: Record<string, number> = {
+  search: 10 * 60 * 1000,
+  suggest: 10 * 60 * 1000,
+  lyric: 30 * 60 * 1000,
+  "playlist/detail": 30 * 60 * 1000,
+  "song/url": 5 * 60 * 1000,
+};
+
+// 浏览器侧缓存头（Service Worker 不拦截 /api/，由 HTTP 缓存接管）：
+// 二次请求直接命中本地，跨页面/重开应用不再回源
+const BROWSER_CACHE: Record<string, string> = {
+  search: "private, max-age=600",
+  suggest: "private, max-age=600",
+  lyric: "private, max-age=1800",
+  "playlist/detail": "private, max-age=1800",
+  "song/url": "no-store",
+};
 
 function resolvePlatform(request: NextRequest): MusicPlatform {
   const p = request.nextUrl.searchParams.get("platform");
@@ -105,12 +126,38 @@ export async function GET(request: NextRequest) {
     if (k !== "fn") params[k] = v;
   });
 
+  // 命中服务端缓存直接返回（错误结果不缓存，过期或失败自然回源）
+  const ttl = SERVER_TTL[fn];
+  const cacheKey = ttl !== undefined ? serverCacheKey(fn, params) : "";
+  if (ttl !== undefined) {
+    const cached = getServerCache<unknown>(cacheKey);
+    if (cached !== null) {
+      return NextResponse.json(cached, {
+        headers: { "Cache-Control": BROWSER_CACHE[fn] || "no-store" },
+      });
+    }
+  }
+
   try {
     const data = await handler(params);
-    return NextResponse.json(data);
+
+    if (ttl !== undefined) {
+      // 取址结果为空（上游限流/无版权）不缓存：重试必须真正回源
+      const urlEmpty =
+        fn === "song/url" &&
+        !(data as { data?: Array<{ url?: string }> }).data?.[0]?.url;
+      if (!urlEmpty) setServerCache(cacheKey, data, ttl);
+    }
+
+    return NextResponse.json(data, {
+      headers: { "Cache-Control": BROWSER_CACHE[fn] || "no-store" },
+    });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Server error";
     logError(`[music-api] ${params._platform}/${fn}:`, msg);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json(
+      { error: msg },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
+    );
   }
 }
