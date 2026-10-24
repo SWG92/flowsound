@@ -169,7 +169,7 @@ export function FullPlayer() {
       {/* 中部：封面 / 歌词 */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 min-h-0">
         {showLyricsView ? (
-          <div ref={containerRef} className="w-full max-w-xl flex-1 overflow-y-auto py-12 scrollbar-hide [mask-image:linear-gradient(to_bottom,transparent,black_12%,black_88%,transparent)]">
+          <div ref={containerRef} className="w-full max-w-xl flex-1 overflow-y-auto py-12 scrollbar-hide [mask-image:linear-gradient(to_bottom,transparent,black_12%,black_78%,transparent_94%)]">
             {lyrics.length === 0 ? (
               <p className="text-center text-white/50 mt-16">暂无歌词</p>
             ) : (
@@ -213,8 +213,8 @@ export function FullPlayer() {
         )}
       </div>
 
-      {/* 歌名 + 歌手 */}
-      <div className="relative z-10 px-8 pb-2 text-center">
+      {/* 歌名 + 歌手（与歌词区拉开距离） */}
+      <div className="relative z-10 px-8 mt-4 pb-2 text-center">
         <h2 className="text-2xl font-bold text-white truncate">{currentSong.name}</h2>
         <p className="text-white/60 text-sm mt-1">
           {currentSong.artists?.map((a) => a.name).join(" / ")}
