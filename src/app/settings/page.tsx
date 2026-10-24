@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon } from "lucide-react";
+import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon, ListMusic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
@@ -25,6 +25,7 @@ const PRESERVE_KEYS = [
   "flowsound_volume",
   "flowsound_play_mode",
   "flowsound_speed",
+  "flowsound_auto_continue",
   "flowsound_search_history",
   "flowsound_eq_settings",
   "flowsound_eq_preset",
@@ -38,6 +39,9 @@ const PRESERVE_PREFIXES = ["fc_"];
 export default function SettingsPage() {
   const theme = usePlayerStore((s) => s.theme);
   const setTheme = usePlayerStore((s) => s.setTheme);
+  // 挂载后再读 store 值（localStorage 初始化），避免 hydration 不匹配
+  const autoContinueEnabled = usePlayerStore((s) => s.autoContinueEnabled);
+  const setAutoContinueEnabled = usePlayerStore((s) => s.setAutoContinueEnabled);
   const { showToast } = useToast();
   // 音质等偏好存在 localStorage，服务端渲染时只能拿到默认值；
   // 挂载后再显示客户端状态，避免 hydration 不匹配（异步置位以满足 set-state-in-effect 规则）
@@ -166,6 +170,35 @@ export default function SettingsPage() {
               深色
             </Button>
           </div>
+        </div>
+      </section>
+
+      {/* 播放设置 */}
+      <section className="glass rounded-xl p-6 space-y-4">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <ListMusic className="h-5 w-5 text-primary" />
+          播放设置
+        </h2>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-sm">队列播完后自动补歌</p>
+            <p className="text-xs text-muted-foreground">
+              队列只剩一首且播完时，自动按歌手热门歌曲接续播放；关闭则播完即停，自己挑选下一首（手动点下一首始终会重播当前歌）
+            </p>
+          </div>
+          <Button
+            variant={mounted && autoContinueEnabled ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              const next = !autoContinueEnabled;
+              setAutoContinueEnabled(next);
+              showToast(next ? "已开启：播完自动补歌" : "已关闭：播完即停", "success");
+            }}
+            className="cursor-pointer"
+          >
+            {mounted ? (autoContinueEnabled ? "已开启" : "已关闭") : "…"}
+          </Button>
         </div>
       </section>
 

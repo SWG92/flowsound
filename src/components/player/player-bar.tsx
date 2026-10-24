@@ -325,13 +325,13 @@ export function PlayerBar() {
             <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8 hidden sm:inline-flex" onClick={cyclePlayMode} title={MODE_LABELS[playMode]}>
               <ModeIcon className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8" onClick={prevSong} disabled={isLoading}>
+            <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8" onClick={() => prevSong()} disabled={isLoading}>
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <SkipBack className="h-4 w-4" />}
             </Button>
             <Button size="icon" className="rounded-full cursor-pointer w-9 h-9 mx-0.5" onClick={togglePlay} disabled={isLoading}>
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
             </Button>
-            <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8" onClick={nextSong} disabled={isLoading}>
+            <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8" onClick={() => nextSong()} disabled={isLoading}>
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <SkipForward className="h-4 w-4" />}
             </Button>
             {/* 桌面悬浮歌词按钮 */}

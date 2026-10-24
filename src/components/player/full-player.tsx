@@ -256,7 +256,7 @@ export function FullPlayer() {
           >
             {playMode === "shuffle" ? <Shuffle className="h-5 w-5" /> : <Repeat className="h-5 w-5" />}
           </button>
-          <button onClick={prevSong} className="text-white cursor-pointer transition-transform active:scale-90" title="上一首">
+          <button onClick={() => prevSong()} className="text-white cursor-pointer transition-transform active:scale-90" title="上一首">
             <SkipBack className="h-8 w-8" fill="currentColor" />
           </button>
           <button
@@ -272,7 +272,7 @@ export function FullPlayer() {
               <Play className="h-7 w-7 ml-1" fill="currentColor" />
             )}
           </button>
-          <button onClick={nextSong} className="text-white cursor-pointer transition-transform active:scale-90" title="下一首">
+          <button onClick={() => nextSong()} className="text-white cursor-pointer transition-transform active:scale-90" title="下一首">
             <SkipForward className="h-8 w-8" fill="currentColor" />
           </button>
           <button

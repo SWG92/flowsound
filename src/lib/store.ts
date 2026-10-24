@@ -40,6 +40,7 @@ interface PlayerState {
   // 主题与设置
   theme: "light" | "dark";
   audioQuality: AudioQuality;
+  autoContinueEnabled: boolean; // 队列播完后是否自动补歌续播（默认关闭：播完即停）
 
   // 操作
   playSong: (song: Song, queue?: Song[]) => Promise<void>;
@@ -51,7 +52,7 @@ interface PlayerState {
   setVolume: (volume: number) => void;
   setPlayMode: (mode: PlayMode) => void;
   setSpeed: (speed: number) => void;
-  nextSong: () => void;
+  nextSong: (fromEnd?: boolean) => void;
   prevSong: () => void;
   setQueue: (songs: Song[]) => void;
   reorderQueue: (from: number, to: number) => void;
@@ -68,6 +69,7 @@ interface PlayerState {
   setLoading: (loading: boolean) => void;
   setTheme: (theme: "light" | "dark") => void;
   setAudioQuality: (quality: AudioQuality) => void;
+  setAutoContinueEnabled: (enabled: boolean) => void;
   setShowFloatingLyrics: (show: boolean) => void;
   setShowFullPlayer: (show: boolean) => void;
 }
@@ -110,6 +112,8 @@ const initialVolume = loadFromStorage<number>(STORAGE_KEYS.volume, 0.8);
 const initialPlayMode = loadFromStorage<PlayMode>(STORAGE_KEYS.playMode, "list");
 const initialSpeed = loadFromStorage<number>(STORAGE_KEYS.speed, 1);
 const initialAudioQuality = loadFromStorage<AudioQuality>(STORAGE_KEYS.audioQuality, "high");
+// 队列播完后自动补歌：默认关闭（播完即停，用户自己挑下一首），设置页可开启
+const initialAutoContinue = loadFromStorage<boolean>(STORAGE_KEYS.autoContinue, false);
 
 // 首屏主题以服务端渲染的 html class 为准（它来自 Cookie）：这样客户端首次渲染与
 // 服务端完全一致，不会出现 hydration 不匹配；老用户（只有 localStorage、没有 Cookie）
@@ -223,6 +227,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   showFullPlayer: false,
   theme: initialTheme,
   audioQuality: initialAudioQuality,
+  autoContinueEnabled: initialAutoContinue,
 
   playSong: async (song, queue) => {
     const gen = ++playGeneration;
@@ -389,13 +394,24 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({ speed });
   },
 
-  nextSong: () => {
-    const { queue, queueIndex, playMode, currentSong } = get();
+  nextSong: (fromEnd = false) => {
+    const { queue, queueIndex, playMode, currentSong, autoContinueEnabled } = get();
     if (queue.length === 0) return;
 
-    // 单首队列且非单曲循环：智能补歌续播，不再原地重播
+    // 单首队列且非单曲循环：
+    // - 开启"自动补歌"→ 按歌手热门歌曲补一首继续播
+    // - 关闭（默认）→ 自然播完即停止播放，等用户在外面挑歌；
+    //   手动点下一首则重播当前歌（与主流播放器一致）
     if (queue.length <= 1 && playMode !== "single" && currentSong) {
-      get().autoContinue(currentSong);
+      if (autoContinueEnabled) {
+        get().autoContinue(currentSong);
+        return;
+      }
+      if (fromEnd) {
+        set({ isPlaying: false });
+        return;
+      }
+      get().playSong(currentSong, queue);
       return;
     }
 
@@ -413,12 +429,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   prevSong: () => {
-    const { queue, queueIndex, playMode, currentSong } = get();
+    const { queue, queueIndex, playMode, currentSong, autoContinueEnabled } = get();
     if (queue.length === 0) return;
 
-    // 单首队列且非单曲循环：与下一首一致，智能补歌换一首听
+    // 单首队列且非单曲循环：开启自动补歌则补一首，否则重播当前歌
     if (queue.length <= 1 && playMode !== "single" && currentSong) {
-      get().autoContinue(currentSong);
+      if (autoContinueEnabled) {
+        get().autoContinue(currentSong);
+        return;
+      }
+      get().playSong(currentSong, queue);
       return;
     }
 
@@ -531,6 +551,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setAudioQuality: (quality) => {
     saveToStorage(STORAGE_KEYS.audioQuality, quality);
     set({ audioQuality: quality });
+  },
+
+  setAutoContinueEnabled: (enabled) => {
+    saveToStorage(STORAGE_KEYS.autoContinue, enabled);
+    set({ autoContinueEnabled: enabled });
   },
 
   setShowFloatingLyrics: (show) => {

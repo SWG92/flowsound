@@ -162,7 +162,8 @@ class AudioPlayer {
             if (playMode === "single") {
               this.sound?.play();
             } else {
-              usePlayerStore.getState().nextSong();
+              // 自然播完（区别于手动点下一首）：单首队列时据此停止或补歌
+              usePlayerStore.getState().nextSong(true);
             }
           }, 100);
         },
