@@ -106,7 +106,10 @@ export const qqAdapter: PlatformAdapter = {
         return { songs: [], total: data?.data?.song?.totalnum || 0, hasMore: false };
       }
 
-      const songs: Song[] = list.map((item) => ({
+      // 付费歌曲（payplay=1）匿名取不到址，不下发（与网易云适配器一致）
+      const songs: Song[] = list
+        .filter((item) => (item.pay?.payplay ?? 0) !== 1)
+        .map((item) => ({
         id: songIdFromMid(item.songmid || ""),
         name: item.songname || "未知歌曲",
         artists: (item.singer || []).map((s) => ({ id: s.id || 0, name: s.name || "未知歌手" })),

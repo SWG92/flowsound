@@ -75,11 +75,15 @@ export const neteaseAdapter: PlatformAdapter = {
       }),
     });
 
-    const songs = (data.result?.songs || []).map((s: Song) => ({
-      ...s,
-      platform: "netease" as const,
-      platformId: String(s.id),
-    }));
+    // VIP（fee=1）歌曲匿名无法取址且无跨平台替代时同样失败，直接不下发，
+    // 避免列表里出现点了没反应的死歌
+    const songs = (data.result?.songs || [])
+      .filter((s: Song) => s.fee !== 1)
+      .map((s: Song) => ({
+        ...s,
+        platform: "netease" as const,
+        platformId: String(s.id),
+      }));
 
     // 补充专辑封面：搜索接口不返回 picUrl。
     // 用批量歌曲详情接口一次拿全（原先逐个请求专辑接口，10 个并发会被网易云限流，
@@ -145,7 +149,9 @@ export const neteaseAdapter: PlatformAdapter = {
       playlist?: { tracks: Song[] };
     }>(`${NETEASE_API.playlistDetail}?id=${listId}`);
 
-    return data.result?.tracks || data.playlist?.tracks || [];
+    return (data.result?.tracks || data.playlist?.tracks || []).filter(
+      (s: Song) => s.fee !== 1
+    );
   },
 };
 

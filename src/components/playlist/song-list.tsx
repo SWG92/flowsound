@@ -203,10 +203,10 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
     try { setPlaylists(JSON.parse(localStorage.getItem("flowsound_playlists") || "[]")); } catch { setPlaylists([]); }
   }, []);
 
-  // 过滤黑名单（memo：仅在歌曲列表或黑名单变化时重算，避免每次渲染重建数组
-  // 导致虚拟滚动计数频繁失效）
+  // 过滤黑名单与 VIP 歌（VIP 匿名取不到址；专辑/歌手接口直连上游不过适配器过滤，
+  // 收藏/历史等本地数据里也可能存有旧 VIP 条目，这里统一兜底）
   const filteredSongs = useMemo(
-    () => songs.filter((s) => !blacklist.includes(s.id)),
+    () => songs.filter((s) => s.fee !== 1 && !blacklist.includes(s.id)),
     [songs, blacklist]
   );
 
