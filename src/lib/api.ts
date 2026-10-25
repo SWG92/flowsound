@@ -1,6 +1,7 @@
 import type { Song, SearchResult, LyricLine, MusicPlatform } from "./types";
 import { CLIENT_FETCH_TIMEOUT, CACHE_TTL, STORAGE_KEYS, DEFAULT_PLAYLIST_IDS, AUDIO_QUALITY } from "./constants";
 import type { AudioQuality } from "./constants";
+import { parseLRC } from "./parse-lrc";
 
 // 简单内存缓存
 const cache = new Map<string, { data: unknown; time: number }>();
@@ -273,54 +274,12 @@ export async function getLyrics(
     return data;
   }
 
-  // 兼容旧的网易云格式（parseLRC 逻辑内联）
+  // 兼容旧的网易云格式（用共享 parseLRC 解析，含推广元信息行过滤）
   const lrc = data.lrc?.lyric || "";
   const tLrc = data.tlyric?.lyric || "";
   const result = parseLRC(lrc, tLrc);
   setCache(cacheKey, result);
   return result;
-}
-
-function parseLRC(lrc: string, tlyric?: string): LyricLine[] {
-  const transMap = new Map<number, string>();
-  if (tlyric) {
-    for (const line of tlyric.split("\n")) {
-      const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
-      if (match) {
-        const minutes = parseInt(match[1]);
-        const seconds = parseInt(match[2]);
-        const ms = parseInt(match[3]);
-        const time = minutes * 60 + seconds + ms / (match[3].length === 3 ? 1000 : 100);
-        const text = match[4].trim();
-        if (text) transMap.set(time, text);
-      }
-    }
-  }
-
-  const lines = lrc.split("\n");
-  const result: LyricLine[] = [];
-  for (const line of lines) {
-    const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
-    if (match) {
-      const minutes = parseInt(match[1]);
-      const seconds = parseInt(match[2]);
-      const ms = parseInt(match[3]);
-      const time = minutes * 60 + seconds + ms / (match[3].length === 3 ? 1000 : 100);
-      const text = match[4].trim();
-      if (text) {
-        let transText: string | undefined;
-        for (const [tTime, tText] of transMap) {
-          if (Math.abs(tTime - time) < 0.5) {
-            transText = tText;
-            break;
-          }
-        }
-        result.push({ time, text, transText });
-      }
-    }
-  }
-
-  return result.sort((a, b) => a.time - b.time);
 }
 
 // ============ 存储 ============

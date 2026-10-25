@@ -3,6 +3,7 @@
 import type { PlatformAdapter } from "./types";
 import type { Song, LyricLine } from "@/lib/types";
 import { extractQualities } from "@/lib/song-slim";
+import { parseLRC } from "@/lib/parse-lrc";
 import { NETEASE_API, NETEASE_BASE, NETEASE_HEADERS, FETCH_TIMEOUT } from "@/lib/constants";
 
 let neteaseCookie = "";
@@ -164,46 +165,3 @@ export const neteaseAdapter: PlatformAdapter = {
     );
   },
 };
-
-function parseLRC(lrc: string, tlyric?: string): LyricLine[] {
-  const transMap = new Map<number, string>();
-  if (tlyric) {
-    for (const line of tlyric.split("\n")) {
-      const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
-      if (match) {
-        const minutes = parseInt(match[1]);
-        const seconds = parseInt(match[2]);
-        const ms = parseInt(match[3]);
-        const time =
-          minutes * 60 + seconds + ms / (match[3].length === 3 ? 1000 : 100);
-        const text = match[4].trim();
-        if (text) transMap.set(time, text);
-      }
-    }
-  }
-
-  const result: LyricLine[] = [];
-  for (const line of lrc.split("\n")) {
-    const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
-    if (match) {
-      const minutes = parseInt(match[1]);
-      const seconds = parseInt(match[2]);
-      const ms = parseInt(match[3]);
-      const time =
-        minutes * 60 + seconds + ms / (match[3].length === 3 ? 1000 : 100);
-      const text = match[4].trim();
-      if (text) {
-        let transText: string | undefined;
-        for (const [tTime, tText] of transMap) {
-          if (Math.abs(tTime - time) < 0.5) {
-            transText = tText;
-            break;
-          }
-        }
-        result.push({ time, text, transText });
-      }
-    }
-  }
-
-  return result.sort((a, b) => a.time - b.time);
-}

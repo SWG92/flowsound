@@ -414,30 +414,32 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     const listNext = sourceIndex >= 0 ? nextPlayableInSource(sourceList, sourceIndex, 1) : null;
 
-    // 单曲队列手动切歌（未播完）：优先沿来源列表往下走
-    if (queue.length <= 1 && playMode !== "single" && currentSong && !fromEnd) {
+    // 单曲队列（点播场景，列表/随机模式一致）：沿来源列表往下走——
+    // 无论手动切歌还是自然播完。此前来源续播只挂在列表循环模式上，
+    // 随机模式播完会落到洗牌逻辑原地打转（用户报告的"播完不切歌"即此）。
+    // 手动无来源则重播当前；自然播完无来源则停止
+    if (queue.length <= 1 && playMode !== "single" && currentSong) {
       if (listNext) {
         get().playSong(listNext, [listNext]);
+        return;
+      }
+      if (fromEnd) {
+        set({ isPlaying: false });
         return;
       }
       get().playSong(currentSong, queue);
       return;
     }
 
-    // 队列播完（自然播完且已是队列最后一首）→ 退出队列，续播来源列表的下一首。
-    // 续播的歌不进队列（队列只含用户明确加的歌），每首播完继续沿列表往下走
+    // 多曲队列播完（自然播完且是最后一首，列表循环模式）→ 退出队列，
+    // 续播来源列表的下一首（续播的歌不进队列）；无来源则循环回队首
     if (playMode === "list" && currentSong && fromEnd && queueIndex >= queue.length - 1) {
       // 来源列表还有下一首、且不是绕回队列开头（绕回属于列表循环）
       if (listNext && !(queue.length > 1 && listNext.id === queue[0].id)) {
         get().playSong(listNext, [listNext]);
         return;
       }
-      // 来源列表也到头：整列表队列循环回队首，单曲队列停止
-      if (queue.length > 1) {
-        get().playSong(queue[(queueIndex + 1) % queue.length], queue);
-        return;
-      }
-      set({ isPlaying: false });
+      get().playSong(queue[(queueIndex + 1) % queue.length], queue);
       return;
     }
 
