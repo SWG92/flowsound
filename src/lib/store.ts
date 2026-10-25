@@ -150,6 +150,27 @@ function nextPlayableInSource(list: Song[], index: number, direction: 1 | -1): S
   return null;
 }
 
+/**
+ * 单曲队列（点播场景）切歌时的目标曲：
+ * - 随机模式：从来源列表随机挑一首（排除当前曲、跳过 VIP）——
+ *   沿用顺序下一首会让"随机播放"名不副实
+ * - 列表循环：顺序下一首
+ */
+function pickNextFromSource(
+  list: Song[],
+  index: number,
+  mode: PlayMode,
+  currentId: number
+): Song | null {
+  if (list.length === 0) return null;
+  if (mode === "shuffle") {
+    const candidates = list.filter((s) => s.id !== currentId && s.fee !== 1);
+    if (candidates.length === 0) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+  return index >= 0 ? nextPlayableInSource(list, index, 1) : null;
+}
+
 // ===== 真洗牌随机播放 =====
 // 以歌曲 id 维护一个乱序序列：随机模式下按序列顺序播放，整轮不重复，
 // 一轮播完自动重新洗牌。队列增删/手动切歌时序列自动同步。
@@ -419,11 +440,23 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     const listNext = sourceIndex >= 0 ? nextPlayableInSource(sourceList, sourceIndex, 1) : null;
 
-    // 单曲队列（非单曲循环）：手动切歌沿来源列表走。
-    // 单曲循环模式不在此分支——其语义是严格重播当前歌（手动下一首/上一首/自然播完都如此）
-    if (queue.length <= 1 && playMode !== "single" && currentSong && !fromEnd) {
-      if (listNext) {
-        get().playSong(listNext, [listNext]);
+    // 单曲队列（点播场景）：手动切歌与自然播完都统一处理，避免落到洗牌逻辑
+    // （队列只有 1 首时洗牌序列也只有 1 个，会返回自己 → 表现为"播完重播原曲"）
+    if (queue.length <= 1 && currentSong) {
+      // 单曲循环：严格重播当前歌（手动切歌与自然播完一致）
+      if (playMode === "single") {
+        get().playSong(currentSong, queue);
+        return;
+      }
+      // 随机模式从来源列表随机挑；列表循环顺序下一首
+      const pick = pickNextFromSource(sourceList, sourceIndex, playMode, currentSong.id);
+      if (pick) {
+        get().playSong(pick, [pick]);
+        return;
+      }
+      // 来源列表到头或没有来源：自然播完 → 停止（纯净队列模型）；手动切歌 → 重播
+      if (fromEnd) {
+        set({ isPlaying: false });
         return;
       }
       get().playSong(currentSong, queue);
