@@ -23,7 +23,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePlayerStore } from "@/lib/store";
-import { getSongUrlDetailed } from "@/lib/api";
+import { getSongUrlDetailed, levelToQuality } from "@/lib/api";
 import { AUDIO_QUALITY } from "@/lib/constants";
 import type { AudioQuality } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
@@ -175,6 +175,18 @@ export function PlayerBar() {
         audioPlayer.reloadAtPosition(url, position, !wasPlaying);
         if (quality === "lossless" && level && level !== "lossless" && level !== "hires") {
           showToast(`无损需会员，实际为${levelLabel || "320K"}，已按此播放`, "warning");
+          // 实测修正：这首歌匿名播不了无损 → 从它的音质菜单移除该档（只显示可选的），
+          // 会话内音质对齐实际档；全局偏好不动（其他支持的歌仍按无损偏好播）
+          const actualQ = levelToQuality(level);
+          if (actualQ && actualQ !== "lossless") {
+            const cur = usePlayerStore.getState().currentSong;
+            if (cur?.qualities) {
+              usePlayerStore.setState({
+                currentSong: { ...cur, qualities: cur.qualities.filter((q) => q !== "lossless") },
+                audioQuality: actualQ,
+              });
+            }
+          }
         } else {
           showToast(wasPlaying ? `已切换至${label}，正在重新加载` : `已切换至${label}`);
         }
