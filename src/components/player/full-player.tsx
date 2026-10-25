@@ -68,11 +68,11 @@ export function FullPlayer() {
     };
   }, [fullOpen, currentSong?.id]);
 
-  // Esc 收起
+  // Esc 收起；队列面板浮在本页上层时优先让队列响应（它关闭后再次 Esc 才收起本页）
   useEffect(() => {
     if (!fullOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setFullOpen(false);
+      if (e.key === "Escape" && !usePlayerStore.getState().showQueue) setFullOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -311,7 +311,7 @@ export function FullPlayer() {
             <SkipForward className="h-8 w-8" fill="currentColor" />
           </button>
           <button
-            onClick={() => { setShowQueue(true); setFullOpen(false); }}
+            onClick={() => setShowQueue(true)}
             className="text-white/70 hover:text-white cursor-pointer transition-colors"
             title="播放队列"
           >

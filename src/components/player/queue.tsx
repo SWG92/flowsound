@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { X, Lock, GripVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,10 +58,20 @@ export function PlayQueue() {
     setDropIdx(null);
   }, []);
 
+  // Esc 关闭面板（浮在全屏播放页上层时，全屏页会先检查本面板状态、不抢这次按键）
+  useEffect(() => {
+    if (!showQueue) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowQueue(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showQueue, setShowQueue]);
+
   if (!showQueue) return null;
 
   return (
-    <div className="fixed right-3 top-3 w-80 glass rounded-[26px] z-[55] flex flex-col shadow-xl overflow-hidden"
+    <div className="fixed right-3 top-3 w-80 glass rounded-[26px] z-[110] flex flex-col shadow-xl overflow-hidden"
       style={{ bottom: "calc(96px + var(--safe-bottom))" }}>
       {/* 头部 */}
       <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
