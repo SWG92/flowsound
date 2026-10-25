@@ -12,6 +12,7 @@ export interface Song {
   platform?: MusicPlatform; // 来源平台
   platformId?: string; // 平台原生 ID（QQ音乐 songmid、酷狗 hash 等）
   qualities?: AudioQuality[]; // 该歌实际可用的音质档（网易云 l/h/sq 字段转换；无此信息=未知，菜单不过滤）
+  mvId?: number; // MV id（0/无 = 没有 MV）
 }
 
 /** 支持的音乐平台 */

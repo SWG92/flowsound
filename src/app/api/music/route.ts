@@ -19,6 +19,7 @@ const SERVER_TTL: Record<string, number> = {
   lyric: 30 * 60 * 1000,
   "playlist/detail": 30 * 60 * 1000,
   "song/url": 5 * 60 * 1000,
+  "mv/detail": 10 * 60 * 1000, // MV 视频地址带签名时效，只做短缓存
 };
 
 // 浏览器侧缓存头（Service Worker 不拦截 /api/，由 HTTP 缓存接管）：
@@ -29,6 +30,7 @@ const BROWSER_CACHE: Record<string, string> = {
   lyric: "private, max-age=1800",
   "playlist/detail": "private, max-age=1800",
   "song/url": "no-store",
+  "mv/detail": "private, max-age=600",
 };
 
 function resolvePlatform(request: NextRequest): MusicPlatform {
@@ -104,6 +106,17 @@ const suggestHandler: HandlerFn = async (params) => {
   };
 };
 
+// MV 元信息与视频地址（匿名可用；brs 带签名有时效，缓存 10 分钟）
+const mvDetailHandler: HandlerFn = async (params) => {
+  const id = numParam(params.id, "");
+  if (!id) return { error: "invalid id" };
+  const res = await fetch(`${NETEASE_BASE}/api/mv/detail?id=${id}`, {
+    headers: NETEASE_HEADERS,
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+  });
+  return res.json();
+};
+
 // ============ 路由映射 ============
 
 const HANDLERS: Record<string, HandlerFn> = {
@@ -112,6 +125,7 @@ const HANDLERS: Record<string, HandlerFn> = {
   lyric: lyricHandler,
   "playlist/detail": playlistDetailHandler,
   suggest: suggestHandler,
+  "mv/detail": mvDetailHandler,
 };
 
 // ============ Route handler ============

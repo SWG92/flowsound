@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Heart, Loader2, MessageCircle, Pause, Play, SkipBack, SkipForward, Repeat, Shuffle } from "lucide-react";
+import { ChevronDown, Heart, Loader2, MessageCircle, Pause, Play, SkipBack, SkipForward, Repeat, Shuffle, Video } from "lucide-react";
 import { usePlayerStore } from "@/lib/store";
 import { audioPlayer } from "@/lib/audio-player";
 import { cn, getCoverUrl } from "@/lib/utils";
 import { ProgressFill } from "./progress";
 import { CommentsDialog } from "./comments-dialog";
+import { MvDialog } from "./mv-dialog";
 import { useDominantColor } from "@/hooks/use-dominant-color";
 
 /**
@@ -39,6 +40,7 @@ export function FullPlayer() {
 
   const [showLyricsView, setShowLyricsView] = useState(true);
   const [showComments, setShowComments] = useState(false);
+  const [showMv, setShowMv] = useState(false);
   // 下滑关闭手势（iOS 风格）
   const [dragY, setDragY] = useState(0);
   // 3 秒无操作隐藏控制区（沉浸歌词模式，触摸恢复）
@@ -181,6 +183,15 @@ export function FullPlayer() {
           <p className="text-sm text-white/90 truncate">{currentSong.name}</p>
         </div>
         <div className="flex items-center gap-1">
+          {currentSong.mvId && (
+            <button
+              onClick={() => setShowMv(true)}
+              className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
+              title="播放 MV"
+            >
+              <Video className="h-6 w-6" />
+            </button>
+          )}
           <button
             onClick={() => setShowComments(true)}
             className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
@@ -314,6 +325,10 @@ export function FullPlayer() {
 
       {/* 评论弹窗（层级高于全屏页） */}
       <CommentsDialog song={currentSong} open={showComments} onOpenChange={setShowComments} />
+      {/* MV 视频浮层 */}
+      {currentSong.mvId && (
+        <MvDialog mvId={currentSong.mvId} songName={currentSong.name} open={showMv} onClose={() => setShowMv(false)} />
+      )}
     </div>
   );
 }

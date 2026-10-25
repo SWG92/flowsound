@@ -31,6 +31,9 @@ function extractQualities(song: Song): AudioQuality[] | undefined {
  * 音质档信息转换为 qualities 数组保留（音质菜单按实际可用档过滤显示）。
  */
 export function slimSong<T extends Song>(s: T): Song {
+  // mvid：歌单/歌手接口字段名 mvid，搜索接口字段名 mv（0 = 无）
+  const raw = s as unknown as Record<string, unknown>;
+  const mvId = (raw.mvid as number) || (raw.mv as number) || undefined;
   return {
     id: s.id,
     name: s.name,
@@ -45,6 +48,7 @@ export function slimSong<T extends Song>(s: T): Song {
     platformId: s.platformId,
     // 已算好的优先（搜索适配器在补封面时生成），否则从原始音质字段计算
     qualities: s.qualities ?? extractQualities(s),
+    mvId: mvId && mvId > 0 ? mvId : undefined,
   };
 }
 
