@@ -12,19 +12,22 @@ export function useAudioPlayer() {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const volume = usePlayerStore((s) => s.volume);
   const speed = usePlayerStore((s) => s.speed);
+  // 重播信号：单曲循环/重播同曲时 URL 不变，靠 nonce 触发 replay
+  const replayNonce = usePlayerStore((s) => s.replayNonce);
 
-  // 切换歌曲 - 只在 URL 变化时触发
+  // 播放调度 - URL 变化播新歌；URL 未变但 nonce 变化 = 重播当前歌（回开头继续放）
   useEffect(() => {
     const url = currentSong?.url;
     if (!url) return;
 
-    // 只有当 URL 真正变化时才播放新歌
     if (url !== prevSongUrl.current) {
       prevSongUrl.current = url;
       audioPlayer.play(url, volume, speed);
+    } else {
+      audioPlayer.replay();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 刻意只依赖 URL：volume/speed 各有独立 effect 同步到播放器，不应触发整首重载
-  }, [currentSong?.url]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 刻意只依赖 URL/nonce：volume/speed 各有独立 effect 同步，不应触发重载
+  }, [currentSong?.url, replayNonce]);
 
   // 播放/暂停控制
   useEffect(() => {

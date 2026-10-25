@@ -32,6 +32,8 @@ interface PlayerState {
 
   // UI 状态
   showQueue: boolean;
+  // 重播信号：playSong 每次递增。URL 不变（重播同曲）时 use-player 靠它触发 replay()
+  replayNonce: number;
   isLoading: boolean;
   showFloatingLyrics: boolean; // 悬浮歌词窗
   showFullPlayer: boolean; // 全屏播放页
@@ -232,6 +234,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   playHistory: initialHistory,
   playCounts: initialPlayCounts,
   showQueue: false,
+  replayNonce: 0,
   isLoading: false,
   showFloatingLyrics: false,
   showFullPlayer: false,
@@ -361,6 +364,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       isLoading: false,
       sourceList: src,
       sourceIndex: srcIdx,
+      // 重播信号：URL 不变时 use-player 靠它触发 replay()（如单曲循环点下一首）
+      replayNonce: get().replayNonce + 1,
     });
 
     // 洗牌游标对齐到刚播放的歌曲（手动点选/自动连播都保持序列一致）

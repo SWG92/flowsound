@@ -330,6 +330,19 @@ class AudioPlayer {
     });
   }
 
+  // 重播当前歌曲：回到开头继续播放（不重新加载音频流，瞬间完成）。
+  // 供单曲循环/手动重播同 URL 场景——URL 不变时 use-player 的 effect 不会触发 play，
+  // 由它调用本方法
+  replay() {
+    if (!this.sound) return;
+    try {
+      this.sound.seek(0);
+    } catch { /* ignore */ }
+    usePlayerStore.getState().setCurrentTime(0);
+    usePlayerStore.getState().setCurrentLyricIndex(-1);
+    this.sound.play();
+  }
+
   // ===== 基础控制 =====
 
   // 暂停
