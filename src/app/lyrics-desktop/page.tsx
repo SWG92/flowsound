@@ -137,6 +137,8 @@ export default function DesktopLyricsPage() {
       {/* 毛玻璃整体背景 */}
       <div style={{
         flex: 1, margin: 12,
+        // position: relative —— 流光渐变层的定位锚点（此前恰好与视口边缘重合才显示正常）
+        position: "relative",
         borderRadius: 28,
         background: "rgba(10,10,16,0.42)",
         backdropFilter: "blur(32px) saturate(180%)",
