@@ -20,7 +20,6 @@ interface PlayerState {
   // 播放队列
   queue: Song[];
   queueIndex: number;
-
   // 歌词
   lyrics: LyricLine[];
   currentLyricIndex: number;
@@ -40,7 +39,6 @@ interface PlayerState {
   // 主题与设置
   theme: "light" | "dark";
   audioQuality: AudioQuality;
-  autoContinueEnabled: boolean; // 队列播完后是否自动补歌续播（默认关闭：播完即停）
 
   // 播放来源列表：点播时所在页面列表及当前歌的位置。
   // 队列（用户加的歌）播完后按它顺序连播（"队列之外"的续播），session 内有效
@@ -49,7 +47,6 @@ interface PlayerState {
 
   // 操作
   playSong: (song: Song, queue?: Song[], sourceList?: Song[]) => Promise<void>;
-  autoContinue: (song: Song) => Promise<void>;
   togglePlay: () => void;
   setPlaying: (playing: boolean) => void;
   setCurrentTime: (time: number) => void;
@@ -74,7 +71,6 @@ interface PlayerState {
   setLoading: (loading: boolean) => void;
   setTheme: (theme: "light" | "dark") => void;
   setAudioQuality: (quality: AudioQuality) => void;
-  setAutoContinueEnabled: (enabled: boolean) => void;
   setShowFloatingLyrics: (show: boolean) => void;
   setShowFullPlayer: (show: boolean) => void;
   sleepAtEndOfTrack: boolean; // 播完当前歌曲后停止（Apple Music "End of Track" 式睡眠定时）
@@ -119,8 +115,6 @@ const initialVolume = loadFromStorage<number>(STORAGE_KEYS.volume, 0.8);
 const initialPlayMode = loadFromStorage<PlayMode>(STORAGE_KEYS.playMode, "list");
 const initialSpeed = loadFromStorage<number>(STORAGE_KEYS.speed, 1);
 const initialAudioQuality = loadFromStorage<AudioQuality>(STORAGE_KEYS.audioQuality, "high");
-// 队列播完后自动补歌：默认关闭（播完即停，用户自己挑下一首），设置页可开启
-const initialAutoContinue = loadFromStorage<boolean>(STORAGE_KEYS.autoContinue, false);
 
 // 首屏主题以服务端渲染的 html class 为准（它来自 Cookie）：这样客户端首次渲染与
 // 服务端完全一致，不会出现 hydration 不匹配；老用户（只有 localStorage、没有 Cookie）
@@ -142,8 +136,6 @@ const initialFavorites = initialFavoriteSongs.map((s) => s.id);
 let playGeneration = 0;
 // 自动跳过无版权歌曲的计数器（防止死循环）
 let autoSkipCount = 0;
-// 智能补歌进行中标记（防止连点"下一首"触发多次补歌）
-let autoContinueInFlight = false;
 
 // 从来源列表 index 起、沿 direction 方向找第一首非 VIP 歌。
 // VIP（fee=1）大概率取不到址，列表行点击本来就禁止，连播时同样跳过
@@ -245,7 +237,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   showFullPlayer: false,
   theme: initialTheme,
   audioQuality: initialAudioQuality,
-  autoContinueEnabled: initialAutoContinue,
   sourceList: [],
   sourceIndex: -1,
 
@@ -379,34 +370,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({ playCounts: trimmed });
   },
 
-  // 智能补歌：队列只剩当前一首（且非单曲循环）时，播完/切歌不再原地重播，
-  // 按当前歌曲歌手名搜索其热门歌曲，挑一首队列里没有的接在队尾继续播放。
-  // 补歌失败（无歌手信息/接口异常/没有新歌）回退为重播当前歌曲，与主流播放器行为一致。
-  autoContinue: async (song) => {
-    if (autoContinueInFlight) return;
-    autoContinueInFlight = true;
-    set({ isLoading: true });
-    try {
-      const artist = song.artists?.[0]?.name;
-      let next: Song | undefined;
-      if (artist) {
-        const result = await searchSongs(artist, 1, 20, "netease");
-        const known = new Set(get().queue.map((s) => s.id));
-        known.add(song.id);
-        next = result.songs.find((s) => !known.has(s.id) && s.name !== song.name);
-      }
-      if (!next) throw new Error("no candidate");
-      const newQueue = [...get().queue, next];
-      set({ queue: newQueue });
-      await get().playSong(next, newQueue);
-    } catch {
-      const { queue, currentSong: cur } = get();
-      if (cur) await get().playSong(cur, queue);
-    } finally {
-      autoContinueInFlight = false;
-    }
-  },
-
   togglePlay: () => set((s) => ({ isPlaying: !s.isPlaying })),
   setPlaying: (playing) => set({ isPlaying: playing }),
   setCurrentTime: (time) => set({ currentTime: time }),
@@ -429,7 +392,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   nextSong: (fromEnd = false) => {
-    const { queue, queueIndex, playMode, currentSong, autoContinueEnabled, sourceList, sourceIndex } = get();
+    const { queue, queueIndex, playMode, currentSong, sourceList, sourceIndex } = get();
     if (queue.length === 0) return;
 
     const listNext = sourceIndex >= 0 ? nextPlayableInSource(sourceList, sourceIndex, 1) : null;
@@ -438,10 +401,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (queue.length <= 1 && playMode !== "single" && currentSong && !fromEnd) {
       if (listNext) {
         get().playSong(listNext, [listNext]);
-        return;
-      }
-      if (autoContinueEnabled) {
-        get().autoContinue(currentSong);
         return;
       }
       get().playSong(currentSong, queue);
@@ -456,11 +415,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         get().playSong(listNext, [listNext]);
         return;
       }
-      // 来源列表也到头：开启补歌则按歌手续播；单曲队列停止；整列表队列循环回队首
-      if (autoContinueEnabled) {
-        get().autoContinue(currentSong);
-        return;
-      }
+      // 来源列表也到头：整列表队列循环回队首，单曲队列停止
       if (queue.length > 1) {
         get().playSong(queue[(queueIndex + 1) % queue.length], queue);
         return;
@@ -483,7 +438,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   prevSong: () => {
-    const { queue, queueIndex, playMode, currentSong, autoContinueEnabled, sourceList, sourceIndex } = get();
+    const { queue, queueIndex, playMode, currentSong, sourceList, sourceIndex } = get();
     if (queue.length === 0) return;
 
     // 单曲队列：优先沿来源列表往回走（上一首 = 列表里这首歌的前一首）
@@ -491,10 +446,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       const listPrev = sourceIndex >= 0 ? nextPlayableInSource(sourceList, sourceIndex, -1) : null;
       if (listPrev) {
         get().playSong(listPrev, [listPrev]);
-        return;
-      }
-      if (autoContinueEnabled) {
-        get().autoContinue(currentSong);
         return;
       }
       get().playSong(currentSong, queue);
@@ -610,11 +561,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setAudioQuality: (quality) => {
     saveToStorage(STORAGE_KEYS.audioQuality, quality);
     set({ audioQuality: quality });
-  },
-
-  setAutoContinueEnabled: (enabled) => {
-    saveToStorage(STORAGE_KEYS.autoContinue, enabled);
-    set({ autoContinueEnabled: enabled });
   },
 
   setShowFloatingLyrics: (show) => {
