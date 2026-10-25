@@ -144,9 +144,10 @@ export function FullPlayer() {
         >
           <ChevronDown className="h-7 w-7" />
         </button>
-        <div className="text-center">
+        <div className="text-center min-w-0 max-w-[40%]">
           <p className="text-[10px] uppercase tracking-[0.25em] text-white/50">正在播放</p>
-          <p className="text-sm text-white/90">{currentSong.album?.name || ""}</p>
+          {/* 显示歌名而非专辑名：专辑名与歌名无关时（如《晴天》显示"叶惠美"）容易被误认成歌名 */}
+          <p className="text-sm text-white/90 truncate">{currentSong.name}</p>
         </div>
         <div className="flex items-center gap-1">
           <button

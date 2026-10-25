@@ -509,3 +509,21 @@ a:active {
 .eq-bar:nth-child(7) { animation: bar4 1.0s ease-in-out infinite 0.3s; }
 .eq-bar:nth-child(8) { animation: bar3 1.1s ease-in-out infinite 0.18s; }
 
+/* 隐藏滚动条但保留滚动能力（歌词区等）。
+   此前类名一直在用但没有定义——它来自未安装的 tailwind-scrollbar-hide 插件 */
+.scrollbar-hide {
+  scrollbar-width: none;      /* Firefox */
+  -ms-overflow-style: none;   /* IE/旧 Edge */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;              /* Chrome/Safari/Edge */
+}
+
+/* 全屏播放页（深色背景）的进度条：覆盖主题色为白色 */
+.player-slider-light [data-slot="slider-track"] {
+  background: rgba(255, 255, 255, 0.2);
+}
+.player-slider-light [data-slot="slider-range"] {
+  background: rgba(255, 255, 255, 0.85);
+}
+

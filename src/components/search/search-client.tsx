@@ -190,17 +190,23 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
           ))}
         </div>
       ) : songs.length > 0 ? (
-        <SongList
-          songs={songs}
-          virtual
-          onEndReached={() => {
-            if (hasMore && !loading) doSearch(query, page + 1);
-          }}
-        />
+        <>
+          <SongList
+            songs={songs}
+            virtual
+            onEndReached={() => {
+              if (hasMore && !loading) doSearch(query, page + 1);
+            }}
+          />
+          {/* VIP 歌曲已在结果中自动隐藏（匿名无法播放），明示避免"搜出来怎么这么少"的困惑 */}
+          <p className="text-center text-xs text-muted-foreground py-3">
+            已自动隐藏 VIP 歌曲
+          </p>
+        </>
       ) : query ? (
         <div className="text-center py-20 text-muted-foreground">
           <p className="text-lg mb-2">未找到相关歌曲</p>
-          <p className="text-sm">试试其他关键词</p>
+          <p className="text-sm">试试其他关键词，VIP 歌曲已自动隐藏</p>
         </div>
       ) : (
         <div className="text-center py-14 text-muted-foreground">

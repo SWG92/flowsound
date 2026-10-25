@@ -50,20 +50,38 @@ export function ProgressBar() {
   );
 }
 
-/** 全屏播放页的只读进度条：自订阅进度，更新只重渲染本组件而非整个全屏页。 */
+/** 全屏播放页进度条：可拖动 seek，白色主题适配深色背景。
+ * 自订阅进度，250ms 更新只重渲染本组件而非整个全屏页。 */
 export function ProgressFill({ className }: { className?: string }) {
   const currentTime = usePlayerStore((s) => s.currentTime);
   const duration = usePlayerStore((s) => s.duration);
+  // 拖拽中用本地状态，避免 rAF 时间更新与拖动值互相打架
+  const [dragTime, setDragTime] = useState<number | null>(null);
+  const dragTimeRef = useRef<number | null>(null);
 
   return (
-    <div className={cn("flex items-center gap-3 text-xs text-white/60 tabular-nums", className)}>
-      <span>{formatTime(currentTime)}</span>
-      <div className="flex-1 h-1 rounded-full bg-white/20 overflow-hidden">
-        <div
-          className="h-full bg-white/85 rounded-full"
-          style={{ width: duration ? `${(currentTime / duration) * 100}%` : "0%" }}
-        />
-      </div>
+    <div className={cn("flex items-center gap-3 text-xs text-white/60 tabular-nums w-full", className)}>
+      <span>{formatTime(dragTime ?? currentTime)}</span>
+      <Slider
+        value={[dragTime ?? currentTime]}
+        max={duration || 100}
+        step={0.1}
+        className="flex-1 player-slider-light"
+        onValueChange={(val) => {
+          const t = Array.isArray(val) ? val[0] : val;
+          audioPlayer.setSeeking(true);
+          dragTimeRef.current = t;
+          setDragTime(t);
+        }}
+        onValueCommitted={() => {
+          if (dragTimeRef.current !== null) {
+            audioPlayer.seek(dragTimeRef.current);
+            dragTimeRef.current = null;
+          }
+          audioPlayer.setSeeking(false);
+          setDragTime(null);
+        }}
+      />
       <span>{formatTime(duration)}</span>
     </div>
   );
