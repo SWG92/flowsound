@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { NETEASE_HEADERS, FETCH_TIMEOUT, NETEASE_BASE } from "@/lib/constants";
 import { logError } from "@/lib/logger";
 import { getServerCache, setServerCache } from "@/lib/server-cache";
+import { slimSongs } from "@/lib/song-slim";
 
 export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id");
@@ -33,8 +34,11 @@ export async function GET(request: NextRequest) {
         { status: 502, headers: { "Cache-Control": "no-store" } }
       );
     }
-    setServerCache(cacheKey, data, 30 * 60 * 1000);
-    return NextResponse.json(data, {
+    // 歌曲列表裁剪掉客户端不用的字段（音质详情/版权等），大幅减小响应体积；
+    // 专辑元信息（封面/简介/发行时间）原样保留
+    const slim = { ...data, songs: slimSongs(data.songs || []) };
+    setServerCache(cacheKey, slim, 30 * 60 * 1000);
+    return NextResponse.json(slim, {
       headers: { "Cache-Control": "private, max-age=1800" },
     });
   } catch (error: unknown) {

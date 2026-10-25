@@ -4,6 +4,7 @@ import type { MusicPlatform } from "@/lib/types";
 import { logError } from "@/lib/logger";
 import { NETEASE_BASE, NETEASE_HEADERS, FETCH_TIMEOUT } from "@/lib/constants";
 import { getServerCache, setServerCache, serverCacheKey } from "@/lib/server-cache";
+import { slimSongs } from "@/lib/song-slim";
 
 type HandlerFn = (params: Record<string, string>) => Promise<unknown>;
 
@@ -43,7 +44,8 @@ const searchHandler: HandlerFn = async (params) => {
   const offset = parseInt(params.offset || "0");
   const limit = Math.min(parseInt(params.limit || "30"), 50);
   const page = Math.floor(offset / limit) + 1;
-  return getAdapter(params._platform as MusicPlatform).search(keywords, page, limit);
+  const result = await getAdapter(params._platform as MusicPlatform).search(keywords, page, limit);
+  return { ...result, songs: slimSongs(result.songs) };
 };
 
 const songUrlHandler: HandlerFn = async (params) => {
@@ -73,7 +75,8 @@ const lyricHandler: HandlerFn = async (params) => {
 const playlistDetailHandler: HandlerFn = async (params) => {
   const id = params.id || "";
   const tracks = await getAdapter(params._platform as MusicPlatform).getPlaylistDetail(id);
-  return { result: { tracks }, playlist: { tracks } };
+  const slim = slimSongs(tracks);
+  return { result: { tracks: slim }, playlist: { tracks: slim } };
 };
 
 // 搜索联想（网易云 suggest 接口，供搜索框输入时实时建议）

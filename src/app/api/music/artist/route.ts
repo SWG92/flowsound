@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { NETEASE_HEADERS, FETCH_TIMEOUT, NETEASE_BASE } from "@/lib/constants";
 import { logError } from "@/lib/logger";
 import { getServerCache, setServerCache } from "@/lib/server-cache";
+import { slimSongs } from "@/lib/song-slim";
 
 export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id");
@@ -24,8 +25,10 @@ export async function GET(request: NextRequest) {
       signal: AbortSignal.timeout(FETCH_TIMEOUT),
     });
     const data = await res.json();
-    setServerCache(cacheKey, data, 30 * 60 * 1000);
-    return NextResponse.json(data, {
+    // 热门歌曲列表裁剪减小响应；歌手元信息（头像/简介）原样保留
+    const slim = { ...data, hotSongs: slimSongs(data.hotSongs || []) };
+    setServerCache(cacheKey, slim, 30 * 60 * 1000);
+    return NextResponse.json(slim, {
       headers: { "Cache-Control": "private, max-age=1800" },
     });
   } catch (error: unknown) {
