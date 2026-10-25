@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Heart, ListMusic, Loader2, MessageCircle, Pause, Play, SkipBack, SkipForward, Repeat, Shuffle } from "lucide-react";
+import { ChevronDown, Heart, Loader2, MessageCircle, Pause, Play, SkipBack, SkipForward, Repeat, Shuffle } from "lucide-react";
 import { usePlayerStore } from "@/lib/store";
 import { audioPlayer } from "@/lib/audio-player";
 import { cn, getCoverUrl } from "@/lib/utils";
@@ -23,7 +23,6 @@ export function FullPlayer() {
   const currentSong = usePlayerStore((s) => s.currentSong);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const isLoading = usePlayerStore((s) => s.isLoading);
-  const setShowQueue = usePlayerStore((s) => s.setShowQueue);
   const lyrics = usePlayerStore((s) => s.lyrics);
   const currentLyricIndex = usePlayerStore((s) => s.currentLyricIndex);
   const playMode = usePlayerStore((s) => s.playMode);
@@ -309,13 +308,6 @@ export function FullPlayer() {
           </button>
           <button onClick={() => nextSong()} className="text-white cursor-pointer transition-transform active:scale-90" title="下一首">
             <SkipForward className="h-8 w-8" fill="currentColor" />
-          </button>
-          <button
-            onClick={() => setShowQueue(true)}
-            className="text-white/70 hover:text-white cursor-pointer transition-colors"
-            title="播放队列"
-          >
-            <ListMusic className="h-5 w-5" />
           </button>
         </div>
       </div>
