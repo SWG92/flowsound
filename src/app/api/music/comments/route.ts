@@ -3,14 +3,16 @@ import { NETEASE_HEADERS, FETCH_TIMEOUT } from "@/lib/constants";
 import { NETEASE_API } from "@/lib/constants";
 import { logError } from "@/lib/logger";
 import { getServerCache, setServerCache } from "@/lib/server-cache";
+import { numParam } from "@/lib/validate";
 
 export async function GET(request: NextRequest) {
-  const id = request.nextUrl.searchParams.get("id");
-  const limit = request.nextUrl.searchParams.get("limit") || "50";
-  const offset = request.nextUrl.searchParams.get("offset") || "0";
+  // id/limit/offset 纯数字验证——参数直接拼进上游 URL，防 query 注入
+  const id = numParam(request.nextUrl.searchParams.get("id"), "");
+  const limit = numParam(request.nextUrl.searchParams.get("limit"), "50");
+  const offset = numParam(request.nextUrl.searchParams.get("offset"), "0");
 
   if (!id) {
-    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    return NextResponse.json({ error: "Missing or invalid id" }, { status: 400 });
   }
 
   // 热门评论短时间不变，缓存减少回源（分页按 offset 区分键）

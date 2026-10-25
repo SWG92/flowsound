@@ -3,11 +3,13 @@ import { NETEASE_HEADERS, FETCH_TIMEOUT, NETEASE_BASE } from "@/lib/constants";
 import { logError } from "@/lib/logger";
 import { getServerCache, setServerCache } from "@/lib/server-cache";
 import { slimSongs } from "@/lib/song-slim";
+import { numParam } from "@/lib/validate";
 
 export async function GET(request: NextRequest) {
-  const id = request.nextUrl.searchParams.get("id");
+  // 歌手 id 纯数字验证——拼进上游路径，防路径改写
+  const id = numParam(request.nextUrl.searchParams.get("id"), "");
   if (!id) {
-    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    return NextResponse.json({ error: "Missing or invalid id" }, { status: 400 });
   }
 
   // 歌手热门歌曲短时间不变，缓存减少回源

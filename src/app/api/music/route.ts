@@ -5,6 +5,7 @@ import { logError } from "@/lib/logger";
 import { NETEASE_BASE, NETEASE_HEADERS, FETCH_TIMEOUT } from "@/lib/constants";
 import { getServerCache, setServerCache, serverCacheKey } from "@/lib/server-cache";
 import { slimSongs } from "@/lib/song-slim";
+import { numParam, alnumParam } from "@/lib/validate";
 
 type HandlerFn = (params: Record<string, string>) => Promise<unknown>;
 
@@ -40,17 +41,21 @@ function resolvePlatform(request: NextRequest): MusicPlatform {
 // ============ Handler 实现 ============
 
 const searchHandler: HandlerFn = async (params) => {
-  const keywords = params.keywords || "";
+  // 关键词限长：超长输入不透传上游（防滥用）
+  const keywords = (params.keywords || "").slice(0, 100);
   const offset = parseInt(params.offset || "0");
   const limit = Math.min(parseInt(params.limit || "30"), 50);
+  if (!keywords.trim()) return { songs: [], total: 0, hasMore: false };
   const page = Math.floor(offset / limit) + 1;
   const result = await getAdapter(params._platform as MusicPlatform).search(keywords, page, limit);
   return { ...result, songs: slimSongs(result.songs) };
 };
 
 const songUrlHandler: HandlerFn = async (params) => {
-  const id = params.id || params.platformId || "";
-  const br = params.br || "320000";
+  // id 跨平台字母数字（网易云数字/QQ songmid/酷狗 hash），br 纯数字——防 query 注入
+  const id = alnumParam(params.id) || alnumParam(params.platformId);
+  const br = numParam(params.br, "320000");
+  if (!id) return { data: [{ url: "" }] };
   const adapter = getAdapter(params._platform as MusicPlatform);
 
   // 上游取址失败率不低（网易云限流时抽样约半数返回空），服务端重试一次再交给上层回退
@@ -67,13 +72,16 @@ const songUrlHandler: HandlerFn = async (params) => {
 };
 
 const lyricHandler: HandlerFn = async (params) => {
-  const id = params.id || params.platformId || "";
+  const id = alnumParam(params.id) || alnumParam(params.platformId);
+  if (!id) return [];
   const lyrics = await getAdapter(params._platform as MusicPlatform).getLyrics(id);
   return lyrics;
 };
 
 const playlistDetailHandler: HandlerFn = async (params) => {
-  const id = params.id || "";
+  // 歌单 id 纯数字验证（拼进上游 URL）
+  const id = numParam(params.id, "");
+  if (!id) return { result: { tracks: [] }, playlist: { tracks: [] } };
   const tracks = await getAdapter(params._platform as MusicPlatform).getPlaylistDetail(id);
   const slim = slimSongs(tracks);
   return { result: { tracks: slim }, playlist: { tracks: slim } };
@@ -81,7 +89,7 @@ const playlistDetailHandler: HandlerFn = async (params) => {
 
 // 搜索联想（网易云 suggest 接口，供搜索框输入时实时建议）
 const suggestHandler: HandlerFn = async (params) => {
-  const kw = (params.keywords || "").trim();
+  const kw = (params.keywords || "").trim().slice(0, 100);
   if (!kw) return { artists: [], songs: [] };
   const res = await fetch(`${NETEASE_BASE}/api/search/suggest/web?s=${encodeURIComponent(kw)}`, {
     headers: NETEASE_HEADERS,
