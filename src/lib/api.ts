@@ -125,36 +125,18 @@ export async function searchAllPlatforms(
 
 // ============ 歌曲播放 URL ============
 
-/** 取址结果：url + 上游实际提供的音质等级（匿名请求无损常被降级为 exhigh/320K） */
-export interface SongUrlResult {
-  url: string;
-  level?: string;
-}
-
-/** 网易云 level → 应用音质档（用于"实际有什么音质"的显示修正） */
-export function levelToQuality(level?: string): AudioQuality | null {
-  switch (level) {
-    case "standard": return "standard";
-    case "higher":
-    case "exhigh": return "high";
-    case "lossless":
-    case "hires": return "lossless";
-    default: return null;
-  }
-}
-
 export async function getSongUrl(
   id: number | string,
   quality?: AudioQuality,
   platform: MusicPlatform = "netease",
   platformId?: string
-): Promise<SongUrlResult> {
+): Promise<string> {
   const q = quality || getStoredQuality();
   const bitrate = AUDIO_QUALITY[q].bitrate;
   const pid = platformId || String(id);
 
   const cacheKey = `url:${platform}:${pid}:${bitrate}`;
-  const cached = getCached<SongUrlResult>(cacheKey);
+  const cached = getCached<string>(cacheKey);
   if (cached) return cached;
 
   // 对于非网易云平台，发送 platformId
@@ -165,30 +147,28 @@ export async function getSongUrl(
   };
   if (platformId) params.platformId = platformId;
 
-  let data = await fetchJSON<{ data?: Array<{ url: string; level?: string }>; url?: string }>(
+  let data = await fetchJSON<{ data?: Array<{ url: string }>; url?: string }>(
     "song/url",
     params
   );
 
   // 上游取址失败率不低（实测抽样约 50% 返回空），失败时原音质重试一次，
   // 能明显提升点播成功率；重试仍失败才交给上层走跨平台回退
-  if (!extractUrl(data)) {
+  let url = extractUrl(data);
+  if (!url) {
     try {
-      data = await fetchJSON<{ data?: Array<{ url: string; level?: string }>; url?: string }>(
+      data = await fetchJSON<{ data?: Array<{ url: string }>; url?: string }>(
         "song/url",
         params
       );
+      url = extractUrl(data);
     } catch {
       // 忽略：交给上层回退
     }
   }
 
-  const result: SongUrlResult = {
-    url: extractUrl(data),
-    level: data.data?.[0]?.level,
-  };
-  if (result.url) setCache(cacheKey, result);
-  return result;
+  if (url) setCache(cacheKey, url);
+  return url;
 }
 
 function extractUrl(data: { data?: Array<{ url: string }>; url?: string }): string {
@@ -197,51 +177,6 @@ function extractUrl(data: { data?: Array<{ url: string }>; url?: string }): stri
   }
   if (typeof data.url === "string") return data.url;
   return "";
-}
-
-// 网易云音质等级 → 中文说明（客户端提示用）
-const NETEASE_LEVEL_LABELS: Record<string, string> = {
-  standard: "标准 128K",
-  higher: "较高 192K",
-  exhigh: "高品质 320K",
-  lossless: "无损",
-  hires: "Hi-Res",
-};
-
-/**
- * 获取歌曲地址及实际音质信息（切换音质时用）。
- * 与 getSongUrl 的区别：不读缓存、返回上游真实提供的音质等级 ——
- * 匿名账号请求无损时网易云会静默降级为 320k，客户端据此提示而不是让用户以为无损生效了。
- */
-export async function getSongUrlDetailed(
-  id: number | string,
-  quality?: AudioQuality,
-  platform: MusicPlatform = "netease",
-  platformId?: string
-): Promise<{ url: string; level?: string; levelLabel?: string }> {
-  const q = quality || getStoredQuality();
-  const bitrate = AUDIO_QUALITY[q].bitrate;
-  const pid = platformId || String(id);
-
-  const params: Record<string, string> = {
-    id: platform !== "netease" ? pid : String(id),
-    br: bitrate,
-    platform,
-  };
-  if (platformId) params.platformId = platformId;
-
-  const data = await fetchJSON<{
-    data?: Array<{ url: string; level?: string }>;
-  }>("song/url", params);
-
-  const item = data.data?.[0];
-  const url = item?.url || "";
-  const level = item?.level;
-  return {
-    url,
-    level,
-    levelLabel: level ? NETEASE_LEVEL_LABELS[level] : undefined,
-  };
 }
 
 // ============ 搜索联想 ============

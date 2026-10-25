@@ -60,15 +60,13 @@ const songUrlHandler: HandlerFn = async (params) => {
 
   // 上游取址失败率不低（网易云限流时抽样约半数返回空），服务端重试一次再交给上层回退
   let url = await adapter.getSongUrl(id, br);
-  let level = adapter.getLastLevel?.();
   if (!url) {
     await new Promise((r) => setTimeout(r, 250));
     url = await adapter.getSongUrl(id, br);
-    level = adapter.getLastLevel?.() ?? level;
   }
 
-  // 客户端 api.ts 期望 { data: [{ url }] } 格式；网易云还会带上实际音质等级
-  return { data: [{ url, ...(level ? { level } : {}) }] };
+  // 客户端 api.ts 期望 { data: [{ url }] } 格式
+  return { data: [{ url }] };
 };
 
 const lyricHandler: HandlerFn = async (params) => {
