@@ -332,9 +332,10 @@ body::after {
   color: oklch(0.6 0.01 270);
 }
 
-/* 深色 EQ 条 */
+/* 深色 EQ 条（同样支持 --eq-bar-color 覆盖为专辑主色；此规则优先级高于
+   .eq-bar，之前写死颜色导致深色主题下主色变量失效） */
 .dark .eq-bar {
-  background: oklch(0.7 0.25 280);
+  background: var(--eq-bar-color, oklch(0.7 0.25 280));
 }
 
 /* （毛玻璃材质已升级为 Liquid Glass，见文件头部的材质系统） */

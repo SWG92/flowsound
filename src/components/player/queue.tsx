@@ -8,6 +8,14 @@ import { usePlayerStore } from "@/lib/store";
 import { cn, getCoverUrl } from "@/lib/utils";
 import { useDominantColor } from "@/hooks/use-dominant-color";
 
+/** hex → rgba（带透明度） */
+function hexA(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 export function PlayQueue() {
   // 字段级订阅：currentTime 等高频切片变化不再引发整个队列列表重渲染
   const queue = usePlayerStore((s) => s.queue);
@@ -21,9 +29,8 @@ export function PlayQueue() {
   // 浮在全屏播放页上层时：切换为深色玻璃（.dark 作用域下 glass 用深色变量，
   // 融入全屏页深色背景而非浅色主题的白玻璃），并下移避开全屏页顶部按钮栏
   const fullPlayerOpen = usePlayerStore((s) => s.showFullPlayer);
-  // 专辑主色（与全屏页共用取色缓存）：全屏页上"正在播放"行的歌名/波浪条用它，
-  // 与歌词高亮、播放按钮同一色彩体系
-  const accent = useDominantColor(fullPlayerOpen && currentSong ? getCoverUrl(currentSong) : null);
+  // 专辑主色（与全屏页共用取色缓存）：正在播放行的歌名/波浪/高亮统一用它
+  const accent = useDominantColor(currentSong ? getCoverUrl(currentSong) : null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dropIdx, setDropIdx] = useState<number | null>(null);
 
@@ -131,9 +138,8 @@ export function PlayQueue() {
             const isPaid = song.fee === 1;
             const isDragging = dragIdx === index;
             const isOver = dropIdx === index;
-            // 全屏页上"正在播放"行改用专辑主色（与歌词高亮/播放按钮同体系），
-            // 主界面保持主题 primary 色
-            const currentColor = fullPlayerOpen && accent ? accent : undefined;
+            // "正在播放"行统一用专辑主色（歌名/波浪/行高亮），主界面与全屏页一致
+            const currentColor = accent ?? undefined;
 
             return (
               <div
@@ -146,7 +152,10 @@ export function PlayQueue() {
                   isOver && (index > (dragIdx ?? -1) ? "border-t-2 border-primary/50" : "border-b-2 border-primary/50"),
                   isPaid ? "cursor-not-allowed" : "cursor-pointer hover:bg-muted/30"
                 )}
-                style={currentColor ? ({ "--eq-bar-color": currentColor } as React.CSSProperties) : undefined}
+                style={isCurrent && currentColor ? ({
+                  "--eq-bar-color": currentColor,
+                  background: hexA(currentColor, 0.13),
+                } as React.CSSProperties) : undefined}
                 onClick={() => !isPaid && playSong(song, queue)}
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragOver={(e) => handleDragOver(e, index)}
