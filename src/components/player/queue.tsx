@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePlayerStore } from "@/lib/store";
 import { cn, getCoverUrl } from "@/lib/utils";
+import { useDominantColor } from "@/hooks/use-dominant-color";
 
 export function PlayQueue() {
   // 字段级订阅：currentTime 等高频切片变化不再引发整个队列列表重渲染
@@ -20,6 +21,9 @@ export function PlayQueue() {
   // 浮在全屏播放页上层时：切换为深色玻璃（.dark 作用域下 glass 用深色变量，
   // 融入全屏页深色背景而非浅色主题的白玻璃），并下移避开全屏页顶部按钮栏
   const fullPlayerOpen = usePlayerStore((s) => s.showFullPlayer);
+  // 专辑主色（与全屏页共用取色缓存）：全屏页上"正在播放"行的歌名/波浪条用它，
+  // 与歌词高亮、播放按钮同一色彩体系
+  const accent = useDominantColor(fullPlayerOpen && currentSong ? getCoverUrl(currentSong) : null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dropIdx, setDropIdx] = useState<number | null>(null);
 
@@ -127,6 +131,9 @@ export function PlayQueue() {
             const isPaid = song.fee === 1;
             const isDragging = dragIdx === index;
             const isOver = dropIdx === index;
+            // 全屏页上"正在播放"行改用专辑主色（与歌词高亮/播放按钮同体系），
+            // 主界面保持主题 primary 色
+            const currentColor = fullPlayerOpen && accent ? accent : undefined;
 
             return (
               <div
@@ -134,11 +141,12 @@ export function PlayQueue() {
                 draggable={!isPaid}
                 className={cn(
                   "flex items-center gap-2 px-2 py-2 rounded-lg transition-all group",
-                  isCurrent && "bg-primary/15",
+                  isCurrent && !currentColor && "bg-primary/15",
                   isDragging && "opacity-50",
                   isOver && (index > (dragIdx ?? -1) ? "border-t-2 border-primary/50" : "border-b-2 border-primary/50"),
                   isPaid ? "cursor-not-allowed" : "cursor-pointer hover:bg-muted/30"
                 )}
+                style={currentColor ? ({ "--eq-bar-color": currentColor } as React.CSSProperties) : undefined}
                 onClick={() => !isPaid && playSong(song, queue)}
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragOver={(e) => handleDragOver(e, index)}
@@ -188,7 +196,10 @@ export function PlayQueue() {
                 {/* 歌曲信息 */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1">
-                    <p className={cn("text-sm truncate", isCurrent && "text-primary font-medium", isPaid && "text-muted-foreground")}>
+                    <p
+                      className={cn("text-sm truncate", isCurrent && !currentColor && "text-primary font-medium", isPaid && "text-muted-foreground")}
+                      style={currentColor && isCurrent ? { color: currentColor, fontWeight: 500 } : undefined}
+                    >
                       {song.name}
                     </p>
                     {isPaid && (

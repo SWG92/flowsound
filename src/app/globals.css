@@ -516,7 +516,8 @@ a:active {
 .eq-bar {
   display: inline-block;
   width: 3px;
-  background: oklch(0.65 0.25 280);
+  /* 容器可设 --eq-bar-color 覆盖（如全屏页队列浮层用专辑主色） */
+  background: var(--eq-bar-color, oklch(0.65 0.25 280));
   border-radius: 2px;
   margin: 0 1px;
   vertical-align: bottom;
