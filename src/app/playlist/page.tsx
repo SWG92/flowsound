@@ -61,10 +61,17 @@ export default function PlaylistPage() {
   const activePlaylist = playlists.find((p) => p.id === activeId);
 
   const handleCreate = () => {
-    if (!newName.trim()) return;
+    const name = newName.trim();
+    if (!name) return;
+    // 拒绝重名：主流播放器标准行为；同时天然阻断回车+点击连按造成的重复创建
+    // （React 闭包里第二次点击仍读到未清空的旧名称，仅清空输入框拦不住）
+    if (playlists.some((p) => p.name === name)) {
+      showToast(`已有名为「${name}」的歌单`, "error");
+      return;
+    }
     const newPlaylist: Playlist = {
-      id: Date.now().toString(),
-      name: newName.trim(),
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
       songs: [],
       createdAt: Date.now(),
     };
@@ -73,7 +80,7 @@ export default function PlaylistPage() {
     setPlaylists(updated);
     setNewName("");
     setDialogOpen(false);
-    showToast(`歌单「${newPlaylist.name}」已创建`, "success");
+    showToast(`歌单「${name}」已创建`, "success");
   };
 
   const handleDelete = (id: string) => {
