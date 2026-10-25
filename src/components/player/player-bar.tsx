@@ -39,8 +39,6 @@ import { FullPlayer } from "./full-player";
 import { ProgressBar } from "./progress";
 import { PLAYER_DIALOG_SIZE } from "./dialog-sizes";
 import { useDominantColor } from "@/hooks/use-dominant-color";
-import { MvDialog } from "./mv-dialog";
-import { Video } from "lucide-react";
 import { useLyricsBroadcast } from "@/hooks/use-lyrics-broadcast";
 import { useMediaSession } from "@/hooks/use-media-session";
 
@@ -93,7 +91,6 @@ export function PlayerBar() {
   const [showSleep, setShowSleep] = useState(false);
   const [showEQ, setShowEQ] = useState(false);
   const [showComments, setShowComments] = useState(false);
-  const [showMv, setShowMv] = useState(false);
   const [prevVolume, setPrevVolume] = useState(0.8);
   const sleepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -446,19 +443,6 @@ export function PlayerBar() {
             )}
           </div>
 
-          {/* MV - 仅当前歌曲有 MV 时显示 */}
-          {currentSong?.mvId && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="cursor-pointer h-8 w-8"
-              onClick={() => setShowMv(true)}
-              title="播放 MV"
-            >
-              <Video className="h-4 w-4" />
-            </Button>
-          )}
-
           {/* 均衡器 */}
           <Button
             variant="ghost"
@@ -555,10 +539,6 @@ export function PlayerBar() {
 
       {/* 评论弹窗 */}
       <CommentsDialog song={currentSong} open={showComments} onOpenChange={setShowComments} />
-      {/* MV 视频浮层 */}
-      {currentSong?.mvId && (
-        <MvDialog mvId={currentSong.mvId} songName={currentSong.name} open={showMv} onClose={() => setShowMv(false)} />
-      )}
     </>
   );
 }

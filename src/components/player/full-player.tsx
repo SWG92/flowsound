@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Heart, Loader2, MessageCircle, Pause, Play, SkipBack, SkipForward, Repeat, Shuffle, Video } from "lucide-react";
+import { ChevronDown, Heart, Loader2, MessageCircle, Pause, Play, SkipBack, SkipForward, Repeat, Shuffle } from "lucide-react";
 import { usePlayerStore } from "@/lib/store";
 import { audioPlayer } from "@/lib/audio-player";
 import { cn, getCoverUrl } from "@/lib/utils";
 import { ProgressFill } from "./progress";
 import { CommentsDialog } from "./comments-dialog";
-import { MvDialog } from "./mv-dialog";
 import { useDominantColor } from "@/hooks/use-dominant-color";
 
 /**
@@ -40,7 +39,6 @@ export function FullPlayer() {
 
   const [showLyricsView, setShowLyricsView] = useState(true);
   const [showComments, setShowComments] = useState(false);
-  const [showMv, setShowMv] = useState(false);
   // 下滑关闭手势（iOS 风格）
   const [dragY, setDragY] = useState(0);
   // 3 秒无操作隐藏控制区（沉浸歌词模式，触摸恢复）
@@ -79,10 +77,18 @@ export function FullPlayer() {
     return () => window.removeEventListener("keydown", onKey);
   }, [fullOpen, setFullOpen]);
 
-  // 歌词自动滚动
-  const scrollToLyric = (index: number) => {
-    const el = containerRef.current?.querySelector(`[data-lyric-index="${index}"]`);
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  // 歌词自动滚动。不用 scrollIntoView(block:"center")：末尾几行后方内容不足时
+  // 浏览器为满足"居中"会过度滚动（配合 smooth 动画表现为整块歌词向上喷出/抖动，
+  // 即用户报告的"歌曲快结束页面自己上升"）。改为手动计算目标 scrollTop，
+  // 边界自然钳制在 [0, scrollHeight - clientHeight]，末尾安静停住
+  const scrollToLyric = (index: number, smooth = true) => {
+    const container = containerRef.current;
+    const el = container?.querySelector(`[data-lyric-index="${index}"]`);
+    if (!container || !el) return;
+    const rect = el.getBoundingClientRect();
+    const cRect = container.getBoundingClientRect();
+    const target = container.scrollTop + (rect.top - cRect.top) - container.clientHeight / 2 + rect.height / 2;
+    container.scrollTo({ top: target, behavior: smooth ? "smooth" : "instant" });
   };
   useEffect(() => {
     if (!fullOpen || !showLyricsView) return;
@@ -183,15 +189,6 @@ export function FullPlayer() {
           <p className="text-sm text-white/90 truncate">{currentSong.name}</p>
         </div>
         <div className="flex items-center gap-1">
-          {currentSong.mvId && (
-            <button
-              onClick={() => setShowMv(true)}
-              className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
-              title="播放 MV"
-            >
-              <Video className="h-6 w-6" />
-            </button>
-          )}
           <button
             onClick={() => setShowComments(true)}
             className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
@@ -212,7 +209,7 @@ export function FullPlayer() {
       {/* 中部：封面 / 歌词 */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 min-h-0">
         {showLyricsView ? (
-          <div ref={containerRef} className="w-full max-w-xl flex-1 overflow-y-auto py-12 scrollbar-hide [mask-image:linear-gradient(to_bottom,transparent,black_12%,black_78%,transparent_94%)]">
+          <div ref={containerRef} className="w-full max-w-xl flex-1 overflow-y-auto pt-12 pb-40 scrollbar-hide [mask-image:linear-gradient(to_bottom,transparent,black_12%,black_78%,transparent_94%)]">
             {lyrics.length === 0 ? (
               <p className="text-center text-white/50 mt-16">暂无歌词</p>
             ) : (
@@ -325,10 +322,6 @@ export function FullPlayer() {
 
       {/* 评论弹窗（层级高于全屏页） */}
       <CommentsDialog song={currentSong} open={showComments} onOpenChange={setShowComments} />
-      {/* MV 视频浮层 */}
-      {currentSong.mvId && (
-        <MvDialog mvId={currentSong.mvId} songName={currentSong.name} open={showMv} onClose={() => setShowMv(false)} />
-      )}
     </div>
   );
 }

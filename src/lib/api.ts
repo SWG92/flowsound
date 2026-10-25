@@ -180,51 +180,6 @@ function extractUrl(data: { data?: Array<{ url: string }>; url?: string }): stri
   return "";
 }
 
-// ============ MV ============
-
-export interface MvInfo {
-  name: string;
-  artistName: string;
-  duration: number; // 毫秒
-  url480?: string;
-  url240?: string;
-  cover?: string;
-}
-
-/** 获取 MV 元信息与视频地址（匿名可用，部分 MV 有 480P/240P 两档）。
- * 网易云视频 CDN 返回 http 地址，升级为 https（部署到 https 域名时避免混合内容拦截） */
-export async function getMvInfo(mvId: number): Promise<MvInfo> {
-  const cacheKey = `mv:${mvId}`;
-  const cached = getCached<MvInfo>(cacheKey);
-  if (cached) return cached;
-
-  const data = await fetchJSON<{
-    data?: {
-      name?: string;
-      artistName?: string;
-      duration?: number;
-      cover?: string;
-      brs?: Record<string, string>;
-    };
-  }>("mv/detail", { id: String(mvId) });
-
-  const d = data.data;
-  if (!d) throw new Error("MV 不存在");
-  const up = (u?: string) => (u ? u.replace(/^http:/, "https:") : undefined);
-
-  const info: MvInfo = {
-    name: d.name || "",
-    artistName: d.artistName || "",
-    duration: d.duration || 0,
-    url480: up(d.brs?.["480"]),
-    url240: up(d.brs?.["240"]),
-    cover: up(d.cover),
-  };
-  if (!info.url480 && !info.url240) throw new Error("无可播放的 MV 资源");
-  setCache(cacheKey, info);
-  return info;
-}
-
 // ============ 搜索联想 ============
 
 export interface SearchSuggest {

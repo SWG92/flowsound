@@ -1,7 +1,7 @@
 // 网易云音乐平台适配器
 
 import type { PlatformAdapter } from "./types";
-import type { Song, LyricLine } from "@/lib/types";
+import type { Song } from "@/lib/types";
 import { extractQualities } from "@/lib/song-slim";
 import { parseLRC } from "@/lib/parse-lrc";
 import { NETEASE_API, NETEASE_BASE, NETEASE_HEADERS, FETCH_TIMEOUT } from "@/lib/constants";
