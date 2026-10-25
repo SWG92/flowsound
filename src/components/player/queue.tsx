@@ -17,6 +17,9 @@ export function PlayQueue() {
   const reorderQueue = usePlayerStore((s) => s.reorderQueue);
   const removeFromQueue = usePlayerStore((s) => s.removeFromQueue);
   const clearQueue = usePlayerStore((s) => s.clearQueue);
+  // 浮在全屏播放页上层时：切换为深色玻璃（.dark 作用域下 glass 用深色变量，
+  // 融入全屏页深色背景而非浅色主题的白玻璃），并下移避开全屏页顶部按钮栏
+  const fullPlayerOpen = usePlayerStore((s) => s.showFullPlayer);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dropIdx, setDropIdx] = useState<number | null>(null);
 
@@ -71,8 +74,14 @@ export function PlayQueue() {
   if (!showQueue) return null;
 
   return (
-    <div className="fixed right-3 top-3 w-80 glass rounded-[26px] z-[110] flex flex-col shadow-xl overflow-hidden"
-      style={{ bottom: "calc(96px + var(--safe-bottom))" }}>
+    <div className={fullPlayerOpen ? "dark" : undefined}>
+      <div
+        className="fixed right-3 w-80 glass rounded-[26px] z-[110] flex flex-col shadow-xl overflow-hidden"
+        style={{
+          top: fullPlayerOpen ? "calc(4.5rem + var(--safe-top))" : "0.75rem",
+          bottom: "calc(96px + var(--safe-bottom))",
+        }}
+      >
       {/* 头部 */}
       <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
         <h3 className="font-semibold text-sm">
@@ -199,6 +208,7 @@ export function PlayQueue() {
             );
           })
         )}
+      </div>
       </div>
     </div>
   );
