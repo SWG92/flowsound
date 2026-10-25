@@ -101,6 +101,11 @@ function SongRow({
       onClick={() => {
         if (window.matchMedia("(pointer: coarse)").matches) onPlay();
       }}
+      // 右键打开"更多"菜单（网易云/QQ 音乐标准交互；黑名单页文案即指此路径）
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onMenu();
+      }}
     >
       {/* 序号 */}
       <div className="flex items-center justify-center">
