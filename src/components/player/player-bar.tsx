@@ -397,8 +397,8 @@ export function PlayerBar() {
             </Button>
             {showQuality && (
               <div className="absolute bottom-full right-0 mb-2 glass rounded-lg p-1 min-w-[132px] shadow-lg z-[60]">
-                {/* 只显示当前歌曲实际可用的音质档（qualities 来自上游 l/h/sq 字段）；
-                    无该信息（搜索结果/QQ/酷狗来源）时显示全部 */}
+                {/* 只显示当前歌曲实际可用的音质档（qualities 来自上游各档资源字段）；
+                    无该信息（QQ/酷狗来源）时显示全部 */}
                 {QUALITY_OPTIONS.filter(
                   (opt) => !currentSong?.qualities || currentSong.qualities.includes(opt.value)
                 ).map((opt) => (
@@ -414,6 +414,12 @@ export function PlayerBar() {
                     <span className="text-[10px] opacity-70">{opt.short}</span>
                   </button>
                 ))}
+                {/* 低音质资源歌曲（如综艺现场版/抖音版）说明，避免"为什么只有两项"的困惑 */}
+                {currentSong?.qualities && !currentSong.qualities.includes("high") && (
+                  <p className="px-3 pt-1.5 pb-0.5 text-[10px] text-muted-foreground border-t border-border/40 mt-1">
+                    本曲上游仅提供低音质资源
+                  </p>
+                )}
               </div>
             )}
           </div>
