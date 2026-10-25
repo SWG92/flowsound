@@ -385,7 +385,11 @@ export function PlayerBar() {
             </Button>
             {showQuality && (
               <div className="absolute bottom-full right-0 mb-2 glass rounded-lg p-1 min-w-[132px] shadow-lg z-[60]">
-                {QUALITY_OPTIONS.map((opt) => (
+                {/* 只显示当前歌曲实际可用的音质档（qualities 来自上游 l/h/sq 字段）；
+                    无该信息（搜索结果/QQ/酷狗来源）时显示全部 */}
+                {QUALITY_OPTIONS.filter(
+                  (opt) => !currentSong?.qualities || currentSong.qualities.includes(opt.value)
+                ).map((opt) => (
                   <button
                     key={opt.value}
                     className={cn(

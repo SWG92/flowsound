@@ -41,6 +41,9 @@ async function fetchJSON<T>(
   }
   const res = await fetch(url.toString(), {
     signal: AbortSignal.timeout(CLIENT_FETCH_TIMEOUT),
+    // 绕过浏览器 HTTP 缓存：本层已有内存缓存（Map），HTTP 缓存属重复；
+    // 且响应结构升级时（如新增字段）旧缓存会让客户端 30 分钟拿不到新结构
+    cache: "no-store",
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -122,18 +125,36 @@ export async function searchAllPlatforms(
 
 // ============ 歌曲播放 URL ============
 
+/** 取址结果：url + 上游实际提供的音质等级（匿名请求无损常被降级为 exhigh/320K） */
+export interface SongUrlResult {
+  url: string;
+  level?: string;
+}
+
+/** 网易云 level → 应用音质档（用于"实际有什么音质"的显示修正） */
+export function levelToQuality(level?: string): AudioQuality | null {
+  switch (level) {
+    case "standard": return "standard";
+    case "higher":
+    case "exhigh": return "high";
+    case "lossless":
+    case "hires": return "lossless";
+    default: return null;
+  }
+}
+
 export async function getSongUrl(
   id: number | string,
   quality?: AudioQuality,
   platform: MusicPlatform = "netease",
   platformId?: string
-): Promise<string> {
+): Promise<SongUrlResult> {
   const q = quality || getStoredQuality();
   const bitrate = AUDIO_QUALITY[q].bitrate;
   const pid = platformId || String(id);
 
   const cacheKey = `url:${platform}:${pid}:${bitrate}`;
-  const cached = getCached<string>(cacheKey);
+  const cached = getCached<SongUrlResult>(cacheKey);
   if (cached) return cached;
 
   // 对于非网易云平台，发送 platformId
@@ -144,39 +165,38 @@ export async function getSongUrl(
   };
   if (platformId) params.platformId = platformId;
 
-  const data = await fetchJSON<{ data?: Array<{ url: string }>; url?: string }>(
+  let data = await fetchJSON<{ data?: Array<{ url: string; level?: string }>; url?: string }>(
     "song/url",
     params
   );
 
-  // 兼容新旧格式
-  let url = "";
-  if (data.data && Array.isArray(data.data)) {
-    url = data.data[0]?.url || "";
-  } else if (typeof data.url === "string") {
-    url = data.url;
-  }
-
   // 上游取址失败率不低（实测抽样约 50% 返回空），失败时原音质重试一次，
   // 能明显提升点播成功率；重试仍失败才交给上层走跨平台回退
-  if (!url) {
+  if (!extractUrl(data)) {
     try {
-      const retry = await fetchJSON<{ data?: Array<{ url: string }>; url?: string }>(
+      data = await fetchJSON<{ data?: Array<{ url: string; level?: string }>; url?: string }>(
         "song/url",
         params
       );
-      if (retry.data && Array.isArray(retry.data)) {
-        url = retry.data[0]?.url || "";
-      } else if (typeof retry.url === "string") {
-        url = retry.url;
-      }
     } catch {
       // 忽略：交给上层回退
     }
   }
 
-  if (url) setCache(cacheKey, url);
-  return url;
+  const result: SongUrlResult = {
+    url: extractUrl(data),
+    level: data.data?.[0]?.level,
+  };
+  if (result.url) setCache(cacheKey, result);
+  return result;
+}
+
+function extractUrl(data: { data?: Array<{ url: string }>; url?: string }): string {
+  if (data.data && Array.isArray(data.data)) {
+    return data.data[0]?.url || "";
+  }
+  if (typeof data.url === "string") return data.url;
+  return "";
 }
 
 // 网易云音质等级 → 中文说明（客户端提示用）

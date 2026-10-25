@@ -2,8 +2,8 @@
 
 import { create } from "zustand";
 import type { Song, PlayMode, LyricLine, MusicPlatform } from "./types";
-import { getSongUrl, getLyrics, prefetchSongUrl, searchSongs } from "./api";
-import { STORAGE_KEYS, MAX_HISTORY, THEME_COOKIE } from "./constants";
+import { getSongUrl, getLyrics, prefetchSongUrl, searchSongs, levelToQuality } from "./api";
+import { STORAGE_KEYS, MAX_HISTORY, THEME_COOKIE, AUDIO_QUALITY } from "./constants";
 import { useToastStore } from "./toast-store";
 import type { AudioQuality } from "./constants";
 
@@ -250,11 +250,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     // 多平台 URL 获取（源平台 → 其他平台依次回退）
     let url = "";
+    let level: string | undefined;
     let resolvedPlatform: MusicPlatform = sourcePlatform;
     let resolvedPlatformId = sourcePlatformId;
 
     try {
-      url = await getSongUrl(song.id, undefined, sourcePlatform, sourcePlatformId);
+      const r = await getSongUrl(song.id, undefined, sourcePlatform, sourcePlatformId);
+      url = r.url;
+      level = r.level;
     } catch { /* ignore */ }
 
     // 源平台无播放 URL → 在其他平台搜索同名歌曲
@@ -270,14 +273,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           const result = await searchSongs(searchQuery, 1, 3, fbPlatform);
           if (result.songs.length > 0) {
             const match = result.songs[0];
-            const fbUrl = await getSongUrl(
+            const fb = await getSongUrl(
               match.id,
               undefined,
               fbPlatform,
               match.platformId
             );
-            if (fbUrl) {
-              url = fbUrl;
+            if (fb.url) {
+              url = fb.url;
+              level = fb.level;
               resolvedPlatform = fbPlatform;
               resolvedPlatformId = match.platformId;
               break;
@@ -318,6 +322,33 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     // 成功获取到 URL，重置自动跳过计数器
     autoSkipCount = 0;
 
+    // 实测音质修正：取址返回的 level 是上游真实给的档。请求无损被降级（exhigh 等）
+    // 时，说明这首歌匿名播不了无损——从 qualities 移除，音质菜单不再显示无损档。
+    // 列表字段的 sqMusic 只说明"资源存在"，匿名可用与否以此实测为准
+    let finalQualities = song.qualities;
+    const requestedQ = get().audioQuality;
+    const actualQ = levelToQuality(level);
+    if (finalQualities && requestedQ === "lossless" && actualQ && actualQ !== "lossless") {
+      const trimmed = finalQualities.filter((q) => q !== "lossless");
+      if (trimmed.length !== finalQualities.length) finalQualities = trimmed;
+    }
+
+    // 本曲音质档对齐：当前档不可用时，会话内对齐到该曲最高可用档——
+    // 不改全局偏好（下一首支持的歌仍按原偏好）。上游对超档请求本就会返回降级流，
+    // 此处让显示与实际播放一致
+    const available = finalQualities;
+    if (available && available.length > 0 && !available.includes(requestedQ)) {
+      const best = (["lossless", "high", "standard", "smooth"] as const).find(
+        (q) => available.includes(q)
+      );
+      if (best && best !== requestedQ) {
+        set({ audioQuality: best });
+        try {
+          useToastStore.getState().showToast(`本曲最高支持${AUDIO_QUALITY[best].label}`, "info");
+        } catch { /* ignore */ }
+      }
+    }
+
     // 记录播放来源：显式传入的列表优先；否则在当前来源列表中定位本歌，
     // 找不到（切到了别的列表的歌）就清除——避免沿错误的旧列表连播
     let src = get().sourceList;
@@ -330,7 +361,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       if (srcIdx < 0) src = [];
     }
 
-    const songWithUrl = { ...song, url };
+    const songWithUrl = { ...song, url, qualities: finalQualities };
     const index = newQueue.findIndex((s) => s.id === song.id);
 
     set({

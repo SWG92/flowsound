@@ -1,3 +1,5 @@
+import type { AudioQuality } from "./constants";
+
 // 歌曲信息
 export interface Song {
   id: number;
@@ -9,6 +11,7 @@ export interface Song {
   url?: string;     // 播放地址（需单独获取）
   platform?: MusicPlatform; // 来源平台
   platformId?: string; // 平台原生 ID（QQ音乐 songmid、酷狗 hash 等）
+  qualities?: AudioQuality[]; // 该歌实际可用的音质档（网易云 l/h/sq 字段转换；无此信息=未知，菜单不过滤）
 }
 
 /** 支持的音乐平台 */
