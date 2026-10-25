@@ -76,7 +76,11 @@ export function PlayQueue() {
   return (
     <div className={fullPlayerOpen ? "dark" : undefined}>
       <div
-        className="fixed right-3 w-80 glass rounded-[26px] z-[110] flex flex-col shadow-xl overflow-hidden"
+        className={cn(
+          "fixed right-3 w-80 rounded-[26px] z-[110] flex flex-col shadow-xl overflow-hidden",
+          // 全屏页上用折射玻璃（透出专辑主色），主界面保持主题玻璃
+          fullPlayerOpen ? "glass-refract" : "glass"
+        )}
         style={{
           top: fullPlayerOpen ? "calc(4.5rem + var(--safe-top))" : "0.75rem",
           bottom: "calc(96px + var(--safe-bottom))",

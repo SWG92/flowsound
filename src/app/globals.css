@@ -252,6 +252,28 @@ body::after {
     0 12px 40px oklch(0 0 0 / 0.4);
 }
 
+/* 折射玻璃（全屏播放页浮层用）：
+   与 .dark .glass 的区别是不垫遮盖性的深灰底（那层 40% 灰会把背景色盖死），
+   只留极淡高光 + 少量压暗，backdrop-filter 的模糊/提饱和把背后的专辑主色
+   真实透上来——背景黄面板就呈暖黄玻璃，随歌曲主色变化 */
+.glass-refract {
+  background:
+    linear-gradient(
+      135deg,
+      oklch(1 0 0 / 0.14),
+      oklch(1 0 0 / 0.04) 42%,
+      oklch(1 0 0 / 0.10)
+    ),
+    oklch(0 0 0 / 0.14);
+  backdrop-filter: blur(28px) saturate(1.7) brightness(0.97);
+  -webkit-backdrop-filter: blur(28px) saturate(1.7) brightness(0.97);
+  border: 1px solid oklch(1 0 0 / 0.15);
+  box-shadow:
+    inset 0 1px 1px oklch(1 0 0 / 0.22),
+    inset 0 -1px 1px oklch(1 0 0 / 0.06),
+    0 12px 40px oklch(0 0 0 / 0.35);
+}
+
 .dark .glass-light {
   background:
     linear-gradient(
