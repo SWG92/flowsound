@@ -68,7 +68,7 @@ export default function Home() {
           <span className="gradient-text">发现音乐</span>
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          海量音乐，随时畅听
+          让音乐流动起来 · 网易云 / QQ / 酷狗全聚合
         </p>
         <div className="mt-3">
           <SearchBar />

@@ -29,8 +29,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "FlowSound - 音乐播放器",
-  description: "全平台聚合音乐 — 网易云 + QQ音乐 + 酷狗",
+  title: "FlowSound — 让音乐流动起来",
+  description: "全平台聚合音乐播放器 · 网易云 / QQ音乐 / 酷狗 · Where Music Flows",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, Heart, Clock, ListMusic, Music2, Sparkles,
+  Home, Heart, Clock, ListMusic, Sparkles,
   Sun, Moon, Settings, Ban, Menu, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/lib/store";
+import { LogoBlock } from "@/components/ui/logo";
 
 const NAV_ITEMS = [
   { href: "/", label: "发现音乐", icon: Home },
@@ -43,23 +44,17 @@ export function Sidebar() {
     <>
       {/* 移动端 Logo + 关闭按钮 */}
       <div className="flex items-center justify-between mb-8 px-2 md:hidden">
-        <Link href="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-            <Music2 className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-lg font-bold gradient-text">FlowSound</span>
+        <Link href="/" onClick={() => setMobileOpen(false)}>
+          <LogoBlock compact />
         </Link>
         <button onClick={() => setMobileOpen(false)} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
           <X className="h-5 w-5" />
         </button>
       </div>
 
-      {/* 桌面端 Logo */}
-      <Link href="/" className="hidden md:flex items-center gap-2 mb-8 px-2">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-          <Music2 className="h-4 w-4 text-white" />
-        </div>
-        <span className="text-lg font-bold gradient-text">FlowSound</span>
+      {/* 桌面端 Logo + 标志语 */}
+      <Link href="/" className="hidden md:flex items-center mb-8 px-2">
+        <LogoBlock />
       </Link>
 
       <nav className="space-y-1 mb-6">

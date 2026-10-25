@@ -1,16 +1,13 @@
 // API 基础 URL
 export const NETEASE_BASE = "https://music.163.com";
 
-// API 端点
+// API 端点（album/artist 路由用的是 v1 直连路径、匿名登录 URL 在 netease 适配器内，
+// 故不在此定义）
 export const NETEASE_API = {
   search: `${NETEASE_BASE}/api/search/get/web`,
   songUrl: `${NETEASE_BASE}/api/song/enhance/player/url`,
   lyric: `${NETEASE_BASE}/api/song/lyric`,
   playlistDetail: `${NETEASE_BASE}/api/playlist/detail`,
-  album: `${NETEASE_BASE}/api/album`,
-  artist: `${NETEASE_BASE}/api/artist`,
-  loginCellphone: `${NETEASE_BASE}/api/login/cellphone`,
-  anonymousLogin: `${NETEASE_BASE}/api/register/anonimous`,
   comments: (id: string) =>
     `${NETEASE_BASE}/api/v1/resource/comments/R_SO_4_${id}`,
 } as const;
@@ -55,17 +52,6 @@ export const AUDIO_QUALITY = {
 } as const;
 
 export type AudioQuality = keyof typeof AUDIO_QUALITY;
-
-// 播放倍速
-export const PLAYBACK_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
-
-// 定时关闭
-export const SLEEP_TIMER_OPTIONS = [
-  { label: "15 分钟", value: 15 },
-  { label: "30 分钟", value: 30 },
-  { label: "45 分钟", value: 45 },
-  { label: "60 分钟", value: 60 },
-] as const;
 
 // 性能模式 localStorage 键：开启后 html 加 performance 类，关闭背景模糊与光斑动画
 export const PERFORMANCE_KEY = "flowsound_performance";
