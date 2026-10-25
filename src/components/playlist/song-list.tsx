@@ -18,6 +18,7 @@ import { downloadSong } from "@/lib/download";
 import { useToast } from "@/components/ui/toast";
 import type { Song } from "@/lib/types";
 import { cn, getCoverUrl } from "@/lib/utils";
+import { useDominantColor } from "@/hooks/use-dominant-color";
 
 const ROW_HEIGHT = 56; // 每行固定高度
 
@@ -63,6 +64,7 @@ function SongRow({
   isLoading,
   isPaid,
   isFav,
+  accent,
   showIndex,
   showAlbum,
   onPlay,
@@ -76,6 +78,7 @@ function SongRow({
   isLoading: boolean;
   isPaid: boolean;
   isFav: boolean;
+  accent?: string | null;
   showIndex: boolean;
   showAlbum: boolean;
   onPlay: () => void;
@@ -104,7 +107,7 @@ function SongRow({
         {isCurrent && isLoading ? (
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
         ) : isCurrent && isPlaying ? (
-          <div className="flex items-end h-4 gap-[2px]">
+          <div className="flex items-end h-4 gap-[2px]" style={{ "--eq-bar-color": accent ?? undefined } as React.CSSProperties}>
             <span className="eq-bar" style={{ height: "60%" }} />
             <span className="eq-bar" style={{ height: "80%" }} />
             <span className="eq-bar" style={{ height: "40%" }} />
@@ -185,6 +188,8 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
   // 收藏集合单独订阅（引用仅在收藏变化时更新），行内心形保持响应
   const favorites = usePlayerStore((s) => s.favorites);
   const isFavorite = useCallback((id: number) => favorites.includes(id), [favorites]);
+  // 专辑主色（共享取色缓存）：正在播放行的波浪条用它，与全屏页同一色彩体系
+  const accent = useDominantColor(currentSong ? getCoverUrl(currentSong) : null);
   const { showToast } = useToast();
 
   const [menuSong, setMenuSong] = useState<Song | null>(null);
@@ -354,6 +359,7 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
       isLoading={isLoading}
       isPaid={song.fee === 1}
       isFav={isFavorite(song.id)}
+      accent={accent}
       showIndex={showIndex}
       showAlbum={showAlbum}
       onPlay={() => handlePlay(song)}

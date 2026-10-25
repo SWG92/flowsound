@@ -38,6 +38,7 @@ import { CommentsDialog } from "./comments-dialog";
 import { FullPlayer } from "./full-player";
 import { ProgressBar } from "./progress";
 import { PLAYER_DIALOG_SIZE } from "./dialog-sizes";
+import { useDominantColor } from "@/hooks/use-dominant-color";
 import { useLyricsBroadcast } from "@/hooks/use-lyrics-broadcast";
 import { useMediaSession } from "@/hooks/use-media-session";
 
@@ -106,6 +107,8 @@ export function PlayerBar() {
 
   // 字段级订阅：收藏/主题/队列数据等无关切片变化不再引发播放栏重渲染
   const currentSong = usePlayerStore((s) => s.currentSong);
+  // 专辑主色（共享取色缓存）：封面播放光环用它，与全屏页同一色彩体系
+  const accent = useDominantColor(currentSong ? getCoverUrl(currentSong) : null);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const volume = usePlayerStore((s) => s.volume);
   const playMode = usePlayerStore((s) => s.playMode);
@@ -296,6 +299,7 @@ export function PlayerBar() {
               "w-12 h-12 rounded-lg overflow-hidden shrink-0 cursor-pointer",
               isPlaying && "playing-glow"
             )}
+            style={{ "--glow-color": accent ?? undefined } as React.CSSProperties}
             onClick={() => setShowFullPlayer(true)}
           >
             {coverUrl ? (
