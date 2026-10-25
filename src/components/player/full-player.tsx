@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Heart, Loader2, MessageCircle, Pause, Play, SkipBack, SkipForward, Repeat, Shuffle } from "lucide-react";
+import { ChevronDown, Heart, Loader2, MessageCircle, Pause, Play, Repeat, Repeat1, SkipBack, SkipForward, Shuffle } from "lucide-react";
 import { usePlayerStore } from "@/lib/store";
 import { audioPlayer } from "@/lib/audio-player";
 import { cn, getCoverUrl } from "@/lib/utils";
 import { ProgressFill } from "./progress";
 import { CommentsDialog } from "./comments-dialog";
 import { useDominantColor } from "@/hooks/use-dominant-color";
+import type { PlayMode } from "@/lib/types";
 
 /**
  * 全屏播放页（iOS 风格）：点播放栏封面/歌名展开。
@@ -30,8 +31,7 @@ export function FullPlayer() {
   const nextSong = usePlayerStore((s) => s.nextSong);
   const prevSong = usePlayerStore((s) => s.prevSong);
   const setPlayMode = usePlayerStore((s) => s.setPlayMode);
-  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
-  const fav = usePlayerStore((s) => (s.currentSong ? s.favorites.includes(s.currentSong.id) : false));
+  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);  const fav = usePlayerStore((s) => (s.currentSong ? s.favorites.includes(s.currentSong.id) : false));
 
   // 专辑主色（Material You 式动态取色）：浸染背景与控制元素，失败降级为原配色。
   // hook 必须在 early return 之前调用（React 规则）
@@ -39,6 +39,9 @@ export function FullPlayer() {
 
   const [showLyricsView, setShowLyricsView] = useState(true);
   const [showComments, setShowComments] = useState(false);
+  // 模式切换浮标：切换后短暂显示模式名（list/single 共用循环图标，需文字区分）
+  const [modeTip, setModeTip] = useState(false);
+  const modeTipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 下滑关闭手势（iOS 风格）
   const [dragY, setDragY] = useState(0);
   // 3 秒无操作隐藏控制区（沉浸歌词模式，触摸恢复）
@@ -102,6 +105,28 @@ export function FullPlayer() {
   useEffect(() => {
     hasScrolled.current = false;
   }, [fullOpen, currentSong?.id]);
+
+  // 播放模式：三态图标（单曲循环用 Repeat1 与列表循环区分）+ 切换浮标提示
+  const MODE_META: Record<PlayMode, { label: string; Icon: typeof Repeat }> = {
+    list: { label: "列表循环", Icon: Repeat },
+    single: { label: "单曲循环", Icon: Repeat1 },
+    shuffle: { label: "随机播放", Icon: Shuffle },
+  };
+  const ModeIcon = MODE_META[playMode].Icon;
+
+  const cyclePlayMode = () => {
+    const modes: PlayMode[] = ["list", "single", "shuffle"];
+    const next = modes[(modes.indexOf(playMode) + 1) % modes.length];
+    setPlayMode(next);
+    setModeTip(true);
+    if (modeTipTimer.current) clearTimeout(modeTipTimer.current);
+    modeTipTimer.current = setTimeout(() => setModeTip(false), 1200);
+  };
+  useEffect(() => {
+    return () => {
+      if (modeTipTimer.current) clearTimeout(modeTipTimer.current);
+    };
+  }, []);
 
   // 触摸手势：下滑关闭（iOS 风格）+ 左右滑切歌（网易云/QQ 音乐式）。
   // 轴向判定：首个显著位移方向锁定本次手势的轴，两手势互不干扰
@@ -289,13 +314,23 @@ export function FullPlayer() {
         <ProgressFill />
 
         {/* 控制按钮 */}
-        <div className="flex items-center justify-center gap-8 mt-5">
+        <div className="flex items-center justify-center gap-8 mt-5 relative">
+          {/* 切换模式后浮出模式名称，消除"图标没变像卡住"的困惑
+              （列表循环/单曲循环共用循环图标，需文字辅助区分） */}
+          {modeTip && (
+            <span className="absolute -top-9 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 backdrop-blur text-xs text-white whitespace-nowrap">
+              {MODE_META[playMode].label}
+            </span>
+          )}
           <button
-            onClick={() => setPlayMode(playMode === "list" ? "single" : playMode === "single" ? "shuffle" : "list")}
-            className="text-white/70 hover:text-white cursor-pointer transition-colors"
-            title={playMode === "list" ? "列表循环" : playMode === "single" ? "单曲循环" : "随机播放"}
+            onClick={cyclePlayMode}
+            className={cn(
+              "cursor-pointer transition-colors",
+              playMode === "shuffle" ? "text-white" : "text-white/70 hover:text-white"
+            )}
+            title={MODE_META[playMode].label}
           >
-            {playMode === "shuffle" ? <Shuffle className="h-5 w-5" /> : <Repeat className="h-5 w-5" />}
+            <ModeIcon className="h-5 w-5" />
           </button>
           <button onClick={() => prevSong()} className="text-white cursor-pointer transition-transform active:scale-90" title="上一首">
             <SkipBack className="h-8 w-8" fill="currentColor" />
