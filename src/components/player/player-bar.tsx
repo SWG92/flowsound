@@ -56,6 +56,7 @@ const MODE_LABELS: Record<PlayMode, string> = {
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const SLEEP_OPTIONS = [
   { label: "不关闭", value: 0 },
+  { label: "播完当前歌", value: -1 },
   { label: "15分钟", value: 15 },
   { label: "30分钟", value: 30 },
   { label: "45分钟", value: 45 },
@@ -194,6 +195,8 @@ export function PlayerBar() {
       setVolume(origVolumeRef.current);
       isFadingRef.current = false;
     }
+    // 分钟式定时与"播完当前歌"互斥：设其一即清另一
+    usePlayerStore.getState().setSleepAtEndOfTrack(minutes === -1);
 
     setSleepMinutes(minutes);
     setShowSleep(false);
@@ -445,14 +448,14 @@ export function PlayerBar() {
             <Button
               variant="ghost"
               size="icon"
-              className={cn("cursor-pointer h-8 w-8 relative", sleepMinutes > 0 && "text-primary")}
+              className={cn("cursor-pointer h-8 w-8 relative", sleepMinutes !== 0 && "text-primary")}
               onClick={() => { setShowSleep(!showSleep); setShowSpeed(false); }}
               title="定时关闭"
             >
               <Timer className="h-4 w-4" />
-              {sleepMinutes > 0 && (
+              {sleepMinutes !== 0 && (
                 <span className="absolute -top-1 -right-1 text-[8px] bg-primary text-primary-foreground rounded px-0.5">
-                  {sleepMinutes}m
+                  {sleepMinutes === -1 ? "完" : `${sleepMinutes}m`}
                 </span>
               )}
             </Button>

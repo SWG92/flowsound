@@ -158,8 +158,14 @@ class AudioPlayer {
           this.endTimeout = setTimeout(() => {
             // 只在 sound 没有被替换时才执行
             if (this.sound !== endedSound) return;
-            const { playMode } = usePlayerStore.getState();
-            if (playMode === "single") {
+            const state = usePlayerStore.getState();
+            // 睡眠定时"播完当前歌曲"：停止且不进入任何连播/循环
+            if (state.sleepAtEndOfTrack) {
+              state.setSleepAtEndOfTrack(false);
+              state.setPlaying(false);
+              return;
+            }
+            if (state.playMode === "single") {
               this.sound?.play();
             } else {
               // 自然播完（区别于手动点下一首）：单首队列时据此停止或补歌

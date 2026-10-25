@@ -77,6 +77,8 @@ interface PlayerState {
   setAutoContinueEnabled: (enabled: boolean) => void;
   setShowFloatingLyrics: (show: boolean) => void;
   setShowFullPlayer: (show: boolean) => void;
+  sleepAtEndOfTrack: boolean; // 播完当前歌曲后停止（Apple Music "End of Track" 式睡眠定时）
+  setSleepAtEndOfTrack: (on: boolean) => void;
 }
 
 // localStorage 工具函数
@@ -622,4 +624,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setShowFullPlayer: (show) => {
     set({ showFullPlayer: show });
   },
+
+  sleepAtEndOfTrack: false,
+  setSleepAtEndOfTrack: (on) => set({ sleepAtEndOfTrack: on }),
 }));

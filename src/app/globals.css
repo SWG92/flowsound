@@ -519,11 +519,11 @@ a:active {
   display: none;              /* Chrome/Safari/Edge */
 }
 
-/* 全屏播放页（深色背景）的进度条：覆盖主题色为白色 */
+/* 全屏播放页（深色背景）的进度条：默认白色，专辑主色存在时用主色（--accent 由全屏页注入） */
 .player-slider-light [data-slot="slider-track"] {
   background: rgba(255, 255, 255, 0.2);
 }
 .player-slider-light [data-slot="slider-range"] {
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--accent, rgba(255, 255, 255, 0.85));
 }
 

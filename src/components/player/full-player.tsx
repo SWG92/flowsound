@@ -7,6 +7,7 @@ import { audioPlayer } from "@/lib/audio-player";
 import { cn, getCoverUrl } from "@/lib/utils";
 import { ProgressFill } from "./progress";
 import { CommentsDialog } from "./comments-dialog";
+import { useDominantColor } from "@/hooks/use-dominant-color";
 
 /**
  * 全屏播放页（iOS 风格）：点播放栏封面/歌名展开。
@@ -33,6 +34,10 @@ export function FullPlayer() {
   const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
   const fav = usePlayerStore((s) => (s.currentSong ? s.favorites.includes(s.currentSong.id) : false));
 
+  // 专辑主色（Material You 式动态取色）：浸染背景与控制元素，失败降级为原配色。
+  // hook 必须在 early return 之前调用（React 规则）
+  const accent = useDominantColor(fullOpen ? getCoverUrl(currentSong) : null);
+
   const [showLyricsView, setShowLyricsView] = useState(true);
   const [showComments, setShowComments] = useState(false);
   // 下滑关闭手势（iOS 风格）
@@ -40,7 +45,6 @@ export function FullPlayer() {
   // 3 秒无操作隐藏控制区（沉浸歌词模式，触摸恢复）
   const [controlsVisible, setControlsVisible] = useState(true);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const touchStartRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hasScrolled = useRef(false);
 
@@ -92,26 +96,48 @@ export function FullPlayer() {
     hasScrolled.current = false;
   }, [fullOpen, currentSong?.id]);
 
-  // 下滑关闭：仅从顶部之外区域起始，下滑超过 120px 关闭
+  // 触摸手势：下滑关闭（iOS 风格）+ 左右滑切歌（网易云/QQ 音乐式）。
+  // 轴向判定：首个显著位移方向锁定本次手势的轴，两手势互不干扰
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const touchAxisRef = useRef<"x" | "y" | null>(null);
+
   const onTouchStart = (e: React.TouchEvent) => {
-    touchStartRef.current = e.touches[0].clientY;
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    touchAxisRef.current = null;
     pokeControls();
   };
   const onTouchMove = (e: React.TouchEvent) => {
     pokeControls();
-    if (touchStartRef.current === null) return;
-    const dy = e.touches[0].clientY - touchStartRef.current;
-    if (dy > 0) setDragY(dy);
+    if (!touchStartRef.current) return;
+    const dx = e.touches[0].clientX - touchStartRef.current.x;
+    const dy = e.touches[0].clientY - touchStartRef.current.y;
+    if (!touchAxisRef.current) {
+      if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy)) touchAxisRef.current = "x";
+      else if (Math.abs(dy) > 14) touchAxisRef.current = "y";
+    }
+    if (touchAxisRef.current === "y" && dy > 0) setDragY(dy);
   };
-  const onTouchEnd = () => {
-    if (dragY > 120) setFullOpen(false);
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStartRef.current;
+    if (touchAxisRef.current === "x" && start) {
+      const dx = e.changedTouches[0].clientX - start.x;
+      if (dx < -60) nextSong();
+      else if (dx > 60) prevSong();
+    } else if (dragY > 120) {
+      setFullOpen(false);
+    }
     setDragY(0);
     touchStartRef.current = null;
+    touchAxisRef.current = null;
   };
 
   if (!fullOpen || !currentSong) return null;
 
   const cover = getCoverUrl(currentSong);
+  const hexAlpha = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  };
 
   return (
     <div className="fixed inset-0 z-[80] overflow-hidden flex flex-col animate-in fade-in-0 duration-300"
@@ -119,8 +145,13 @@ export function FullPlayer() {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
       onMouseMove={pokeControls}
-      style={{ transform: dragY ? `translateY(${dragY}px)` : undefined, transition: dragY ? "none" : "transform 0.3s ease" }}>
-      {/* 背景：封面高斯模糊放大 + 深色遮罩 */}
+      style={{
+        transform: dragY ? `translateY(${dragY}px)` : undefined,
+        transition: dragY ? "none" : "transform 0.3s ease",
+        "--accent": accent ?? undefined,
+        "--accent-soft": accent ? hexAlpha(accent, 0.28) : undefined,
+      } as React.CSSProperties}>
+      {/* 背景：封面高斯模糊放大 + 主色浸染遮罩 */}
       {cover && (
         <img
           src={cover + "?param=600y600"}
@@ -129,6 +160,7 @@ export function FullPlayer() {
         />
       )}
       <div className="absolute inset-0 bg-black/55" />
+      {accent && <div className="absolute inset-0" style={{ background: "var(--accent-soft)" }} />}
 
       {/* 顶部：收起 + 标题（悬停时保持显示） */}
       <div
@@ -182,9 +214,10 @@ export function FullPlayer() {
                   className={cn(
                     "text-center cursor-pointer select-none py-2 transition-all duration-300",
                     i === currentLyricIndex
-                      ? "text-2xl font-semibold text-white"
+                      ? "text-2xl font-semibold"
                       : "text-base text-white/45 hover:text-white/70"
                   )}
+                  style={i === currentLyricIndex ? { color: accent ?? "#fff" } : undefined}
                 >
                   {line.text}
                   {line.transText && (
@@ -262,7 +295,8 @@ export function FullPlayer() {
           </button>
           <button
             onClick={togglePlay}
-            className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center cursor-pointer shadow-lg transition-transform active:scale-90"
+            className="w-16 h-16 rounded-full flex items-center justify-center cursor-pointer shadow-lg transition-transform active:scale-90"
+            style={{ background: accent ?? "#fff", color: "#111" }}
             title={isPlaying ? "暂停" : "播放"}
           >
             {isLoading ? (
