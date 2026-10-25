@@ -342,7 +342,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         (q) => available.includes(q)
       );
       if (best && best !== requestedQ) {
+        // 同步修正持久化偏好：匿名场景无损一律不可用（实测黑胶特权），
+        // 停在无损偏好只会每次启动多一次无谓的降级请求
         set({ audioQuality: best });
+        saveToStorage(STORAGE_KEYS.audioQuality, best);
         try {
           useToastStore.getState().showToast(`本曲最高支持${AUDIO_QUALITY[best].label}`, "info");
         } catch { /* ignore */ }

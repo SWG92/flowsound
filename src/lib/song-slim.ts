@@ -3,25 +3,24 @@ import type { AudioQuality } from "./constants";
 
 /**
  * 从网易云歌曲对象的音质档字段（bMusic/lMusic=128K / mMusic=192K / hMusic=320K /
- * sqMusic=无损 / hrMusic=Hi-Res，歌单/歌手/专辑接口的命名；song/detail 用 l/h 简写）
- * 生成该歌实际可用的音质列表。
+ * sqMusic=无损 / hrMusic=Hi-Res）生成该歌实际可用的音质列表。
  *
- * fee 语义（网易云官方）：0=完全免费，1=VIP（已在出口过滤），8=非会员可播低音质。
- * 实测 fee=8 的歌匿名请求 128K/320K 正常（standard/exhigh）、请求无损必降级 exhigh
- * ——即匿名最高 320K。因此 fee=8 直接不显示无损档，菜单天生只含真正可选的音质。
+ * 无损档永不显示：实测（fee=0 免费歌与 fee=8 低音质歌均验证）匿名账号请求无损
+ * 一律降级 exhigh——无损/Hi-Res 是网易云黑胶 VIP 特权，与歌曲本身免费与否无关，
+ * sqMusic 字段只说明资源文件存在。匿名实际可选的最高档就是 320K。
+ * （将来接入会员账号登录后，可按登录态恢复无损档显示）
+ *
+ * fee 语义：0=完全免费，1=VIP（已在出口过滤），8=非会员可播低音质（匿名最高 320K）。
  * 搜索接口不返回这些字段 → qualities 为 undefined，客户端菜单不过滤（回退显示全部）。
  */
 function extractQualities(song: Song): AudioQuality[] | undefined {
   const ext = song as unknown as Record<string, { id?: number } | undefined>;
   const low = ext.lMusic || ext.bMusic || ext.l || ext.b;
   const high = ext.hMusic || ext.h;
-  const lossless = ext.sqMusic || ext.sq || ext.hrMusic || ext.hr;
-  if (!low && !high && !lossless) return undefined;
+  if (!low && !high) return undefined;
   const q: AudioQuality[] = [];
   if (low) q.push("smooth", "standard"); // 96K/128K 同走低档资源
   if (high) q.push("high");
-  // fee=8：无损档需会员，匿名不可选，不显示
-  if (lossless && song.fee !== 8) q.push("lossless");
   return q;
 }
 

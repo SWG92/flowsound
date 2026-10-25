@@ -398,9 +398,12 @@ export function PlayerBar() {
             {showQuality && (
               <div className="absolute bottom-full right-0 mb-2 glass rounded-lg p-1 min-w-[132px] shadow-lg z-[60]">
                 {/* 只显示当前歌曲实际可用的音质档（qualities 来自上游各档资源字段）；
-                    无该信息（QQ/酷狗来源）时显示全部 */}
+                    无损档一律不显示：实测匿名账号（含免费歌）请求无损一律降级 320K，
+                    无损是网易云黑胶特权；QQ/酷狗来源无 qualities 数据时按此规则过滤 */}
                 {QUALITY_OPTIONS.filter(
-                  (opt) => !currentSong?.qualities || currentSong.qualities.includes(opt.value)
+                  (opt) =>
+                    opt.value !== "lossless" &&
+                    (!currentSong?.qualities || currentSong.qualities.includes(opt.value))
                 ).map((opt) => (
                   <button
                     key={opt.value}
