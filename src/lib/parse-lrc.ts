@@ -10,10 +10,20 @@ const META_PATTERNS = [
   /^纯音乐,请欣赏$/,
 ];
 
-/** 是否为网易云 LRC 中的推广/版权元信息行 */
+// 制作人员名单（credits）的角色词：网易云 LRC 结尾常附整块制作名单，
+// 如"编曲：赵建飞 / 和声编写：曾婕Joey.Z / 人声录音棚：3RD Harmonic Music"，
+// 全部带时间戳，歌快结束时会逐行滚出。规则：角色词开头 + 行内含冒号
+const CREDIT_ROLE_RE =
+  /^(作词|作詞|作曲|填词|填詞|编曲|編曲|制作|製作|监制|監製|混音|母带|母帶|录音|錄音|和声|和聲|和音|配唱|人声|人聲|吉他|贝斯|貝斯|鼓|键盘|鍵盤|钢琴|鋼琴|弦乐|弦樂|管弦|指挥|指揮|萨克斯|小提琴|大提琴|出品|宣发|發行|发行|统筹|統籌|封面|文案|企划|企劃|原曲|改编|改編|Lyrics|Composed|Written|Produced|Arranged|Mixed|Mastered|Programmed|Drums|Bass|Guitar|Piano|Strings|Backing)/i;
+
+/** 是否为网易云 LRC 中的推广/版权/credits 元信息行 */
 function isMetaLine(text: string): boolean {
   const t = text.trim();
-  return META_PATTERNS.some((p) => p.test(t));
+  if (META_PATTERNS.some((p) => p.test(t))) return true;
+  // 英文 credits："Lyrics by ..."、"Composed by ..."
+  if (/^(Lyrics|Composed|Written|Produced|Arranged|Mixed|Mastered|Programmed)\s+by\b/i.test(t)) return true;
+  // 中文 credits：角色词开头 + 行内含冒号（如"编曲：赵建飞"）
+  return CREDIT_ROLE_RE.test(t) && /[：:]/.test(t);
 }
 
 /**
