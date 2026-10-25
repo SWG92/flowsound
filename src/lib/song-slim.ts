@@ -44,10 +44,13 @@ export function slimSong<T extends Song>(s: T): Song {
     url: s.url,
     platform: s.platform,
     platformId: s.platformId,
-    qualities: extractQualities(s),
+    // 已算好的优先（搜索适配器在补封面时生成），否则从原始音质字段计算
+    qualities: s.qualities ?? extractQualities(s),
   };
 }
 
 export function slimSongs<T extends Song>(songs: T[]): Song[] {
   return songs.map(slimSong);
 }
+
+export { extractQualities };

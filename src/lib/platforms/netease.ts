@@ -2,6 +2,7 @@
 
 import type { PlatformAdapter } from "./types";
 import type { Song, LyricLine } from "@/lib/types";
+import { extractQualities } from "@/lib/song-slim";
 import { NETEASE_API, NETEASE_BASE, NETEASE_HEADERS, FETCH_TIMEOUT } from "@/lib/constants";
 
 let neteaseCookie = "";
@@ -85,21 +86,30 @@ export const neteaseAdapter: PlatformAdapter = {
         platformId: String(s.id),
       }));
 
-    // 补充专辑封面：搜索接口不返回 picUrl。
+    // 补充专辑封面与音质档：搜索接口不返回 picUrl 和各档音质字段。
     // 用批量歌曲详情接口一次拿全（原先逐个请求专辑接口，10 个并发会被网易云限流，
-    // 约一半封面拿不到，表现为搜索结果大量缺图）
+    // 约一半封面拿不到，表现为搜索结果大量缺图）；song/detail 返回 l/h/sq 简写字段
+    // 和 fee，正好用于生成"该歌匿名实际可选的音质档"
     const missing = songs.filter((s) => !s.album?.picUrl && s.id);
     if (missing.length > 0) {
       try {
         const detail = await fetchJSON<{
-          songs: Array<{ id: number; album?: { picUrl?: string } }>;
+          songs: Array<{
+            id: number;
+            album?: { picUrl?: string };
+            fee?: number;
+            l?: unknown;
+            h?: unknown;
+            sq?: unknown;
+            hr?: unknown;
+          }>;
         }>(`${NETEASE_BASE}/api/song/detail?ids=[${missing.map((s) => s.id).join(",")}]`);
-        const picById = new Map(
-          (detail.songs || []).map((x) => [x.id, x.album?.picUrl || ""])
-        );
+        const detailById = new Map((detail.songs || []).map((x) => [x.id, x]));
         for (const s of missing) {
-          const pic = picById.get(s.id);
-          if (pic && s.album) s.album.picUrl = pic;
+          const d = detailById.get(s.id);
+          if (!d) continue;
+          if (!s.album?.picUrl && d.album?.picUrl && s.album) s.album.picUrl = d.album.picUrl;
+          s.qualities = extractQualities(d as unknown as Song);
         }
       } catch {
         // ignore
