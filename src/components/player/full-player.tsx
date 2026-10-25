@@ -317,13 +317,18 @@ export function FullPlayer() {
         <div className="flex items-center justify-center gap-8 mt-5 relative">
           {/* 切换模式后浮出模式名称，消除"图标没变像卡住"的困惑
               （列表循环/单曲循环共用循环图标，需文字辅助区分） */}
-          {/* 常驻渲染 + opacity 过渡：淡入淡出而非突兀出现/消失 */}
+          {/* 常驻渲染 + opacity 过渡：淡入淡出；底色用专辑主色柔光（与页面同色系，不用高对比黑）；
+              纯提示不拦截点击 */}
           <span
             className={cn(
-              "absolute -top-9 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 backdrop-blur text-xs text-white whitespace-nowrap transition-all duration-200",
-              modeTip ? "opacity-100 -translate-y-1" : "opacity-0",
-              !modeTip && "pointer-events-none"
+              "absolute -top-9 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full backdrop-blur text-xs whitespace-nowrap border pointer-events-none transition-all duration-300",
+              modeTip ? "opacity-100 -translate-y-1" : "opacity-0"
             )}
+            style={{
+              background: accent ? hexAlpha(accent, 0.4) : "rgba(255,255,255,0.12)",
+              borderColor: accent ? hexAlpha(accent, 0.25) : "rgba(255,255,255,0.15)",
+              color: "#fff",
+            }}
           >
             {MODE_META[playMode].label}
           </span>

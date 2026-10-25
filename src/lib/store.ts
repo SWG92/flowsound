@@ -414,10 +414,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     const listNext = sourceIndex >= 0 ? nextPlayableInSource(sourceList, sourceIndex, 1) : null;
 
-    // 单曲队列（点播场景）：手动切歌沿来源列表走——包括单曲循环模式
-    // （循环语义只作用于自然播完，手动意图优先，与主流播放器一致）。
-    // 手动无来源则重播当前
-    if (queue.length <= 1 && currentSong && !fromEnd) {
+    // 单曲队列（非单曲循环）：手动切歌沿来源列表走。
+    // 单曲循环模式不在此分支——其语义是严格重播当前歌（手动下一首/上一首/自然播完都如此）
+    if (queue.length <= 1 && playMode !== "single" && currentSong && !fromEnd) {
       if (listNext) {
         get().playSong(listNext, [listNext]);
         return;
@@ -455,8 +454,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const { queue, queueIndex, playMode, currentSong, sourceList, sourceIndex } = get();
     if (queue.length === 0) return;
 
-    // 单曲队列：手动上一首沿来源列表往回走（含单曲循环模式，同 nextSong 逻辑）
-    if (queue.length <= 1 && currentSong) {
+    // 单曲队列（非单曲循环）：手动上一首沿来源列表往回走
+    if (queue.length <= 1 && playMode !== "single" && currentSong) {
       const listPrev = sourceIndex >= 0 ? nextPlayableInSource(sourceList, sourceIndex, -1) : null;
       if (listPrev) {
         get().playSong(listPrev, [listPrev]);
