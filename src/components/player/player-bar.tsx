@@ -39,6 +39,7 @@ import { FullPlayer } from "./full-player";
 import { ProgressBar } from "./progress";
 import { PLAYER_DIALOG_SIZE } from "./dialog-sizes";
 import { useDominantColor } from "@/hooks/use-dominant-color";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useLyricsBroadcast } from "@/hooks/use-lyrics-broadcast";
 import { useMediaSession } from "@/hooks/use-media-session";
 
@@ -72,13 +73,19 @@ const QUALITY_SHORT_LABELS: Record<AudioQuality, string> = {
   lossless: "无损",
 };
 
-const QUALITY_OPTIONS = (Object.entries(AUDIO_QUALITY) as [AudioQuality, { label: string; bitrate: string }][]).map(
-  ([value, val]) => ({
+const QUALITY_OPTIONS = (Object.entries(AUDIO_QUALITY) as [AudioQuality, { label: string; bitrate: string }][]).map(  ([value, val]) => ({
     value,
     label: val.label,
     short: val.bitrate === "999000" ? "无损" : `${parseInt(val.bitrate) / 1000}K`,
   })
 );
+
+/** 睡眠定时剩余时长角标文案：>1 分钟显示分钟（向上取整），最后一分钟显示秒 */
+function formatSleepRemain(ms: number): string {
+  if (ms <= 0) return "0s";
+  const sec = Math.ceil(ms / 1000);
+  return sec >= 60 ? `${Math.ceil(sec / 60)}m` : `${sec}s`;
+}
 
 export function PlayerBar() {
   // useAudioPlayer 负责把 URL/音量/倍速同步到播放器（副作用在 hook 内），
@@ -88,6 +95,9 @@ export function PlayerBar() {
   const [showSpeed, setShowSpeed] = useState(false);
   const [showQuality, setShowQuality] = useState(false);
   const [sleepMinutes, setSleepMinutes] = useState(0);
+  // 睡眠定时剩余毫秒（角标实时倒计时；用绝对结束时间戳计算，后台节流也准确）
+  const [sleepRemain, setSleepRemain] = useState(0);
+  const sleepEndAtRef = useRef<number | null>(null);
   const [showSleep, setShowSleep] = useState(false);
   const [showEQ, setShowEQ] = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -104,6 +114,8 @@ export function PlayerBar() {
   useLyricsBroadcast();
   // 启用系统媒体控制（锁屏/通知中心）
   useMediaSession();
+  // 标签页标题显示当前歌曲
+  useDocumentTitle();
 
   // 字段级订阅：收藏/主题/队列数据等无关切片变化不再引发播放栏重渲染
   const currentSong = usePlayerStore((s) => s.currentSong);
@@ -198,11 +210,21 @@ export function PlayerBar() {
     setSleepMinutes(minutes);
     setShowSleep(false);
 
-    if (minutes <= 0) return;
+    if (minutes <= 0) {
+      // 取消定时：清掉剩余时间显示
+      sleepEndAtRef.current = null;
+      setSleepRemain(0);
+      return;
+    }
 
     const totalMs = minutes * 60 * 1000;
     const fadeDuration = Math.min(30000, totalMs * 0.15); // 渐弱时间：30秒 或 总时长的15%
     const fadeStartDelay = totalMs - fadeDuration;
+
+    // 倒计时显示：记录绝对结束时间（setInterval 在后台会被节流，用时间戳算剩余才准）。
+    // eslint-disable-next-line react-hooks/purity -- 此处是点击事件处理器（非渲染期），取当前时间是必要行为
+    if (minutes > 0) sleepEndAtRef.current = Date.now() + totalMs;
+    setSleepRemain(totalMs);
 
     // 阶段1：等待到渐弱开始时间
     sleepTimerRef.current = setTimeout(() => {
@@ -224,11 +246,25 @@ export function PlayerBar() {
           // 渐弱完成 → 暂停播放并恢复原始音量
           usePlayerStore.getState().setPlaying(false);
           setSleepMinutes(0);
+          sleepEndAtRef.current = null;
+          setSleepRemain(0);
           setVolume(origVolumeRef.current);
         }
       }, 250);
     }, fadeStartDelay);
   };
+
+  // 睡眠定时倒计时：每秒按绝对结束时间戳刷新剩余量（后台节流不影响准确性）
+  useEffect(() => {
+    if (sleepMinutes <= 0) return;
+    const tick = () => {
+      const endAt = sleepEndAtRef.current;
+      setSleepRemain(endAt ? Math.max(0, endAt - Date.now()) : 0);
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [sleepMinutes]);
 
   // 静音切换
   const toggleMute = () => {
@@ -461,12 +497,18 @@ export function PlayerBar() {
               size="icon"
               className={cn("cursor-pointer h-8 w-8 relative", sleepMinutes !== 0 && "text-primary")}
               onClick={() => { setShowSleep(!showSleep); setShowSpeed(false); }}
-              title="定时关闭"
+              title={
+                sleepMinutes === -1
+                  ? "定时关闭：播完当前歌后停止"
+                  : sleepMinutes > 0
+                    ? `定时关闭：还剩 ${formatSleepRemain(sleepRemain)}`
+                    : "定时关闭"
+              }
             >
               <Timer className="h-4 w-4" />
               {sleepMinutes !== 0 && (
                 <span className="absolute -top-1 -right-1 text-[8px] bg-primary text-primary-foreground rounded px-0.5">
-                  {sleepMinutes === -1 ? "完" : `${sleepMinutes}m`}
+                  {sleepMinutes === -1 ? "完" : formatSleepRemain(sleepRemain)}
                 </span>
               )}
             </Button>
