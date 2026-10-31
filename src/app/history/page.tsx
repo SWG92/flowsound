@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Clock, Trash2, Flame, History as HistoryIcon, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SongList } from "@/components/playlist/song-list";
+import { SongSearchInput, filterSongs } from "@/components/playlist/song-search";
 import { usePlayerStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,8 @@ export default function HistoryPage() {
   const playSong = usePlayerStore((s) => s.playSong);
   const [mounted, setMounted] = useState(false);
   const [view, setView] = useState<"recent" | "top">("recent");
+  // 历史内搜索（当前视图的列表过滤）
+  const [search, setSearch] = useState("");
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 0);
     return () => clearTimeout(t);
@@ -31,9 +34,13 @@ export default function HistoryPage() {
       .map((x) => x.song);
   }, [playHistory, playCounts]);
 
+  // 搜索过滤当前视图
+  const displayRecent = useMemo(() => filterSongs(playHistory, search), [playHistory, search]);
+  const displayTop = useMemo(() => filterSongs(topSongs, search), [topSongs, search]);
+
   const count = mounted ? playHistory.length : 0;
-  const showContent = mounted && view === "recent" && playHistory.length > 0;
-  const showTop = mounted && view === "top" && topSongs.length > 0;
+  const showContent = mounted && view === "recent" && displayRecent.length > 0;
+  const showTop = mounted && view === "top" && displayTop.length > 0;
 
   return (
     <div className="space-y-6">
@@ -102,28 +109,45 @@ export default function HistoryPage() {
         </button>
       </div>
 
+      {/* 搜索：历史歌曲多时快速定位（当前视图过滤） */}
+      {mounted && count >= 10 && (
+        <SongSearchInput value={search} onChange={setSearch} placeholder="在播放记录中搜索歌名、歌手、专辑..." />
+      )}
+
       {view === "recent" ? (
         showContent ? (
-          <SongList songs={playHistory} showIndex showAlbum virtual />
+          <SongList songs={displayRecent} showIndex showAlbum virtual />
         ) : mounted ? (
-          <div className="text-center py-20 text-muted-foreground">
-            <Clock className="h-12 w-12 mx-auto mb-4 opacity-30" />
-            <p className="text-lg mb-2">还没有播放记录</p>
-            <p className="text-sm">播放歌曲后会自动记录</p>
-          </div>
+          search.trim() && playHistory.length > 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <p className="text-sm">没有匹配「{search.trim()}」的歌曲</p>
+            </div>
+          ) : (
+            <div className="text-center py-20 text-muted-foreground">
+              <Clock className="h-12 w-12 mx-auto mb-4 opacity-30" />
+              <p className="text-lg mb-2">还没有播放记录</p>
+              <p className="text-sm">播放歌曲后会自动记录</p>
+            </div>
+          )
         ) : (
           <div className="text-center py-20 text-muted-foreground">
             <p className="text-sm">加载中...</p>
           </div>
         )
       ) : showTop ? (
-        <SongList songs={topSongs} showIndex showAlbum virtual />
+        <SongList songs={displayTop} showIndex showAlbum virtual />
       ) : mounted ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <Flame className="h-12 w-12 mx-auto mb-4 opacity-30" />
-          <p className="text-lg mb-2">还没有排行数据</p>
-          <p className="text-sm">多听几首歌，这里会出现你最常播放的音乐</p>
-        </div>
+        search.trim() && topSongs.length > 0 ? (
+          <div className="text-center py-20 text-muted-foreground">
+            <p className="text-sm">没有匹配「{search.trim()}」的歌曲</p>
+          </div>
+        ) : (
+          <div className="text-center py-20 text-muted-foreground">
+            <Flame className="h-12 w-12 mx-auto mb-4 opacity-30" />
+            <p className="text-lg mb-2">还没有排行数据</p>
+            <p className="text-sm">多听几首歌，这里会出现你最常播放的音乐</p>
+          </div>
+        )
       ) : (
         <div className="text-center py-20 text-muted-foreground">
           <p className="text-sm">加载中...</p>
