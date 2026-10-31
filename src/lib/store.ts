@@ -41,6 +41,8 @@ interface PlayerState {
   // 主题与设置
   theme: "light" | "dark";
   audioQuality: AudioQuality;
+  lyricTrans: boolean; // 歌词翻译显示（默认开：有翻译时显示译文行）
+  setLyricTrans: (on: boolean) => void;
 
   // 播放来源列表：点播时所在页面列表及当前歌的位置。
   // 队列（用户加的歌）播完后按它顺序连播（"队列之外"的续播），session 内有效
@@ -117,6 +119,8 @@ const initialVolume = loadFromStorage<number>(STORAGE_KEYS.volume, 0.8);
 const initialPlayMode = loadFromStorage<PlayMode>(STORAGE_KEYS.playMode, "list");
 const initialSpeed = loadFromStorage<number>(STORAGE_KEYS.speed, 1);
 const initialAudioQuality = loadFromStorage<AudioQuality>(STORAGE_KEYS.audioQuality, "high");
+// 歌词翻译显示：默认开（有翻译时显示译文行）
+const initialLyricTrans = loadFromStorage<boolean>(STORAGE_KEYS.lyricTrans, true);
 
 // 首屏主题以服务端渲染的 html class 为准（它来自 Cookie）：这样客户端首次渲染与
 // 服务端完全一致，不会出现 hydration 不匹配；老用户（只有 localStorage、没有 Cookie）
@@ -261,6 +265,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   showFullPlayer: false,
   theme: initialTheme,
   audioQuality: initialAudioQuality,
+  lyricTrans: initialLyricTrans,
   sourceList: [],
   sourceIndex: -1,
 
@@ -612,6 +617,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setAudioQuality: (quality) => {
     saveToStorage(STORAGE_KEYS.audioQuality, quality);
     set({ audioQuality: quality });
+  },
+
+  setLyricTrans: (on) => {
+    saveToStorage(STORAGE_KEYS.lyricTrans, on);
+    set({ lyricTrans: on });
   },
 
   setShowFloatingLyrics: (show) => {

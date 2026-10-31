@@ -11,6 +11,7 @@ export function LyricsDisplay() {
   const currentLyricIndex = usePlayerStore((s) => s.currentLyricIndex);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const lyricTrans = usePlayerStore((s) => s.lyricTrans);
   const containerRef = useRef<HTMLDivElement>(null);
   const hasScrolledOnMount = useRef(false);
   // 用户手动滚动时暂停自动滚动，停止后 2 秒恢复
@@ -129,7 +130,7 @@ export function LyricsDisplay() {
             >
               {line.text}
             </p>
-            {line.transText && (
+            {line.transText && lyricTrans && (
               <p
                 className={cn(
                   "transition-all duration-300 mt-1",

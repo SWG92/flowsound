@@ -31,6 +31,11 @@ export function FullPlayer() {
   const nextSong = usePlayerStore((s) => s.nextSong);
   const prevSong = usePlayerStore((s) => s.prevSong);
   const setPlayMode = usePlayerStore((s) => s.setPlayMode);
+  // 歌词翻译显示开关（持久化，歌词弹窗/悬浮窗同源）
+  const lyricTrans = usePlayerStore((s) => s.lyricTrans);
+  const setLyricTrans = usePlayerStore((s) => s.setLyricTrans);
+  // 当前歌词是否含译文（决定"译"按钮是否显示）
+  const hasTrans = usePlayerStore((s) => (s.lyrics ?? []).some((l) => l.transText));
   const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);  const fav = usePlayerStore((s) => (s.currentSong ? s.favorites.includes(s.currentSong.id) : false));
 
   // 专辑主色（Material You 式动态取色）：浸染背景与控制元素，失败降级为原配色。
@@ -252,7 +257,7 @@ export function FullPlayer() {
                   style={i === currentLyricIndex ? { color: accent ?? "#fff" } : undefined}
                 >
                   {line.text}
-                  {line.transText && (
+                  {line.transText && lyricTrans && (
                     <p className={cn("text-sm mt-0.5", i === currentLyricIndex ? "text-white/85" : "text-white/25")}>
                       {line.transText}
                     </p>
@@ -294,8 +299,8 @@ export function FullPlayer() {
         onMouseEnter={holdControls}
         onMouseLeave={pokeControls}
       >
-        {/* 视图切换：封面 / 歌词 */}
-        <div className="flex justify-center mb-3 gap-2">
+        {/* 视图切换：封面 / 歌词（+ 翻译开关，仅歌词视图且有译文内容时显示） */}
+        <div className="flex justify-center mb-3 gap-2 items-center">
           <button
             onClick={() => setShowLyricsView(false)}
             className={cn("px-3 py-1 rounded-full text-xs cursor-pointer transition-colors", !showLyricsView ? "bg-white/25 text-white" : "text-white/50 hover:text-white/80")}
@@ -308,6 +313,18 @@ export function FullPlayer() {
           >
             歌词
           </button>
+          {showLyricsView && hasTrans && (
+            <button
+              onClick={() => setLyricTrans(!lyricTrans)}
+              className={cn(
+                "px-2.5 py-1 rounded-full text-xs cursor-pointer transition-colors border",
+                lyricTrans ? "bg-white/25 text-white border-white/25" : "text-white/50 border-white/15 hover:text-white/80"
+              )}
+              title={lyricTrans ? "隐藏翻译" : "显示翻译"}
+            >
+              译
+            </button>
+          )}
         </div>
 
         {/* 进度条（自订阅组件） */}
