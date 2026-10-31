@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
-import { APP_INFO, PERFORMANCE_KEY } from "@/lib/constants";
+import { APP_INFO, PERFORMANCE_KEY, STORAGE_KEYS } from "@/lib/constants";
 import { clearApiCache } from "@/lib/api";
 
 // 清除缓存时保留的键：全部用户数据与偏好设置。
@@ -35,6 +35,18 @@ const PRESERVE_KEYS = [
 // 动态键（本地评论按歌曲 ID 存储：fc_<songId>）
 const PRESERVE_PREFIXES = ["fc_"];
 
+// 备份涵盖的用户数据键（歌单/收藏/黑名单/播放记录/播放次数）
+const BACKUP_DATA_KEYS = [
+  "flowsound_playlists",
+  "flowsound_favorite_songs",
+  "flowsound_blacklist_songs",
+  "flowsound_history",
+  "flowsound_play_counts",
+];
+
+// 备份文件结构标记
+const BACKUP_MAGIC = "flowsound-backup";
+
 export default function SettingsPage() {
   const theme = usePlayerStore((s) => s.theme);
   const setTheme = usePlayerStore((s) => s.setTheme);
@@ -43,6 +55,7 @@ export default function SettingsPage() {
   // 挂载后再显示客户端状态，避免 hydration 不匹配（异步置位以满足 set-state-in-effect 规则）
   const [mounted, setMounted] = useState(false);
   const [performanceOn, setPerformanceOn] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const t = setTimeout(() => {
       setMounted(true);
@@ -57,6 +70,68 @@ export default function SettingsPage() {
     localStorage.setItem(PERFORMANCE_KEY, next ? "1" : "0");
     document.documentElement.classList.toggle("performance", next);
     showToast(next ? "性能模式已开启" : "性能模式已关闭", "success");
+  };
+
+  // 导出用户数据：歌单/收藏/黑名单/播放记录/播放次数 打包为 JSON 文件下载
+  const handleExport = () => {
+    const data: Record<string, unknown> = {
+      magic: BACKUP_MAGIC,
+      exportedAt: new Date().toISOString(),
+    };
+    for (const key of BACKUP_DATA_KEYS) {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        try {
+          data[key] = JSON.parse(raw);
+        } catch {
+          data[key] = raw;
+        }
+      }
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `flowsound-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    showToast("备份文件已下载", "success");
+  };
+
+  // 导入用户数据：校验文件结构后整体覆盖对应键（导入前自动先导出一份当前数据兜底）
+  const handleImport = async (file: File) => {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (data.magic !== BACKUP_MAGIC) {
+        showToast("文件格式不对，请选择 FlowSound 导出的备份文件", "error");
+        return;
+      }
+      // 导入前自动备份当前数据，防止误导入不可逆
+      handleExport();
+    } catch {
+      showToast("备份文件读取失败，请检查文件", "error");
+      return;
+    }
+    try {
+      const data = JSON.parse(await file.text());
+      let applied = 0;
+      for (const key of BACKUP_DATA_KEYS) {
+        if (data[key] !== undefined) {
+          localStorage.setItem(key, JSON.stringify(data[key]));
+          applied++;
+        }
+      }
+      if (applied === 0) {
+        showToast("备份文件里没有可导入的数据", "error");
+        return;
+      }
+      showToast(`已导入 ${applied} 类数据，正在刷新页面…`, "success");
+      setTimeout(() => window.location.reload(), 1200);
+    } catch {
+      showToast("导入失败，文件内容无效", "error");
+    }
   };
 
   const handleClearCache = async () => {
@@ -101,6 +176,18 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-8 max-w-2xl">
+      {/* 导入用的隐藏文件选择器 */}
+      <input
+        ref={importFileRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleImport(f);
+          e.target.value = ""; // 允许重复选择同一文件
+        }}
+      />
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <SettingsIcon className="h-6 w-6 text-primary" />
@@ -166,6 +253,43 @@ export default function SettingsPage() {
               深色
             </Button>
           </div>
+        </div>
+      </section>
+
+      {/* 数据备份 */}
+      <section className="glass rounded-xl p-6 space-y-4">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <Download className="h-5 w-5 text-primary" />
+          数据备份
+        </h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-sm">导出数据</p>
+            <p className="text-xs text-muted-foreground">
+              歌单、收藏、黑名单、播放记录打包为 JSON 文件下载，可跨设备迁移
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleExport} className="cursor-pointer">
+            <Download className="h-4 w-4 mr-1.5" />
+            导出
+          </Button>
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-sm">导入数据</p>
+            <p className="text-xs text-muted-foreground">
+              从备份文件恢复（导入前会自动备份当前数据，以防误操作）
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => importFileRef.current?.click()}
+            className="cursor-pointer"
+          >
+            <Upload className="h-4 w-4 mr-1.5" />
+            导入
+          </Button>
         </div>
       </section>
 
