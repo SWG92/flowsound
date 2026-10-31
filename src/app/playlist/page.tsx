@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ListMusic, Plus, Music2, X, Pencil, Play } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { ListMusic, Plus, Music2, X, Pencil, Play, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,8 @@ export default function PlaylistPage() {
   const [newName, setNewName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  // 歌单内搜索：歌单歌曲多时快速定位（按歌名/歌手/专辑匹配）
+  const [search, setSearch] = useState("");
   // 只订阅用到的 action：播放进度等 store 变化不再引发歌单页重渲染
   const setQueue = usePlayerStore((s) => s.setQueue);
   const playSong = usePlayerStore((s) => s.playSong);
@@ -59,6 +61,20 @@ export default function PlaylistPage() {
   }, []);
 
   const activePlaylist = playlists.find((p) => p.id === activeId);
+
+  // 搜索过滤：歌名/歌手/专辑任一命中即显示。
+  // 搜索词在打开歌单卡片与返回列表时清空（不用 effect，规避级联渲染规则）
+  const displaySongs = useMemo(() => {
+    const base = activePlaylist?.songs ?? [];
+    const q = search.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        (s.artists ?? []).some((a) => a.name.toLowerCase().includes(q)) ||
+        (s.album?.name ?? "").toLowerCase().includes(q)
+    );
+  }, [activePlaylist, search]);
 
   const handleCreate = () => {
     const name = newName.trim();
@@ -181,7 +197,9 @@ export default function PlaylistPage() {
             <div>
               <h2 className="text-lg font-semibold">{activePlaylist.name}</h2>
               <p className="text-sm text-muted-foreground">
-                {activePlaylist.songs.length} 首歌曲
+                {search.trim()
+                  ? `${displaySongs.length} / ${activePlaylist.songs.length} 首歌曲`
+                  : `${activePlaylist.songs.length} 首歌曲`}
               </p>
             </div>
             <div className="flex gap-2">
@@ -189,7 +207,10 @@ export default function PlaylistPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handlePlayAll(activePlaylist.songs)}
+                  onClick={() =>
+                    handlePlayAll(search.trim() ? displaySongs : activePlaylist.songs)
+                  }
+                  disabled={displaySongs.length === 0}
                   className="cursor-pointer"
                 >
                   <Play className="h-4 w-4 mr-1.5" />
@@ -211,32 +232,65 @@ export default function PlaylistPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setActiveId(null)}
+                onClick={() => {
+                  setActiveId(null);
+                  setSearch("");
+                }}
                 className="cursor-pointer"
               >
                 返回
               </Button>
             </div>
           </div>
-          {activePlaylist.songs.length > 0 ? (
+          {/* 歌单内搜索：歌曲较多时快速定位 */}
+          {activePlaylist.songs.length >= 10 && (
+            <div className="relative">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="在歌单中搜索歌名、歌手、专辑..."
+                className="pl-9 pr-9"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  title="清空"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          )}
+          {displaySongs.length > 0 ? (
             <SongList
-              songs={activePlaylist.songs}
+              songs={displaySongs}
               virtual
               playlistId={activePlaylist.id}
               onRemoveFromPlaylist={handleRemoveFromPlaylist}
-              onReorder={(from, to) => {
-                const updated = playlists.map((p) => {
-                  if (p.id !== activePlaylist.id) return p;
-                  const reordered = [...p.songs];
-                  const [moved] = reordered.splice(from, 1);
-                  if (!moved) return p;
-                  reordered.splice(to, 0, moved);
-                  return { ...p, songs: reordered };
-                });
-                savePlaylists(updated);
-                setPlaylists(updated);
-              }}
+              // 搜索过滤视图下禁用拖拽排序：过滤后的索引与原数组错位
+              onReorder={
+                search.trim()
+                  ? undefined
+                  : (from, to) => {
+                      const updated = playlists.map((p) => {
+                        if (p.id !== activePlaylist.id) return p;
+                        const reordered = [...p.songs];
+                        const [moved] = reordered.splice(from, 1);
+                        if (!moved) return p;
+                        reordered.splice(to, 0, moved);
+                        return { ...p, songs: reordered };
+                      });
+                      savePlaylists(updated);
+                      setPlaylists(updated);
+                    }
+              }
             />
+          ) : activePlaylist.songs.length > 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <p className="text-sm">没有匹配「{search.trim()}」的歌曲</p>
+            </div>
           ) : (
             <div className="text-center py-20 text-muted-foreground">
               <Music2 className="h-12 w-12 mx-auto mb-4 opacity-30" />
@@ -251,7 +305,7 @@ export default function PlaylistPage() {
             <Card
               key={playlist.id}
               className="glass cursor-pointer hover:scale-[1.02] transition-transform relative group"
-              onClick={() => setActiveId(playlist.id)}
+              onClick={() => { setActiveId(playlist.id); setSearch(""); }}
             >
               <CardContent className="p-5">
                 <Button
