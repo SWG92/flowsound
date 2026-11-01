@@ -5,7 +5,7 @@ import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon, Download,
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
-import { APP_INFO, PERFORMANCE_KEY, STORAGE_KEYS } from "@/lib/constants";
+import { APP_INFO, PERFORMANCE_KEY } from "@/lib/constants";
 import { clearApiCache } from "@/lib/api";
 
 // 清除缓存时保留的键：全部用户数据与偏好设置。

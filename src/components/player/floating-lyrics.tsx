@@ -31,6 +31,7 @@ export function FloatingLyrics() {
   const setShowFloatingLyrics = usePlayerStore((s) => s.setShowFloatingLyrics);
   const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
   const isFav = usePlayerStore((s) => (s.currentSong ? s.favorites.includes(s.currentSong.id) : false));
+  const lyricTrans = usePlayerStore((s) => s.lyricTrans);
 
   const [locked, setLocked] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -251,7 +252,7 @@ export function FloatingLyrics() {
                     }}>
                       {line.text}
                     </p>
-                    {line.transText && opacity > 0.04 && (
+                    {line.transText && lyricTrans && opacity > 0.04 && (
                       <p style={{
                         margin: "4px 0 0",
                         fontSize: isCurrent ? 15 : 11,

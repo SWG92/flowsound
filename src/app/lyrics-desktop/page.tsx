@@ -18,6 +18,10 @@ export default function DesktopLyricsPage() {
   const [locked, setLocked] = useState(false);
   const [showColors, setShowColors] = useState(false);
   const [dragging, setDragging] = useState(false);
+  // 翻译显示开关：跟随主窗口的设置（localStorage 同源共享）
+  const [lyricTrans] = useState(
+    () => localStorage.getItem("flowsound_lyric_trans") !== "0"
+  );
   const dragRef = useRef({ startX: 0, startY: 0, origX: 0, origY: 0 });
   const lastIdxRef = useRef(-1);
   const [fadeState, setFadeState] = useState<Record<number, number>>({});
@@ -297,7 +301,7 @@ export default function DesktopLyricsPage() {
                     }}>
                       {line.text}
                     </p>
-                    {line.transText && opacity > 0.05 && (
+                    {line.transText && lyricTrans && opacity > 0.05 && (
                       <p style={{
                         margin: "4px 0 0",
                         fontSize: isCurrent ? 15 : 12,
