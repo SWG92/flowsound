@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { X, Lock, GripVertical, Trash2 } from "lucide-react";
+import { X, Lock, GripVertical, Trash2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePlayerStore } from "@/lib/store";
+import { useToast } from "@/components/ui/toast";
 import { cn, getCoverUrl } from "@/lib/utils";
+import { STORAGE_KEYS } from "@/lib/constants";
 import { useDominantColor } from "@/hooks/use-dominant-color";
 
 /** hex → rgba（带透明度） */
@@ -26,6 +28,7 @@ export function PlayQueue() {
   const reorderQueue = usePlayerStore((s) => s.reorderQueue);
   const removeFromQueue = usePlayerStore((s) => s.removeFromQueue);
   const clearQueue = usePlayerStore((s) => s.clearQueue);
+  const { showToast } = useToast();
   // 浮在全屏播放页上层时：切换为深色玻璃（.dark 作用域下 glass 用深色变量，
   // 融入全屏页深色背景而非浅色主题的白玻璃），并下移避开全屏页顶部按钮栏
   const fullPlayerOpen = usePlayerStore((s) => s.showFullPlayer);
@@ -72,6 +75,30 @@ export function PlayQueue() {
     setDropIdx(null);
   }, []);
 
+  // 队列一键保存为歌单：写入 localStorage，歌单页下次打开即可看到
+  const handleSaveAsPlaylist = useCallback(() => {
+    if (queue.length === 0) return;
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.playlists) || "[]");
+      const baseName = `播放队列 ${new Date().toLocaleDateString("zh-CN")}`;
+      let name = baseName;
+      let n = 2;
+      while (stored.some((p: { name: string }) => p.name === name)) {
+        name = `${baseName} (${n++})`;
+      }
+      stored.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name,
+        songs: queue.map((s) => ({ ...s, url: undefined })),
+        createdAt: Date.now(),
+      });
+      localStorage.setItem(STORAGE_KEYS.playlists, JSON.stringify(stored));
+      showToast(`已保存为歌单「${name}」（${queue.length} 首）`, "success");
+    } catch {
+      showToast("保存失败，请重试", "error");
+    }
+  }, [queue, showToast]);
+
   // Esc 关闭面板（浮在全屏播放页上层时，全屏页会先检查本面板状态、不抢这次按键）
   useEffect(() => {
     if (!showQueue) return;
@@ -104,6 +131,17 @@ export function PlayQueue() {
           <span className="text-muted-foreground ml-2">({queue.length})</span>
         </h3>
         <div className="flex items-center gap-1">
+          {queue.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="cursor-pointer h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={handleSaveAsPlaylist}
+              title="保存为歌单"
+            >
+              <Save className="h-4 w-4" />
+            </Button>
+          )}
           {queue.length > 0 && (
             <Button
               variant="ghost"
