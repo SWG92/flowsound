@@ -78,9 +78,14 @@ export function DailyRecommend() {
       const cached = loadCachedSongs();
       const today = new Date().toLocaleDateString("zh-CN");
       if (cached && cached.songs.length > 0 && cached.date === today) {
-        setSongs(cached.songs);
-        setLoading(false);
-        return;
+        // 旧缓存可能存有 VIP 条目，读取时统一过滤，保证播放全部队列干净
+        const fresh = cached.songs.filter((s) => s.fee !== 1);
+        if (fresh.length > 0) {
+          setSongs(fresh);
+          setLoading(false);
+          return;
+        }
+        // 过滤后为空视为无有效缓存，继续走重新拉取
       }
     }
 
