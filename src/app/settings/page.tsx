@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon, Download, Upload } from "lucide-react";
+import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon, Download, Upload, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
@@ -50,6 +50,9 @@ const BACKUP_MAGIC = "flowsound-backup";
 export default function SettingsPage() {
   const theme = usePlayerStore((s) => s.theme);
   const setTheme = usePlayerStore((s) => s.setTheme);
+  // 歌词翻译开关（持久化，全屏页/歌词弹窗/悬浮歌词共享同源状态）
+  const lyricTrans = usePlayerStore((s) => s.lyricTrans);
+  const setLyricTrans = usePlayerStore((s) => s.setLyricTrans);
   const { showToast } = useToast();
   // 音质等偏好存在 localStorage，服务端渲染时只能拿到默认值；
   // 挂载后再显示客户端状态，避免 hydration 不匹配（异步置位以满足 set-state-in-effect 规则）
@@ -253,6 +256,30 @@ export default function SettingsPage() {
               深色
             </Button>
           </div>
+        </div>
+      </section>
+
+      {/* 播放设置 */}
+      <section className="glass rounded-xl p-6 space-y-4">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <Languages className="h-5 w-5 text-primary" />
+          歌词设置
+        </h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-sm">显示歌词翻译</p>
+            <p className="text-xs text-muted-foreground">
+              外语歌曲歌词下方显示翻译行（需要歌曲有官方翻译）
+            </p>
+          </div>
+          <Button
+            variant={mounted && lyricTrans ? "default" : "outline"}
+            size="sm"
+            onClick={() => setLyricTrans(!lyricTrans)}
+            className="cursor-pointer"
+          >
+            {mounted ? (lyricTrans ? "已开启" : "已关闭") : "…"}
+          </Button>
         </div>
       </section>
 
