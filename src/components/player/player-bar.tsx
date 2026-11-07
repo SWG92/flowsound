@@ -490,8 +490,8 @@ export function PlayerBar() {
             <SlidersHorizontal className="h-4 w-4" />
           </Button>
 
-          {/* 定时关闭 - 下拉菜单 */}
-          <div className="relative hidden md:block" ref={sleepRef}>
+          {/* 定时关闭 - 下拉菜单（移动端也可用：睡前定时是手机高频场景） */}
+          <div className="relative" ref={sleepRef}>
             <Button
               variant="ghost"
               size="icon"
