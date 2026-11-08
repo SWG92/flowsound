@@ -322,19 +322,25 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       lyrics = await getLyrics(song.id, resolvedPlatform, resolvedPlatformId);
     } catch { /* ignore */ }
 
-    // 歌词跨平台兜底：酷狗歌词接口已失效、纯音/翻奏版无歌词时，
-    // 用「歌名 + 主歌手」在其他平台搜索同名曲取其歌词（翻唱歌词文本与原版一致）。
-    // 匹配用包含判断：翻唱版歌名常带括号后缀（如「发如雪 (弦乐加长版)」）
+    // 歌词跨平台兜底：源平台取不到歌词时（纯音/翻奏版、接口失效等），
+    // 在其他平台搜索同名曲取其歌词。匹配要求歌名包含 + 歌手重合——
+    // QQ/网易云的搜索结果里翻唱版极多，歌词库可能错误继承了原版歌词，
+    // 歌手不重合的条目（翻奏/翻唱）一律不采用，宁缺毋滥。
+    // 搜索只传歌名：QQ 搜索多关键词会直接返回空
     if (lyrics.length === 0 && song.name) {
       const LYRIC_FALLBACK: MusicPlatform[] = (
         ["qq", "netease", "kugou"] as MusicPlatform[]
       ).filter((p) => p !== resolvedPlatform);
-      const q = `${song.name} ${song.artists?.[0]?.name || ""}`.trim();
+      const ownArtists = new Set(
+        (song.artists || []).map((a) => a.name).filter(Boolean)
+      );
       for (const fb of LYRIC_FALLBACK) {
         try {
-          const r = await searchSongs(q, 1, 3, fb);
+          const r = await searchSongs(song.name, 1, 10, fb);
           for (const m of r.songs) {
             if (!m.name.includes(song.name) && !song.name.includes(m.name)) continue;
+            const mArtists = (m.artists || []).map((a) => a.name);
+            if (!mArtists.some((n) => n && ownArtists.has(n))) continue;
             const l = await getLyrics(m.id, fb, m.platformId);
             if (l.length > 0) {
               lyrics = l;
