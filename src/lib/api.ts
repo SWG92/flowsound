@@ -88,7 +88,9 @@ export async function searchAllPlatforms(
   const cached = getCached<SearchResult>(cacheKey);
   if (cached) return cached;
 
-  const platforms: MusicPlatform[] = ["netease", "qq", "kugou"];
+  // 酷狗优先：网易云/QQ 匿名搜索退化严重（热门歌曲常只返回翻奏版），
+  // 酷狗是唯一稳定返回原版的平台；合并顺序即结果排序，把高质量源放前面
+  const platforms: MusicPlatform[] = ["kugou", "netease", "qq"];
   const perPlatform = Math.ceil(limit / platforms.length);
 
   const results = await Promise.allSettled(

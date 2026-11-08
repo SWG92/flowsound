@@ -98,17 +98,17 @@ export const kugouAdapter: PlatformAdapter = {
     if (!platformId) return [];
 
     try {
-      // 酷狗 KRC 格式歌词接口
-      const data = await fetchJSON<{
-        lyrics?: string;
-        content?: string;
-      }>(
-        `http://m.kugou.com/app/i/krc.php?hash=${platformId}&cmd=100&timelength=999999`
+      // 酷狗 KRC 接口返回的是纯文本歌词（KRC 逐字时间轴或标准 LRC），不是 JSON——
+      // 必须按 text 读取；此前用 res.json() 解析必然抛错，酷狗歌词因此一直是空的
+      const res = await fetch(
+        `http://m.kugou.com/app/i/krc.php?hash=${platformId}&cmd=100&timelength=999999`,
+        { headers: KG_HEADERS, signal: AbortSignal.timeout(FETCH_TIMEOUT) }
       );
+      if (!res.ok) return [];
 
-      // 酷狗返回 KRC 格式，尝试解析 or 返回空
-      const raw = data.lyrics || data.content || "";
-      if (!raw) return [];
+      const raw = (await res.text()).trim();
+      // 空响应或 HTML 错误页都视为无歌词
+      if (!raw || raw.startsWith("<")) return [];
 
       return parseKugouLyric(raw);
     } catch {
