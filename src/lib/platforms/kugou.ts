@@ -53,7 +53,14 @@ export const kugouAdapter: PlatformAdapter = {
       const songs: Song[] = list.map((item) => ({
         id: songIdFromHash(item.hash),
         name: item.songname,
-        artists: [{ id: 0, name: item.singername }],
+        // 酷狗多歌手是「温岚、周杰伦」这类合并字符串，按分隔符拆开——
+        // 否则聚合搜索的跨平台去重键（歌名|歌手）对不上，同一首歌出现两行
+        artists: item.singername
+          .split(/[、,，/／&]/)
+          .map((n) => n.trim())
+          .filter(Boolean)
+          .slice(0, 5)
+          .map((n) => ({ id: 0, name: n })),
         album: {
           id: 0,
           name: item.album_name || "",

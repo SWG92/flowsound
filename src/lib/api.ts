@@ -108,7 +108,14 @@ export async function searchAllPlatforms(
     totalCount += r.value.total || 0;
     if (r.value.hasMore) anyHasMore = true;
     for (const song of r.value.songs) {
-      const key = `${song.name}|${song.artists?.[0]?.name || ""}`;
+      // 去重键：歌名 + 全部歌手（排序后比较，跨平台歌手顺序不一致也能去重，
+      // 如酷狗「温岚、周杰伦」与网易云「周杰伦/温岚」视为同一首）
+      const artistKey = (song.artists || [])
+        .map((a) => a.name.trim())
+        .filter(Boolean)
+        .sort()
+        .join("/");
+      const key = `${song.name}|${artistKey}`;
       if (!seen.has(key)) {
         seen.add(key);
         merged.push(song);

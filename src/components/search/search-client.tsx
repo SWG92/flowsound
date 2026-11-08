@@ -51,12 +51,11 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
         // （聚合去重只在单次调用内部生效），追加时对照已有列表再过滤一次
         setSongs((prev) => {
           if (p === 1) return result.songs;
-          const seen = new Set(
-            prev.map((s) => `${s.name}|${s.artists?.[0]?.name || ""}`)
-          );
-          const fresh = result.songs.filter(
-            (s) => !seen.has(`${s.name}|${s.artists?.[0]?.name || ""}`)
-          );
+          // 去重键与聚合搜索一致：歌名 + 排序后的全部歌手（跨平台歌手顺序可能不同）
+          const keyOf = (s: Song) =>
+            `${s.name}|${(s.artists || []).map((a) => a.name.trim()).filter(Boolean).sort().join("/")}`;
+          const seen = new Set(prev.map(keyOf));
+          const fresh = result.songs.filter((s) => !seen.has(keyOf(s)));
           return [...prev, ...fresh];
         });
         setTotal(result.total);

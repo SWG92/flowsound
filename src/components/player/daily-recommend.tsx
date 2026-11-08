@@ -111,12 +111,14 @@ export function DailyRecommend() {
         searchSongs(artists[0], 1, 5, "qq"),
         artists[1] ? searchSongs(artists[1], 1, 5, "kugou") : Promise.resolve({ songs: [], total: 0, hasMore: false }),
       ]);
-      const known = new Set(tracks.map((t) => `${t.name}|${t.artists?.[0]?.name ?? ""}`));
+      const known = new Set(
+        tracks.map((t) => `${t.name}|${(t.artists || []).map((a) => a.name.trim()).filter(Boolean).sort().join("/")}`)
+      );
       const mixed: Song[] = [];
       for (const r of extra) {
         if (r.status !== "fulfilled") continue;
         for (const s of r.value.songs) {
-          const key = `${s.name}|${s.artists?.[0]?.name ?? ""}`;
+          const key = `${s.name}|${(s.artists || []).map((a) => a.name.trim()).filter(Boolean).sort().join("/")}`;
           if (!known.has(key)) {
             known.add(key);
             mixed.push(s);
