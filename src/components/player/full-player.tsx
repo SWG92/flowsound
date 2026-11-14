@@ -202,7 +202,7 @@ export function FullPlayer() {
       {/* 顶部：收起 + 标题（悬停时保持显示） */}
       <div
         className="relative z-10 flex items-center justify-between px-6 pt-6 transition-opacity duration-300"
-        style={{ opacity: controlsVisible ? 1 : 0, pointerEvents: controlsVisible ? "auto" : "none", paddingTop: "calc(1.5rem + var(--safe-top))" }}
+        style={{ opacity: controlsVisible ? 1 : 0, paddingTop: "calc(1.5rem + var(--safe-top))" }}
         onMouseEnter={holdControls}
         onMouseLeave={pokeControls}
       >
@@ -295,7 +295,7 @@ export function FullPlayer() {
       {/* 底部控制区（悬停时保持显示） */}
       <div
         className="relative z-10 px-8 pt-2 max-w-xl mx-auto w-full transition-opacity duration-300"
-        style={{ opacity: controlsVisible ? 1 : 0, pointerEvents: controlsVisible ? "auto" : "none", paddingBottom: "calc(2.5rem + var(--safe-bottom))" }}
+        style={{ opacity: controlsVisible ? 1 : 0, pointerEvents: "auto", paddingBottom: "calc(2.5rem + var(--safe-bottom))" }}
         onMouseEnter={holdControls}
         onMouseLeave={pokeControls}
       >
