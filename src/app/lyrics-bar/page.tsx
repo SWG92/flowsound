@@ -25,7 +25,7 @@ export default function LyricsBarPage() {
   const [state, setState] = useState<LyricsMessage>({ type: "sync" });
   const [colorIdx, setColorIdx] = useState(0);
   const [locked, setLocked] = useState(false);
-  const [pinned, setPinned] = useState(false);   // 置顶开关（默认不置顶）
+  const [pinned, setPinned] = useState(true);    // 置顶默认开（图钉可关）
   const [shell, setShell] = useState(false);
   const [hover, setHover] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -155,7 +155,7 @@ export default function LyricsBarPage() {
         style={{
           width: "calc(100% - 16px)", height: "calc(100% - 16px)",
           borderRadius: 16,
-          background: "rgba(15,17,23,0.55)",
+          background: "rgba(15,17,23,0.38)",
           backdropFilter: "blur(24px) saturate(150%)",
           WebkitBackdropFilter: "blur(24px) saturate(150%)",
           border: `1px solid ${isPlaying ? lyricColor.hex + "2e" : "rgba(255,255,255,0.10)"}`,

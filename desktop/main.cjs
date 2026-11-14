@@ -19,7 +19,7 @@ let lyricsWin = null;
 let tray = null;
 let quitting = false;
 let closeAction = "tray";     // 关闭按钮行为：tray=最小化到托盘 / exit=直接退出（设置页可改）
-let lyricsPinned = false;     // 歌词横幅置顶开关（横幅上图钉控制，默认不置顶）
+let lyricsPinned = true;      // 歌词横幅置顶默认开（桌面歌词本该浮在最上，横幅上图钉可关）
 let isPlayingState = false;
 let playingTitle = "";
 
