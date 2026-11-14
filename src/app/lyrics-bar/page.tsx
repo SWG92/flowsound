@@ -1,34 +1,34 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Play, Pause, Heart, Palette, Lock, LockOpen, X } from "lucide-react";
+import { Play, Pause, Heart, Palette, Lock, LockOpen, X, Music2 } from "lucide-react";
 import { onLyricsBroadcast, sendLyricsCommand, isHeartbeatFresh, type LyricsMessage } from "@/lib/lyrics-broadcast";
 import { getDesktop } from "@/lib/desktop";
 
 /**
- * 桌面悬浮歌词条（网易云/QQ音乐式）：
- * 细长条悬浮于桌面——当前行大字 + 下一行小字，hover 显露控制按钮。
+ * 桌面悬浮歌词（汽水音乐式大横幅）：
+ * 玻璃横幅悬浮于桌面——顶部控制行（收藏/播放控制/换色/锁定/关闭），
+ * 主体两行超大歌词居中（当前行彩色发光 + 下一行白色）。
  * Electron 壳内运行于透明置顶无边框窗口；数据复用 lyrics-broadcast 双通道。
  */
 
 const LYRIC_COLORS = [
-  { name: "绿", hex: "#1ed760", glow: "rgba(30,215,96,0.55)" },
-  { name: "青", hex: "#22d3ee", glow: "rgba(34,211,238,0.55)" },
-  { name: "粉", hex: "#f472b6", glow: "rgba(244,114,182,0.55)" },
-  { name: "金", hex: "#fbbf24", glow: "rgba(251,191,36,0.55)" },
-  { name: "紫", hex: "#a78bfa", glow: "rgba(167,139,250,0.55)" },
-  { name: "白", hex: "#ffffff", glow: "rgba(255,255,255,0.45)" },
+  { name: "绿", hex: "#4ade80", glow: "rgba(74,222,128,0.5)" },
+  { name: "青", hex: "#22d3ee", glow: "rgba(34,211,238,0.5)" },
+  { name: "粉", hex: "#f472b6", glow: "rgba(244,114,182,0.5)" },
+  { name: "金", hex: "#fbbf24", glow: "rgba(251,191,36,0.5)" },
+  { name: "紫", hex: "#a78bfa", glow: "rgba(167,139,250,0.5)" },
+  { name: "白", hex: "#ffffff", glow: "rgba(255,255,255,0.4)" },
 ];
 
 export default function LyricsBarPage() {
   const [state, setState] = useState<LyricsMessage>({ type: "sync" });
   const [colorIdx, setColorIdx] = useState(0);
   const [locked, setLocked] = useState(false);
-  const [hover, setHover] = useState(false);
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, origX: 0, origY: 0 });
 
-  // 监听主窗口广播 + localStorage 心跳兜底（与 lyrics-desktop 页同一套通道）
+  // 监听主窗口广播 + localStorage 心跳兜底（与主窗口悬浮歌词面板同通道）
   useEffect(() => {
     const unsub = onLyricsBroadcast((data) => {
       if (data.type !== "sync") return;
@@ -59,12 +59,12 @@ export default function LyricsBarPage() {
     document.body.style.background = "transparent";
   }, []);
 
-  // 桌面壳：锁定 = 原生鼠标穿透（解锁回到主窗口悬浮歌词面板）
+  // 桌面壳：锁定 = 原生鼠标穿透（解锁回主窗口悬浮歌词面板）
   useEffect(() => {
     getDesktop()?.setLyricsClickThrough(locked);
   }, [locked]);
 
-  // 整条拖拽（网易云式按住即拖）
+  // 整个横幅按住拖动
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (locked) return;
     const target = e.target as HTMLElement;
@@ -105,14 +105,12 @@ export default function LyricsBarPage() {
 
   const cur = currentIndex >= 0 ? lyrics[currentIndex] : undefined;
   const next = currentIndex >= 0 ? lyrics[currentIndex + 1] : undefined;
-  const line1 = cur?.text || (songName ? `♪ ${songName}${artist ? ` — ${artist}` : ""}` : "FlowSound 桌面歌词");
-  const line2 = next?.text || (cur ? "" : "播放音乐即可同步歌词");
+  const line1 = cur?.text || (songName ? songName : "FlowSound 桌面歌词");
+  const line2 = next?.text || (songName ? artist || "让音乐流动起来" : "在主窗口播放音乐即可同步歌词");
 
   return (
     <div
       onMouseDown={handleMouseDown}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => { setHover(false); setDragging(false); }}
       style={{
         margin: 0, padding: 0, width: "100vw", height: "100vh",
         overflow: "hidden", background: "transparent",
@@ -122,29 +120,80 @@ export default function LyricsBarPage() {
         cursor: locked ? "default" : dragging ? "grabbing" : "grab",
       }}
     >
-      {/* 细长条主体 */}
+      {/* 玻璃横幅 */}
       <div
         style={{
-          width: "100%", height: 108,
-          margin: "0 14px", padding: "0 20px",
-          borderRadius: 22,
-          background: "rgba(12,12,18,0.46)",
-          backdropFilter: "blur(28px) saturate(160%)",
-          WebkitBackdropFilter: "blur(28px) saturate(160%)",
-          border: `1px solid ${isPlaying ? lyricColor.hex + "33" : "rgba(255,255,255,0.12)"}`,
-          boxShadow: "0 12px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)",
-          display: "flex", alignItems: "center", gap: 14,
+          width: "100%", height: "100%",
+          margin: 16, borderRadius: 18,
+          background: "rgba(10,10,16,0.42)",
+          backdropFilter: "blur(34px) saturate(170%)",
+          WebkitBackdropFilter: "blur(34px) saturate(170%)",
+          border: `1px solid ${isPlaying ? lyricColor.hex + "30" : "rgba(255,255,255,0.12)"}`,
+          boxShadow: "0 24px 70px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
+          display: "flex", flexDirection: "column",
+          overflow: "hidden", position: "relative",
           transition: "border-color 0.4s ease",
-          position: "relative",
         }}
       >
-        {/* 当前 + 下一行 */}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
+        {/* ===== 顶部控制行 ===== */}
+        <div
+          style={{
+            display: "flex", alignItems: "center",
+            padding: "10px 18px 4px",
+            position: "relative", zIndex: 2,
+          }}
+        >
+          {/* 左：歌曲标识 + 收藏 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+            <Music2 size={17} style={{ color: isPlaying ? lyricColor.hex : "rgba(255,255,255,0.5)", transition: "color 0.4s" }} />
+            <button
+              onClick={toggleFav}
+              title={isFavorite ? "取消收藏" : "收藏"}
+              style={{
+                border: "none", background: "transparent", cursor: "pointer", padding: 2,
+                color: isFavorite ? lyricColor.hex : "rgba(255,255,255,0.55)", display: "flex",
+                transition: "color 0.2s ease",
+              }}
+            >
+              <Heart size={17} fill={isFavorite ? "currentColor" : "none"} />
+            </button>
+          </div>
+
+          {/* 中：播放控制 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+            <CtrlBtn onClick={togglePlay} title={isPlaying ? "暂停" : "播放"}>
+              {isPlaying ? <Pause size={22} /> : <Play size={22} />}
+            </CtrlBtn>
+          </div>
+
+          {/* 右：换色 / 锁定 / 关闭 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, justifyContent: "flex-end" }}>
+            <CtrlBtn onClick={cycleColor} title={`歌词颜色：${lyricColor.name}`}>
+              <Palette size={17} />
+            </CtrlBtn>
+            <CtrlBtn onClick={toggleLock} title={locked ? "解锁（回主窗口操作）" : "锁定并鼠标穿透"}>
+              {locked ? <Lock size={17} /> : <LockOpen size={17} />}
+            </CtrlBtn>
+            <CtrlBtn onClick={() => window.close()} title="关闭">
+              <X size={19} />
+            </CtrlBtn>
+          </div>
+        </div>
+
+        {/* ===== 主体两行大歌词（居中） ===== */}
+        <div
+          style={{
+            flex: 1, display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center", gap: 6,
+            padding: "0 28px 14px", overflow: "hidden",
+          }}
+        >
           <p
             style={{
-              margin: 0, fontSize: 25, fontWeight: 700, lineHeight: 1.25,
-              color: lyricColor.hex,
-              textShadow: `0 0 14px ${lyricColor.glow}, 0 1px 3px rgba(0,0,0,0.55)`,
+              margin: 0, maxWidth: "100%",
+              fontSize: 42, fontWeight: 700, lineHeight: 1.2, textAlign: "center",
+              color: cur ? lyricColor.hex : "rgba(255,255,255,0.9)",
+              textShadow: cur ? `0 0 22px ${lyricColor.glow}, 0 2px 4px rgba(0,0,0,0.55)` : "0 2px 4px rgba(0,0,0,0.5)",
               whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
               transition: "color 0.4s ease",
             }}
@@ -153,94 +202,40 @@ export default function LyricsBarPage() {
           </p>
           <p
             style={{
-              margin: 0, fontSize: 15, fontWeight: 500, lineHeight: 1.3,
-              color: "rgba(255,255,255,0.55)",
-              textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+              margin: 0, maxWidth: "100%",
+              fontSize: 30, fontWeight: 600, lineHeight: 1.25, textAlign: "center",
+              color: "rgba(255,255,255,0.88)",
+              textShadow: "0 2px 4px rgba(0,0,0,0.5)",
               whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-              minHeight: 19,
+              minHeight: 38,
             }}
           >
             {line2}
           </p>
         </div>
-
-        {/* 播放状态小圆点（未 hover 时唯一的"活"信号） */}
-        <div
-          style={{
-            width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-            background: isPlaying ? lyricColor.hex : "rgba(255,255,255,0.25)",
-            boxShadow: isPlaying ? `0 0 10px ${lyricColor.glow}` : "none",
-            transition: "all 0.4s ease",
-            opacity: hover ? 0 : 1,
-          }}
-        />
-
-        {/* 控制按钮：hover 时浮现 */}
-        <div
-          style={{
-            display: "flex", alignItems: "center", gap: 2, flexShrink: 0,
-            opacity: hover ? 1 : 0,
-            transform: hover ? "translateX(0)" : "translateX(6px)",
-            transition: "opacity 0.2s ease, transform 0.2s ease",
-            pointerEvents: hover ? "auto" : "none",
-          }}
-        >
-          <BarBtn onClick={togglePlay} title={isPlaying ? "暂停" : "播放"}>
-            {isPlaying ? <Pause size={15} /> : <Play size={15} />}
-          </BarBtn>
-          <BarBtn onClick={toggleFav} title={isFavorite ? "取消收藏" : "收藏"} active={isFavorite}>
-            <Heart size={15} fill={isFavorite ? "currentColor" : "none"} />
-          </BarBtn>
-          <BarBtn onClick={cycleColor} title={`歌词颜色：${lyricColor.name}`}>
-            <Palette size={15} />
-          </BarBtn>
-          <BarBtn onClick={toggleLock} title={locked ? "解锁（回主窗口操作）" : "锁定并鼠标穿透"}>
-            {locked ? <Lock size={15} /> : <LockOpen size={15} />}
-          </BarBtn>
-          <BarBtn onClick={() => window.close()} title="关闭">
-            <X size={15} />
-          </BarBtn>
-        </div>
-
-        {/* 底部歌词色细线（播放态呼吸） */}
-        <div
-          style={{
-            position: "absolute", left: 20, right: 20, bottom: 6, height: 2,
-            borderRadius: 2, background: lyricColor.hex,
-            opacity: isPlaying ? (hover ? 0.5 : 0.75) : 0.15,
-            boxShadow: isPlaying ? `0 0 8px ${lyricColor.glow}` : "none",
-            transition: "opacity 0.3s ease",
-          }}
-        />
       </div>
     </div>
   );
 }
 
-function BarBtn({
-  onClick, title, children, active,
+function CtrlBtn({
+  onClick, title, children,
 }: {
   onClick: () => void;
   title: string;
   children: React.ReactNode;
-  active?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
       style={{
-        width: 28, height: 28, borderRadius: 8, border: "none", cursor: "pointer",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        background: active ? "rgba(255,255,255,0.18)" : "transparent",
-        color: active ? "#fff" : "rgba(255,255,255,0.75)",
-        transition: "background 0.15s ease, color 0.15s ease",
+        border: "none", background: "transparent", cursor: "pointer", padding: 4,
+        color: "rgba(255,255,255,0.78)", display: "flex", borderRadius: 8,
+        transition: "color 0.15s ease, background 0.15s ease",
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; e.currentTarget.style.color = "#fff"; }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = active ? "rgba(255,255,255,0.18)" : "transparent";
-        e.currentTarget.style.color = active ? "#fff" : "rgba(255,255,255,0.75)";
-      }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.78)"; e.currentTarget.style.background = "transparent"; }}
     >
       {children}
     </button>
