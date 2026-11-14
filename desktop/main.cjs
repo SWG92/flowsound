@@ -242,9 +242,9 @@ function createTray() {
 // ============ 桌面悬浮歌词窗口 ============
 
 function openLyricsWindow() {
+  // 开关语义：已开着 → 关闭（配合播放栏「词」按钮的切换体验）
   if (lyricsWin && !lyricsWin.isDestroyed()) {
-    lyricsWin.show();
-    lyricsWin.focus();
+    lyricsWin.close();
     return;
   }
   const { workArea } = screen.getPrimaryDisplay();
