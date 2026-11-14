@@ -270,9 +270,10 @@ function scheduleLyricsBoundsSave() {
 }
 
 function openLyricsWindow() {
-  // 开关语义：已开着 → 关闭（配合播放栏「词」按钮的切换体验）
+  // 已开着 → 显示并聚焦（不做关闭切换：避免误触把歌词窗藏起来找不到）
   if (lyricsWin && !lyricsWin.isDestroyed()) {
-    lyricsWin.close();
+    lyricsWin.show();
+    lyricsWin.focus();
     return;
   }
   // FloatLyrics 验证配方：transparent + resizable:false（缩放走右下角 grip IPC，
@@ -298,9 +299,7 @@ function openLyricsWindow() {
     webPreferences: { preload: path.join(__dirname, "preload.cjs") },
   });
   if (lyricsPinned) lyricsWin.setAlwaysOnTop(true);
-  // 置顶时也能盖过全屏应用（Edge 全屏视频等）
-  lyricsWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-  lyricsWin.setFullScreenable(false);
+  // 注意：不要调用 setVisibleOnAllWorkspaces——Windows 上实测会把窗口整个藏起来
   lyricsWin.loadURL(`http://127.0.0.1:${serverPort}/lyrics-bar`);
   lyricsWin.on("close", () => {
     if (lyricsWin) saveLyricsBounds(lyricsWin);
