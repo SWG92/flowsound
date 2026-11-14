@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Heart, Loader2, MessageCircle, Pause, Play, Repeat, Repeat1, SkipBack, SkipForward, Shuffle } from "lucide-react";
 import { usePlayerStore } from "@/lib/store";
+import { getDesktop } from "@/lib/desktop";
 import { audioPlayer } from "@/lib/audio-player";
 import { cn, getCoverUrl } from "@/lib/utils";
 import { ProgressFill } from "./progress";
@@ -36,6 +37,11 @@ export function FullPlayer() {
   const setLyricTrans = usePlayerStore((s) => s.setLyricTrans);
   // 当前歌词是否含译文（决定"译"按钮是否显示）
   const hasTrans = usePlayerStore((s) => (s.lyrics ?? []).some((l) => l.transText));
+  // 桌面壳检测（用于「悬浮歌词」入口显隐；浏览器端为 false）
+  const [isDesktopShell, setIsDesktopShell] = useState(false);
+  useEffect(() => {
+    setIsDesktopShell(!!getDesktop());
+  }, []);
   const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);  const fav = usePlayerStore((s) => (s.currentSong ? s.favorites.includes(s.currentSong.id) : false));
 
   // 专辑主色（Material You 式动态取色）：浸染背景与控制元素，失败降级为原配色。
@@ -183,8 +189,6 @@ export function FullPlayer() {
       onTouchEnd={onTouchEnd}
       onMouseMove={pokeControls}
       style={{
-        // 桌面壳下让出自绘标题栏高度（浏览器端为 0）
-        top: "var(--fs-shell-top, 0px)",
         transform: dragY ? `translateY(${dragY}px)` : undefined,
         transition: dragY ? "none" : "transform 0.3s ease",
         "--accent": accent ?? undefined,
@@ -315,6 +319,15 @@ export function FullPlayer() {
           >
             歌词
           </button>
+          {showLyricsView && isDesktopShell && (
+            <button
+              onClick={() => getDesktop()?.openLyrics()}
+              className="px-2.5 py-1 rounded-full text-xs cursor-pointer transition-colors border text-white/50 border-white/15 hover:text-white/80"
+              title="打开桌面悬浮歌词"
+            >
+              悬浮
+            </button>
+          )}
           {showLyricsView && hasTrans && (
             <button
               onClick={() => setLyricTrans(!lyricTrans)}

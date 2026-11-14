@@ -22,7 +22,7 @@ export function TopNav() {
   };
 
   return (
-    <div className="flex items-center gap-1 px-2 py-2 md:pl-2 pl-12">
+    <div className="fs-topnav flex items-center gap-1 px-2 py-2 md:pl-2 pl-12">
       <button
         onClick={handleBack}
         disabled={!canGoBack}

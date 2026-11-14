@@ -552,23 +552,29 @@ a:active {
 }
 
 
-/* ============ Electron 桌面壳（DesktopTitleBar 自绘标题栏）============ */
-/* 拖拽区：标题栏整体可拖动/双击最大化；交互元素加 .app-no-drag */
+/* ============ Electron 桌面壳（汽水式：无独立标题横栏）============ */
+/* 窗口控制按钮悬浮在内容右上角；拖拽区由页面顶部自然留白承担：
+   TopNav 行 + 侧栏 logo 头部整行可拖动/双击最大化，行内按钮 no-drag */
 .app-drag {
   -webkit-app-region: drag;
 }
 .app-no-drag {
   -webkit-app-region: no-drag;
 }
-/* 壳内布局整体下移 40px 避让标题栏；各组件内偏移用 --fs-shell-top 叠加 */
-html.desktop-shell {
-  --fs-shell-top: 40px;
+html.desktop-shell .fs-topnav {
+  -webkit-app-region: drag;
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
 }
-html.desktop-shell body {
-  padding-top: 40px;
+html.desktop-shell .fs-topnav button,
+html.desktop-shell .fs-topnav a,
+html.desktop-shell .fs-topnav input {
+  -webkit-app-region: no-drag;
 }
-/* 侧栏（sticky 偏移相对视口，需手动让出标题栏高度） */
-html.desktop-shell .fs-sidebar {
-  top: calc(0.75rem + var(--fs-shell-top));
-  height: calc(100vh - 120px - var(--fs-shell-top));
+html.desktop-shell .fs-sidebar-head {
+  -webkit-app-region: drag;
+}
+html.desktop-shell .fs-sidebar-head button,
+html.desktop-shell .fs-sidebar-head a {
+  -webkit-app-region: no-drag;
 }

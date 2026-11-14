@@ -52,8 +52,8 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* 桌面端 Logo + 标志语 */}
-      <Link href="/" className="hidden md:flex items-center mb-8 px-2">
+      {/* 桌面端 Logo + 标志语（桌面壳下兼任窗口拖拽区） */}
+      <Link href="/" className="fs-sidebar-head hidden md:flex items-center mb-8 px-2">
         <LogoBlock />
       </Link>
 

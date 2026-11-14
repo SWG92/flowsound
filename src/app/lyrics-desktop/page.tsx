@@ -111,6 +111,13 @@ export default function DesktopLyricsPage() {
     getDesktop()?.setLyricsClickThrough(locked);
   }, [locked]);
 
+  // 桌面壳：原生透明窗口要求 html/body 全透明（浏览器弹窗无此需求）
+  useEffect(() => {
+    if (!getDesktop()) return;
+    document.documentElement.style.background = "transparent";
+    document.body.style.background = "transparent";
+  }, []);
+
   const cycleColor = () => {
     const next = (colorIdx + 1) % LYRIC_COLORS.length;
     setColorIdx(next);

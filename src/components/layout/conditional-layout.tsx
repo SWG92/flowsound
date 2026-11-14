@@ -7,7 +7,7 @@ import { TopNav } from "./top-nav";
 import { PlayerBar } from "@/components/player/player-bar";
 import { PlayQueue } from "@/components/player/queue";
 import { FloatingLyrics } from "@/components/player/floating-lyrics";
-import { DesktopTitleBar } from "@/components/electron/desktop-title-bar";
+import { DesktopWindowControls } from "@/components/electron/desktop-title-bar";
 import { getDesktop } from "@/lib/desktop";
 import { useNavTracker } from "@/hooks/use-nav-tracker";
 
@@ -15,8 +15,8 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   useNavTracker();
   return (
     <>
-      {/* 桌面壳自绘标题栏（浏览器端不渲染） */}
-      <DesktopTitleBar />
+      {/* 桌面壳窗口控制按钮（悬浮右上，浏览器端不渲染） */}
+      <DesktopWindowControls />
       <Sidebar />
       <main className="flex-1 flex flex-col overflow-hidden" style={{ paddingBottom: "calc(84px + var(--safe-bottom))" }}>
         <TopNav />
