@@ -31,7 +31,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isDesktopLyrics = pathname === "/lyrics-desktop";
+  const isDesktopLyrics = pathname === "/lyrics-desktop" || pathname === "/lyrics-bar";
   // 桌面壳内的悬浮歌词窗：容器背景透明（原生窗口本身透明）
   const [shell, setShell] = useState(false);
   useEffect(() => {

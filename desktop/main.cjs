@@ -248,23 +248,24 @@ function openLyricsWindow() {
     return;
   }
   const { workArea } = screen.getPrimaryDisplay();
-  const w = 460;
-  const h = 620;
+  // 网易云/QQ音乐式细长条：底部居中悬浮
+  const w = 940;
+  const h = 132;
   lyricsWin = new BrowserWindow({
     width: w,
     height: h,
-    x: workArea.x + workArea.width - w - 30,
-    y: workArea.y + Math.max(0, Math.round((workArea.height - h) / 2)),
+    x: workArea.x + Math.round((workArea.width - w) / 2),
+    y: workArea.y + Math.max(0, workArea.height - h - 16),
     frame: false,
     transparent: true,
     hasShadow: false,
     alwaysOnTop: true,
     skipTaskbar: true,
-    resizable: true,
+    resizable: false,
     webPreferences: { preload: path.join(__dirname, "preload.cjs") },
   });
   lyricsWin.setAlwaysOnTop(true, "screen-saver");
-  lyricsWin.loadURL(`http://127.0.0.1:${serverPort}/lyrics-desktop`);
+  lyricsWin.loadURL(`http://127.0.0.1:${serverPort}/lyrics-bar`);
   lyricsWin.on("closed", () => {
     lyricsWin = null;
   });
