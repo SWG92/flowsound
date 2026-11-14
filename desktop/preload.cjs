@@ -24,6 +24,9 @@ contextBridge.exposeInMainWorld("flowsoundDesktop", {
   openLyrics: () => ipcRenderer.send("open-lyrics"),
   setLyricsClickThrough: (on) => ipcRenderer.send("lyrics-click-through", on),
   setLyricsPinned: (on) => ipcRenderer.send("set-lyrics-pinned", on),
+  resizeOverlayStart: (x, y) => ipcRenderer.send("lyrics-resize-start", x, y),
+  resizeOverlayMove: (x, y) => ipcRenderer.send("lyrics-resize", x, y),
+  resizeOverlayEnd: () => ipcRenderer.send("lyrics-resize-end"),
   // —— 自动更新 ——
   checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
   onUpdateStatus: (cb) => {

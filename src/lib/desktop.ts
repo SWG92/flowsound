@@ -14,6 +14,9 @@ export interface FlowSoundDesktop {
   openLyrics(): void;
   setLyricsClickThrough(on: boolean): void;
   setLyricsPinned(on: boolean): void;
+  resizeOverlayStart(x: number, y: number): void;
+  resizeOverlayMove(x: number, y: number): void;
+  resizeOverlayEnd(): void;
   checkForUpdates(): Promise<unknown>;
   onUpdateStatus(cb: (s: { type: string; version?: string; percent?: number; message?: string }) => void): void;
   getAppVersion(): Promise<string>;

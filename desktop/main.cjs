@@ -19,6 +19,7 @@ let lyricsWin = null;
 let tray = null;
 let quitting = false;
 let closeAction = "tray";     // 关闭按钮行为：tray=最小化到托盘 / exit=直接退出（设置页可改）
+let lyricsPinned = false;     // 歌词横幅置顶开关（横幅上图钉控制，默认不置顶）
 let isPlayingState = false;
 let playingTitle = "";
 
@@ -241,37 +242,75 @@ function createTray() {
 
 // ============ 桌面悬浮歌词窗口 ============
 
+// 尺寸/位置持久化（FloatLyrics 同款：userData JSON）
+const LYRICS_MIN = { width: 480, height: 180 };
+let lyricsBoundsTimer = null;
+let overlayResize = null;
+
+function lyricsBoundsFile() {
+  return path.join(app.getPath("userData"), "lyrics-window-bounds.json");
+}
+function loadLyricsBounds() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(lyricsBoundsFile(), "utf-8"));
+    if (raw && Number.isFinite(raw.width) && Number.isFinite(raw.height)) return raw;
+  } catch { /* ignore */ }
+  return null;
+}
+function saveLyricsBounds(win) {
+  try {
+    fs.writeFileSync(lyricsBoundsFile(), JSON.stringify(win.getBounds()));
+  } catch { /* 窗口持久化不打扰歌词展示 */ }
+}
+function scheduleLyricsBoundsSave() {
+  if (lyricsBoundsTimer) clearTimeout(lyricsBoundsTimer);
+  lyricsBoundsTimer = setTimeout(() => {
+    if (lyricsWin && !lyricsWin.isDestroyed()) saveLyricsBounds(lyricsWin);
+  }, 250);
+}
+
 function openLyricsWindow() {
   // 开关语义：已开着 → 关闭（配合播放栏「词」按钮的切换体验）
   if (lyricsWin && !lyricsWin.isDestroyed()) {
     lyricsWin.close();
     return;
   }
+  // FloatLyrics 验证配方：transparent + resizable:false（缩放走右下角 grip IPC，
+  // 规避 WS_THICKFRAME 在 DPI 缩放下拖动变大的 bug）+ bounds 持久化
+  const initialBounds = loadLyricsBounds();
   const { workArea } = screen.getPrimaryDisplay();
-  // 汽水式紧凑横幅：控制行紧贴歌词
-  const w = 1150;
-  const h = 210;
+  const w = initialBounds?.width ?? 1150;
+  const h = initialBounds?.height ?? 210;
+  const x = initialBounds?.x ?? workArea.x + Math.round((workArea.width - w) / 2);
+  const y = initialBounds?.y ?? workArea.y + Math.max(0, workArea.height - h - 60);
   lyricsWin = new BrowserWindow({
-    width: w,
-    height: h,
-    x: workArea.x + Math.round((workArea.width - w) / 2),
-    y: workArea.y + Math.max(0, Math.round((workArea.height - h) / 2)),
+    x, y, width: w, height: h,
+    minWidth: LYRICS_MIN.width,
+    minHeight: LYRICS_MIN.height,
     frame: false,
-    roundedCorners: true,      // Win11 系统圆角
-    backgroundColor: "#1a1d26",
+    transparent: true,
     hasShadow: false,
-    alwaysOnTop: false,        // 置顶默认关闭，横幅上图钉开关控制
+    resizable: false,
+    maximizable: false,
+    alwaysOnTop: lyricsPinned,
     skipTaskbar: true,
-    resizable: true,
-    minWidth: 480,
-    minHeight: 180,
+    backgroundColor: "#00000000",
     webPreferences: { preload: path.join(__dirname, "preload.cjs") },
   });
+  if (lyricsPinned) lyricsWin.setAlwaysOnTop(true);
+  // 置顶时也能盖过全屏应用（Edge 全屏视频等）
+  lyricsWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  lyricsWin.setFullScreenable(false);
   lyricsWin.loadURL(`http://127.0.0.1:${serverPort}/lyrics-bar`);
+  lyricsWin.on("close", () => {
+    if (lyricsWin) saveLyricsBounds(lyricsWin);
+  });
   lyricsWin.on("closed", () => {
+    overlayResize = null;
     lyricsWin = null;
   });
-
+  lyricsWin.on("resize", scheduleLyricsBoundsSave);
+  lyricsWin.on("move", scheduleLyricsBoundsSave);
 }
 
 // ============ 全局媒体键 ============
@@ -394,8 +433,27 @@ ipcMain.on("lyrics-click-through", (_e, on) => {
 });
 ipcMain.on("set-lyrics-pinned", (_e, on) => {
   if (lyricsWin && !lyricsWin.isDestroyed()) {
-    lyricsWin.setAlwaysOnTop(!!on, "screen-saver");
+    lyricsWin.setAlwaysOnTop(!!on);
   }
+});
+
+// 右下角 grip 缩放（FloatLyrics 同款：主进程从 startBounds + 屏幕坐标差计算，无累积漂移）
+ipcMain.on("lyrics-resize-start", (event, screenX, screenY) => {
+  if (!lyricsWin || event.sender !== lyricsWin.webContents || !Number.isFinite(screenX) || !Number.isFinite(screenY)) return;
+  overlayResize = { startBounds: lyricsWin.getBounds(), startX: screenX, startY: screenY };
+});
+ipcMain.on("lyrics-resize", (event, screenX, screenY) => {
+  if (!lyricsWin || !overlayResize || event.sender !== lyricsWin.webContents || !Number.isFinite(screenX) || !Number.isFinite(screenY)) return;
+  const { startBounds, startX, startY } = overlayResize;
+  const display = screen.getDisplayMatching(startBounds);
+  const maxW = Math.max(LYRICS_MIN.width, startBounds.width, display.workArea.x + display.workArea.width - startBounds.x);
+  const maxH = Math.max(LYRICS_MIN.height, startBounds.height, display.workArea.y + display.workArea.height - startBounds.y);
+  const width = Math.min(maxW, Math.max(LYRICS_MIN.width, Math.round(startBounds.width + screenX - startX)));
+  const height = Math.min(maxH, Math.max(LYRICS_MIN.height, Math.round(startBounds.height + screenY - startY)));
+  lyricsWin.setBounds({ ...startBounds, width, height }, false);
+});
+ipcMain.on("lyrics-resize-end", () => {
+  overlayResize = null;
 });
 
 // ============ 生命周期 ============
