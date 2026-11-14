@@ -113,6 +113,12 @@ function processCommand(cmd: LyricsCommand, processed: Set<string>) {
     case "togglePlay":
       store.togglePlay();
       break;
+    case "prev":
+      store.prevSong();
+      break;
+    case "next":
+      store.nextSong();
+      break;
     case "toggleFavorite": {
       const song = store.currentSong;
       if (song) store.toggleFavorite(song);

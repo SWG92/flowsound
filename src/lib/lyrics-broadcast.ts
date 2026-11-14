@@ -18,7 +18,7 @@ export interface LyricsMessage {
 }
 
 export interface LyricsCommand {
-  type: "togglePlay" | "toggleFavorite" | "setColor" | "setLocked" | "close" | "ping";
+  type: "togglePlay" | "toggleFavorite" | "setColor" | "setLocked" | "close" | "ping" | "prev" | "next";
   value?: number | boolean;
   /** 去重 ID：广播与 localStorage 两条通道都会送达，主窗口按 ID 只处理一次 */
   id?: string;

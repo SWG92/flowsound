@@ -1,15 +1,14 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Play, Pause, Heart, Palette, Lock, LockOpen, X, Music2 } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Heart, Palette, Lock, LockOpen, X, Music2 } from "lucide-react";
 import { onLyricsBroadcast, sendLyricsCommand, isHeartbeatFresh, type LyricsMessage } from "@/lib/lyrics-broadcast";
 import { getDesktop } from "@/lib/desktop";
 
 /**
- * 桌面悬浮歌词（汽水音乐式大横幅）：
- * 玻璃横幅悬浮于桌面——顶部控制行（收藏/播放控制/换色/锁定/关闭），
- * 主体两行超大歌词居中（当前行彩色发光 + 下一行白色）。
- * Electron 壳内运行于透明置顶无边框窗口；数据复用 lyrics-broadcast 双通道。
+ * 桌面悬浮歌词（汽水音乐式）：
+ * 紧凑横幅——控制行紧贴两行歌词，浅暗底色，悬浮于桌面。
+ * Electron 壳内运行于置顶无边框窗口；数据复用 lyrics-broadcast 双通道。
  */
 
 const LYRIC_COLORS = [
@@ -53,12 +52,12 @@ export default function LyricsBarPage() {
     return () => { unsub(); clearInterval(interval); };
   }, []);
 
-  // 桌面壳：窗口为不透明深色，页面底色同步成同一色（圆角由系统/页面自绘）
+  // 桌面壳：底色同步窗口 backgroundColor；拖拽交给系统 app-region
   useEffect(() => {
     if (!getDesktop()) return;
     setShell(true);
-    document.documentElement.style.background = "#101018";
-    document.body.style.background = "#101018";
+    document.documentElement.style.background = "#20232e";
+    document.body.style.background = "#20232e";
   }, []);
 
   // 桌面壳：锁定 = 原生鼠标穿透（解锁回主窗口悬浮歌词面板）
@@ -66,9 +65,9 @@ export default function LyricsBarPage() {
     getDesktop()?.setLyricsClickThrough(locked);
   }, [locked]);
 
-  // 整个横幅按住拖动
+  // 浏览器弹窗环境的拖拽（壳内走系统 app-region）
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (locked || shell) return; // 壳内用系统级 app-region 拖拽，不走手动循环
+    if (locked || shell) return;
     const target = e.target as HTMLElement;
     if (target.closest("button")) return;
     setDragging(true);
@@ -113,106 +112,99 @@ export default function LyricsBarPage() {
   return (
     <div
       onMouseDown={handleMouseDown}
+      className={shell ? "app-drag" : undefined}
       style={{
         margin: 0, padding: 0, width: "100vw", height: "100vh",
-        overflow: "hidden", background: "#101018",
-        display: "flex", alignItems: "center",
+        overflow: "hidden", background: "#20232e",
+        display: "flex", flexDirection: "column",
         fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif',
         userSelect: "none", WebkitUserSelect: "none",
         cursor: locked ? "default" : dragging ? "grabbing" : "grab",
       }}
     >
-      {/* 玻璃横幅 */}
+      {/* ===== 控制行（紧贴歌词，汽水式） ===== */}
       <div
         style={{
-          width: "100%", height: "100%",
-          margin: 16, borderRadius: 18,
-          background: "linear-gradient(135deg, #1b1b26 0%, #14141d 55%, #101018 100%)",
-          border: `1px solid ${isPlaying ? lyricColor.hex + "30" : "rgba(255,255,255,0.12)"}`,
-          boxShadow: "0 24px 70px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
-          display: "flex", flexDirection: "column",
-          overflow: "hidden", position: "relative",
-          transition: "border-color 0.4s ease",
+          display: "flex", alignItems: "center",
+          padding: "10px 18px 0",
+          position: "relative", zIndex: 2,
         }}
       >
-        {/* ===== 顶部控制行 ===== */}
-        <div
-          style={{
-            display: "flex", alignItems: "center",
-            padding: "10px 18px 4px",
-            position: "relative", zIndex: 2,
-          }}
-        >
-          {/* 左：歌曲标识 + 收藏 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
-            <Music2 size={17} style={{ color: isPlaying ? lyricColor.hex : "rgba(255,255,255,0.5)", transition: "color 0.4s" }} />
-            <button
-              onClick={toggleFav}
-              title={isFavorite ? "取消收藏" : "收藏"}
-              style={{
-                border: "none", background: "transparent", cursor: "pointer", padding: 2,
-                color: isFavorite ? lyricColor.hex : "rgba(255,255,255,0.55)", display: "flex",
-                transition: "color 0.2s ease",
-              }}
-            >
-              <Heart size={17} fill={isFavorite ? "currentColor" : "none"} />
-            </button>
-          </div>
-
-          {/* 中：播放控制 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-            <CtrlBtn onClick={togglePlay} title={isPlaying ? "暂停" : "播放"}>
-              {isPlaying ? <Pause size={22} /> : <Play size={22} />}
-            </CtrlBtn>
-          </div>
-
-          {/* 右：换色 / 锁定 / 关闭 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, justifyContent: "flex-end" }}>
-            <CtrlBtn onClick={cycleColor} title={`歌词颜色：${lyricColor.name}`}>
-              <Palette size={17} />
-            </CtrlBtn>
-            <CtrlBtn onClick={toggleLock} title={locked ? "解锁（回主窗口操作）" : "锁定并鼠标穿透"}>
-              {locked ? <Lock size={17} /> : <LockOpen size={17} />}
-            </CtrlBtn>
-            <CtrlBtn onClick={() => window.close()} title="关闭">
-              <X size={19} />
-            </CtrlBtn>
-          </div>
-        </div>
-
-        {/* ===== 主体两行大歌词（居中） ===== */}
-        <div
-          style={{
-            flex: 1, display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center", gap: 6,
-            padding: "0 28px 14px", overflow: "hidden",
-          }}
-        >
-          <p
+        {/* 左：歌曲标识 + 收藏 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+          <Music2 size={16} style={{ color: isPlaying ? lyricColor.hex : "rgba(255,255,255,0.5)", transition: "color 0.4s" }} />
+          <button
+            onClick={toggleFav}
+            title={isFavorite ? "取消收藏" : "收藏"}
+            className="app-no-drag"
             style={{
-              margin: 0, maxWidth: "100%",
-              fontSize: 42, fontWeight: 700, lineHeight: 1.2, textAlign: "center",
-              color: cur ? lyricColor.hex : "rgba(255,255,255,0.9)",
-              textShadow: "0 2px 6px rgba(0,0,0,0.6)",
-              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-              transition: "color 0.4s ease",
+              border: "none", background: "transparent", cursor: "pointer", padding: 2,
+              color: isFavorite ? lyricColor.hex : "rgba(255,255,255,0.55)", display: "flex",
+              transition: "color 0.2s ease",
             }}
           >
-            {line1}
-          </p>
-          <p
-            style={{
-              margin: 0, maxWidth: "100%",
-              fontSize: 30, fontWeight: 600, lineHeight: 1.25, textAlign: "center",
-              color: "rgba(255,255,255,0.88)",
-              textShadow: "0 2px 4px rgba(0,0,0,0.5)",
-              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-              minHeight: 38,
-            }}
-          >
-            {line2}
-          </p>
+            <Heart size={16} fill={isFavorite ? "currentColor" : "none"} />
+          </button>
         </div>
+
+        {/* 中：上一首 / 播放 / 下一首 */}
+        <div className="app-no-drag" style={{ display: "flex", alignItems: "center", gap: 22 }}>
+          <CtrlBtn onClick={() => sendLyricsCommand({ type: "prev" })} title="上一首">
+            <SkipBack size={19} />
+          </CtrlBtn>
+          <CtrlBtn onClick={togglePlay} title={isPlaying ? "暂停" : "播放"}>
+            {isPlaying ? <Pause size={21} /> : <Play size={21} />}
+          </CtrlBtn>
+          <CtrlBtn onClick={() => sendLyricsCommand({ type: "next" })} title="下一首">
+            <SkipForward size={19} />
+          </CtrlBtn>
+        </div>
+
+        {/* 右：换色 / 锁定 / 关闭 */}
+        <div className="app-no-drag" style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, justifyContent: "flex-end" }}>
+          <CtrlBtn onClick={cycleColor} title={`歌词颜色：${lyricColor.name}`}>
+            <Palette size={16} />
+          </CtrlBtn>
+          <CtrlBtn onClick={toggleLock} title={locked ? "解锁（回主窗口操作）" : "锁定并鼠标穿透"}>
+            {locked ? <Lock size={16} /> : <LockOpen size={16} />}
+          </CtrlBtn>
+          <CtrlBtn onClick={() => window.close()} title="关闭">
+            <X size={18} />
+          </CtrlBtn>
+        </div>
+      </div>
+
+      {/* ===== 两行歌词（居中，紧随控制行） ===== */}
+      <div
+        style={{
+          flex: 1, display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: 4,
+          padding: "2px 26px 10px", overflow: "hidden",
+        }}
+      >
+        <p
+          style={{
+            margin: 0, maxWidth: "100%",
+            fontSize: 38, fontWeight: 700, lineHeight: 1.25, textAlign: "center",
+            color: cur ? lyricColor.hex : "rgba(255,255,255,0.9)",
+            textShadow: "0 2px 6px rgba(0,0,0,0.55)",
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+            transition: "color 0.4s ease",
+          }}
+        >
+          {line1}
+        </p>
+        <p
+          style={{
+            margin: 0, maxWidth: "100%",
+            fontSize: 27, fontWeight: 600, lineHeight: 1.25, textAlign: "center",
+            color: "rgba(255,255,255,0.86)",
+            textShadow: "0 2px 5px rgba(0,0,0,0.5)",
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          }}
+        >
+          {line2}
+        </p>
       </div>
     </div>
   );

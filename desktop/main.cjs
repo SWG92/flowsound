@@ -248,9 +248,9 @@ function openLyricsWindow() {
     return;
   }
   const { workArea } = screen.getPrimaryDisplay();
-  // 汽水式玻璃横幅：大尺寸居中悬浮
-  const w = 1200;
-  const h = 340;
+  // 汽水式紧凑横幅：控制行紧贴歌词
+  const w = 1150;
+  const h = 210;
   lyricsWin = new BrowserWindow({
     width: w,
     height: h,
@@ -260,7 +260,7 @@ function openLyricsWindow() {
     // 不透明深色横幅：透明窗在 Windows 缩放下有拖动变大/整窗不可见等系列
     // DWM 问题（均实际踩过），深色玻璃质感用纯色+渐变模拟，一劳永逸
     transparent: false,
-    backgroundColor: "#101018",
+    backgroundColor: "#20232e",
     hasShadow: false,
     thickFrame: false,
     alwaysOnTop: true,
