@@ -1,0 +1,37 @@
+# FlowSound 桌面版打包配置（electron-builder）
+# 结构：desktop/ 是 electron-builder 的 app 目录（独立 package.json，
+# 运行时依赖只有 electron-updater——Next.js 服务器走 extraResources 的 standalone，
+# 避免把整棵应用依赖树塞进安装包）
+appId: com.swg92.flowsound
+productName: FlowSound
+directories:
+  app: desktop
+  output: release
+  buildResources: desktop/build
+files:
+  - "**/*"
+asar: true
+extraResources:
+  # 内嵌 Next.js standalone 服务器（server.js + 精简 node_modules，须在 asar 外运行）
+  - from: .next/standalone
+    to: server
+  - from: .next/static
+    to: server/.next/static
+  - from: public
+    to: server/public
+  # 托盘/窗口图标
+  - from: desktop/build/icon.png
+    to: icon.png
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: FlowSound
+# 自动更新源：GitHub Releases（electron-updater 检查 + 下载 + 安装）
+publish:
+  provider: github
+  owner: SWG92
+  repo: flowsound

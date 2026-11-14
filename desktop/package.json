@@ -1,0 +1,10 @@
+{
+  "name": "flowsound-desktop",
+  "version": "0.1.0",
+  "description": "FlowSound 桌面版（内嵌 Next.js 服务器）",
+  "main": "main.cjs",
+  "private": true,
+  "dependencies": {
+    "electron-updater": "^6.8.11"
+  }
+}

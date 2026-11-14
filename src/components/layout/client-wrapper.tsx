@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useKeyboard } from "@/hooks/use-keyboard";
+import { DesktopMediaBridge } from "@/components/electron/desktop-media-bridge";
 import { PERFORMANCE_KEY } from "@/lib/constants";
 
 export function ClientWrapper({ children }: { children: React.ReactNode }) {
@@ -69,5 +70,10 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  return <>{children}</>;
+  return (
+    <>
+      <DesktopMediaBridge />
+      {children}
+    </>
+  );
 }

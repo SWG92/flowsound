@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // 明确指定项目根目录，避免检测到上层目录的 lockfile
   outputFileTracingRoot: __dirname,
+  // standalone 输出：Electron 桌面版内嵌服务器用（.next/standalone/server.js + 精简 node_modules）。
+  // 对普通部署无影响——只是额外产出一份可独立运行的 server 目录
+  output: "standalone",
   // React Compiler：编译期自动 memo 化组件与 JSX（歌词行、弹窗、列表等免手写 useMemo）。
   // 不兼容的组件（如 TanStack Virtual 的 useVirtualizer）会被编译器自动跳过，安全
   reactCompiler: true,
