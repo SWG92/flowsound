@@ -13,6 +13,7 @@ export interface FlowSoundDesktop {
   setTrayState(s: { playing: boolean; title: string }): void;
   openLyrics(): void;
   setLyricsClickThrough(on: boolean): void;
+  setLyricsPinned(on: boolean): void;
   checkForUpdates(): Promise<unknown>;
   onUpdateStatus(cb: (s: { type: string; version?: string; percent?: number; message?: string }) => void): void;
   getAppVersion(): Promise<string>;

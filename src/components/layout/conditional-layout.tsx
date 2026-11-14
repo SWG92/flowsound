@@ -43,7 +43,7 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
           width: "100vw",
           height: "100vh",
           overflow: "hidden",
-          background: shell ? "#101018" : "rgba(0,0,0,0.85)",
+          background: shell ? "#1a1d26" : "rgba(0,0,0,0.85)",
           color: "#fff",
           margin: 0,
           padding: 0,

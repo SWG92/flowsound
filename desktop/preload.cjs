@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld("flowsoundDesktop", {
   // —— 桌面悬浮歌词窗口 ——
   openLyrics: () => ipcRenderer.send("open-lyrics"),
   setLyricsClickThrough: (on) => ipcRenderer.send("lyrics-click-through", on),
+  setLyricsPinned: (on) => ipcRenderer.send("set-lyrics-pinned", on),
   // —— 自动更新 ——
   checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
   onUpdateStatus: (cb) => {

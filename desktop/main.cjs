@@ -257,24 +257,21 @@ function openLyricsWindow() {
     x: workArea.x + Math.round((workArea.width - w) / 2),
     y: workArea.y + Math.max(0, Math.round((workArea.height - h) / 2)),
     frame: false,
-    // 不透明深色横幅：透明窗在 Windows 缩放下有拖动变大/整窗不可见等系列
-    // DWM 问题（均实际踩过），深色玻璃质感用纯色+渐变模拟，一劳永逸
-    transparent: false,
-    backgroundColor: "#20232e",
+    roundedCorners: true,      // Win11 系统圆角
+    backgroundColor: "#1a1d26",
     hasShadow: false,
-    thickFrame: false,
-    alwaysOnTop: true,
+    alwaysOnTop: false,        // 置顶默认关闭，横幅上图钉开关控制
     skipTaskbar: true,
     resizable: true,
     minWidth: 480,
     minHeight: 180,
     webPreferences: { preload: path.join(__dirname, "preload.cjs") },
   });
-  lyricsWin.setAlwaysOnTop(true, "screen-saver");
   lyricsWin.loadURL(`http://127.0.0.1:${serverPort}/lyrics-bar`);
   lyricsWin.on("closed", () => {
     lyricsWin = null;
   });
+
 }
 
 // ============ 全局媒体键 ============
@@ -393,6 +390,11 @@ ipcMain.on("open-lyrics", () => openLyricsWindow());
 ipcMain.on("lyrics-click-through", (_e, on) => {
   if (lyricsWin && !lyricsWin.isDestroyed()) {
     lyricsWin.setIgnoreMouseEvents(!!on, { forward: !!on });
+  }
+});
+ipcMain.on("set-lyrics-pinned", (_e, on) => {
+  if (lyricsWin && !lyricsWin.isDestroyed()) {
+    lyricsWin.setAlwaysOnTop(!!on, "screen-saver");
   }
 });
 

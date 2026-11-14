@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Play, Pause, SkipBack, SkipForward, Heart, Palette, Lock, LockOpen, X, Music2 } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Heart, Palette, Lock, LockOpen, X, Music2, Pin, PinOff } from "lucide-react";
 import { onLyricsBroadcast, sendLyricsCommand, isHeartbeatFresh, type LyricsMessage } from "@/lib/lyrics-broadcast";
 import { getDesktop } from "@/lib/desktop";
 
@@ -24,6 +24,7 @@ export default function LyricsBarPage() {
   const [state, setState] = useState<LyricsMessage>({ type: "sync" });
   const [colorIdx, setColorIdx] = useState(0);
   const [locked, setLocked] = useState(false);
+  const [pinned, setPinned] = useState(false);   // 置顶开关（默认不置顶）
   const [shell, setShell] = useState(false);
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, origX: 0, origY: 0 });
@@ -52,13 +53,18 @@ export default function LyricsBarPage() {
     return () => { unsub(); clearInterval(interval); };
   }, []);
 
-  // 桌面壳：底色同步窗口 backgroundColor；拖拽交给系统 app-region
+  // 桌面壳：原生透明窗口 html/body 须透明；拖拽交给系统 app-region
   useEffect(() => {
     if (!getDesktop()) return;
     setShell(true);
-    document.documentElement.style.background = "#20232e";
-    document.body.style.background = "#20232e";
+    document.documentElement.style.background = "#1a1d26";
+    document.body.style.background = "#1a1d26";
   }, []);
+
+  // 置顶开关同步主进程
+  useEffect(() => {
+    getDesktop()?.setLyricsPinned(pinned);
+  }, [pinned]);
 
   // 桌面壳：锁定 = 原生鼠标穿透（解锁回主窗口悬浮歌词面板）
   useEffect(() => {
@@ -115,7 +121,7 @@ export default function LyricsBarPage() {
       className={shell ? "app-drag" : undefined}
       style={{
         margin: 0, padding: 0, width: "100vw", height: "100vh",
-        overflow: "hidden", background: "#20232e",
+        overflow: "hidden", background: "#1a1d26",
         display: "flex", flexDirection: "column",
         fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif',
         userSelect: "none", WebkitUserSelect: "none",
@@ -164,6 +170,9 @@ export default function LyricsBarPage() {
         <div className="app-no-drag" style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, justifyContent: "flex-end" }}>
           <CtrlBtn onClick={cycleColor} title={`歌词颜色：${lyricColor.name}`}>
             <Palette size={16} />
+          </CtrlBtn>
+          <CtrlBtn onClick={() => setPinned(!pinned)} title={pinned ? "取消置顶" : "置顶（悬浮于所有窗口）"}>
+            {pinned ? <PinOff size={16} /> : <Pin size={16} />}
           </CtrlBtn>
           <CtrlBtn onClick={toggleLock} title={locked ? "解锁（回主窗口操作）" : "锁定并鼠标穿透"}>
             {locked ? <Lock size={16} /> : <LockOpen size={16} />}
