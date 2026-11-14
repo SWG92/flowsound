@@ -140,7 +140,6 @@ export default function LyricsBarPage() {
       onMouseDown={handleMouseDown}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className={shell ? "app-drag" : undefined}
       style={{
         margin: 0, padding: 0, width: "100vw", height: "100vh",
         overflow: "hidden", background: "transparent",
@@ -166,6 +165,9 @@ export default function LyricsBarPage() {
           transition: "border-color 0.4s ease",
         }}
       >
+        {/* 拖拽区：只铺左侧歌词区，右侧控制胶囊物理隔离（纯几何，无挖洞） */}
+        <div className="fs-drag-strip" style={{ left: 0, top: 0, bottom: 0, right: 330 }} />
+
         {/* 两行歌词（居中，平时唯一可见内容） */}
         <div
           style={{

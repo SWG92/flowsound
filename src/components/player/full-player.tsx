@@ -199,6 +199,10 @@ export function FullPlayer() {
       <div className="absolute inset-0 bg-black/55" />
       {accent && <div className="absolute inset-0" style={{ background: "var(--accent-soft)" }} />}
 
+      {/* 桌面壳拖拽区：铺顶部按钮之间的空档（左按钮区/中标题/右按钮区物理隔离） */}
+      <div className="fs-drag-strip" style={{ left: 90, width: "24%", top: 0, height: 60 }} />
+      <div className="fs-drag-strip" style={{ left: "62%", right: 150, top: 0, height: 60 }} />
+
 
       {/* 顶部：收起 + 标题（悬停时保持显示） */}
       <div

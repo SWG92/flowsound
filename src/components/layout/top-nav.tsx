@@ -22,7 +22,9 @@ export function TopNav() {
   };
 
   return (
-    <div className="fs-topnav flex items-center gap-1 px-2 py-2 md:pl-2 pl-12">
+    <div className="relative flex items-center gap-1 px-2 py-2 md:pl-2 pl-12">
+      {/* 桌面壳拖拽区：只铺中段空白，两端按钮区物理隔离（浏览器中 app-region 无效） */}
+      <div className="fs-drag-strip" style={{ left: 120, right: 140, top: 0, bottom: 0 }} />
       <button
         onClick={handleBack}
         disabled={!canGoBack}
