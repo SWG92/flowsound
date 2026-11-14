@@ -6,7 +6,6 @@ import { Sidebar } from "./sidebar";
 import { TopNav } from "./top-nav";
 import { PlayerBar } from "@/components/player/player-bar";
 import { PlayQueue } from "@/components/player/queue";
-import { FloatingLyrics } from "@/components/player/floating-lyrics";
 import { DesktopWindowControls } from "@/components/electron/desktop-title-bar";
 import { getDesktop } from "@/lib/desktop";
 import { useNavTracker } from "@/hooks/use-nav-tracker";
@@ -24,7 +23,6 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       </main>
       <PlayerBar />
       <PlayQueue />
-      <FloatingLyrics />
     </>
   );
 }
@@ -45,7 +43,7 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
           width: "100vw",
           height: "100vh",
           overflow: "hidden",
-          background: shell ? "transparent" : "rgba(0,0,0,0.85)",
+          background: shell ? "#101018" : "rgba(0,0,0,0.85)",
           color: "#fff",
           margin: 0,
           padding: 0,

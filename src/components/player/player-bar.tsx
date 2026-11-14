@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePlayerStore } from "@/lib/store";
 import { getDesktop } from "@/lib/desktop";
+import { openDesktopLyrics } from "@/lib/lyrics-broadcast";
 import { getSongUrl } from "@/lib/api";
 import { AUDIO_QUALITY } from "@/lib/constants";
 import type { AudioQuality } from "@/lib/constants";
@@ -136,8 +137,6 @@ export function PlayerBar() {
   const setShowQueue = usePlayerStore((s) => s.setShowQueue);
   const showQueue = usePlayerStore((s) => s.showQueue);
   const isLoading = usePlayerStore((s) => s.isLoading);
-  const setShowFloatingLyrics = usePlayerStore((s) => s.setShowFloatingLyrics);
-  const showFloatingLyrics = usePlayerStore((s) => s.showFloatingLyrics);
   const audioQuality = usePlayerStore((s) => s.audioQuality);
   const setAudioQuality = usePlayerStore((s) => s.setAudioQuality);
   const setShowFullPlayer = usePlayerStore((s) => s.setShowFullPlayer);
@@ -378,20 +377,15 @@ export function PlayerBar() {
               size="icon"
               className="cursor-pointer h-8 w-8 text-xs font-bold hidden sm:inline-flex"
               onClick={() => {
-                // 桌面壳：直开/关原生悬浮歌词窗（汽水式横幅）；浏览器：应用内悬浮面板
+                // 桌面壳：直开/关原生悬浮歌词窗（汽水式横幅）；浏览器：弹独立歌词窗
                 const d = getDesktop();
                 if (d) d.openLyrics();
-                else setShowFloatingLyrics(true);
+                else openDesktopLyrics();
               }}
               title="桌面悬浮歌词"
-              style={{
-                background: showFloatingLyrics
-                  ? "linear-gradient(135deg, rgba(74,144,217,0.2), rgba(53,122,189,0.15))"
-                  : "transparent",
-                borderRadius: 8,
-              }}
+              style={{ borderRadius: 8 }}
             >
-              <span className={showFloatingLyrics ? "text-sky-400" : "text-sky-500"}>词</span>
+              <span className="text-sky-500">词</span>
             </Button>
             {/* 可视化条右移 */}
             <div className="ml-1 hidden sm:block">

@@ -53,14 +53,12 @@ export default function LyricsBarPage() {
     return () => { unsub(); clearInterval(interval); };
   }, []);
 
-  // 桌面壳：原生透明窗口要求 html/body 全透明；
-  // 拖拽交给系统（app-region）——手动 moveTo 循环在 Windows 缩放显示下
-  // 会因 DPI 取整让透明窗口越拖越大（Electron 已知问题）
+  // 桌面壳：窗口为不透明深色，页面底色同步成同一色（圆角由系统/页面自绘）
   useEffect(() => {
     if (!getDesktop()) return;
     setShell(true);
-    document.documentElement.style.background = "transparent";
-    document.body.style.background = "transparent";
+    document.documentElement.style.background = "#101018";
+    document.body.style.background = "#101018";
   }, []);
 
   // 桌面壳：锁定 = 原生鼠标穿透（解锁回主窗口悬浮歌词面板）
@@ -117,7 +115,7 @@ export default function LyricsBarPage() {
       onMouseDown={handleMouseDown}
       style={{
         margin: 0, padding: 0, width: "100vw", height: "100vh",
-        overflow: "hidden", background: "transparent",
+        overflow: "hidden", background: "#101018",
         display: "flex", alignItems: "center",
         fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif',
         userSelect: "none", WebkitUserSelect: "none",
@@ -129,9 +127,7 @@ export default function LyricsBarPage() {
         style={{
           width: "100%", height: "100%",
           margin: 16, borderRadius: 18,
-          background: "rgba(10,10,16,0.42)",
-          backdropFilter: "blur(34px) saturate(170%)",
-          WebkitBackdropFilter: "blur(34px) saturate(170%)",
+          background: "linear-gradient(135deg, #1b1b26 0%, #14141d 55%, #101018 100%)",
           border: `1px solid ${isPlaying ? lyricColor.hex + "30" : "rgba(255,255,255,0.12)"}`,
           boxShadow: "0 24px 70px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
           display: "flex", flexDirection: "column",

@@ -35,7 +35,6 @@ interface PlayerState {
   // 重播信号：playSong 每次递增。URL 不变（重播同曲）时 use-player 靠它触发 replay()
   replayNonce: number;
   isLoading: boolean;
-  showFloatingLyrics: boolean; // 悬浮歌词窗
   showFullPlayer: boolean; // 全屏播放页
 
   // 主题与设置
@@ -75,7 +74,6 @@ interface PlayerState {
   setLoading: (loading: boolean) => void;
   setTheme: (theme: "light" | "dark") => void;
   setAudioQuality: (quality: AudioQuality) => void;
-  setShowFloatingLyrics: (show: boolean) => void;
   setShowFullPlayer: (show: boolean) => void;
   sleepAtEndOfTrack: boolean; // 播完当前歌曲后停止（Apple Music "End of Track" 式睡眠定时）
   setSleepAtEndOfTrack: (on: boolean) => void;
@@ -261,7 +259,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   showQueue: false,
   replayNonce: 0,
   isLoading: false,
-  showFloatingLyrics: false,
   showFullPlayer: false,
   theme: initialTheme,
   audioQuality: initialAudioQuality,
@@ -652,10 +649,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setLyricTrans: (on) => {
     saveToStorage(STORAGE_KEYS.lyricTrans, on);
     set({ lyricTrans: on });
-  },
-
-  setShowFloatingLyrics: (show) => {
-    set({ showFloatingLyrics: show });
   },
 
   setShowFullPlayer: (show) => {

@@ -257,9 +257,11 @@ function openLyricsWindow() {
     x: workArea.x + Math.round((workArea.width - w) / 2),
     y: workArea.y + Math.max(0, Math.round((workArea.height - h) / 2)),
     frame: false,
-    transparent: true,
+    // 不透明深色横幅：透明窗在 Windows 缩放下有拖动变大/整窗不可见等系列
+    // DWM 问题（均实际踩过），深色玻璃质感用纯色+渐变模拟，一劳永逸
+    transparent: false,
+    backgroundColor: "#101018",
     hasShadow: false,
-    // thickFrame:false 根治 Windows 缩放显示下透明窗「拖动即变大」的 DWM 取整 bug
     thickFrame: false,
     alwaysOnTop: true,
     skipTaskbar: true,
