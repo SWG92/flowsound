@@ -193,7 +193,7 @@ export default function LyricsBarPage() {
               margin: 0, maxWidth: "100%",
               fontSize: 42, fontWeight: 700, lineHeight: 1.2, textAlign: "center",
               color: cur ? lyricColor.hex : "rgba(255,255,255,0.9)",
-              textShadow: cur ? `0 0 22px ${lyricColor.glow}, 0 2px 4px rgba(0,0,0,0.55)` : "0 2px 4px rgba(0,0,0,0.5)",
+              textShadow: "0 2px 6px rgba(0,0,0,0.6)",
               whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
               transition: "color 0.4s ease",
             }}
