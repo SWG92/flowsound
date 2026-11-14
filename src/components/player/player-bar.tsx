@@ -87,6 +87,7 @@ function formatSleepRemain(ms: number): string {
 }
 
 export function PlayerBar() {
+  console.warn("[mount] PlayerBar");
   // useAudioPlayer 负责把 URL/音量/倍速同步到播放器（副作用在 hook 内），
   // 进度显示与 seek 已拆分到 <ProgressBar />（自订阅，高频更新不再重渲染本组件）
   useAudioPlayer();

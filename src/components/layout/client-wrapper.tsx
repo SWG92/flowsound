@@ -2,17 +2,26 @@
 
 import { useEffect } from "react";
 import { useKeyboard } from "@/hooks/use-keyboard";
+import { getDesktop } from "@/lib/desktop";
 import { DesktopMediaBridge } from "@/components/electron/desktop-media-bridge";
 import { PERFORMANCE_KEY } from "@/lib/constants";
 
 export function ClientWrapper({ children }: { children: React.ReactNode }) {
+  console.warn("[mount] ClientWrapper");
   useKeyboard();
 
-  // 注册 PWA Service Worker
+  // Service Worker：仅浏览器端注册（PWA 离线缓存）。
+  // 桌面壳内必须禁用——SW 的请求拦截/生命周期切换（skipWaiting 激活）会掐断
+  // 正在进行的路由 fetch，触发 Next 的 MPA 降级（整页硬刷新），播放随之停摆；
+  // 且桌面端内容由内嵌 localhost 服务器提供，根本不需要离线缓存。
   useEffect(() => {
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    if (getDesktop()) {
+      // 清掉历史遗留的 SW 注册，防止旧 SW 继续拦截请求
+      navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
+      return;
     }
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
 
   // 应用性能模式（设置页开关）：关闭背景模糊与光斑动画，低配设备更流畅

@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useRef } from "react";
 import { audioPlayer } from "@/lib/audio-player";
-import { usePlayerStore } from "@/lib/store";
+import { usePlayerStore, playbackRestored } from "@/lib/store";
 
 export function useAudioPlayer() {
   const prevSongUrl = useRef<string | null>(null);
@@ -23,6 +23,22 @@ export function useAudioPlayer() {
     if (url !== prevSongUrl.current) {
       prevSongUrl.current = url;
       audioPlayer.play(url, volume, speed);
+      // 快照恢复（刷新/重启后续播）：store.currentTime >3s 说明是从进度恢复，
+      // 播起来后跳回快照进度（正常切歌时 playSong 已把 currentTime 归零，不受影响）
+      const savedTime = usePlayerStore.getState().currentTime;
+      if (savedTime > 3) {
+        setTimeout(() => audioPlayer.seek(savedTime), 150);
+      }
+      // 快照为暂停态：静音起播到进度再压回暂停（不出声、状态正确）
+      if (playbackRestored && !usePlayerStore.getState().isPlaying) {
+        const v = usePlayerStore.getState().volume;
+        audioPlayer.setVolume(0);
+        setTimeout(() => {
+          audioPlayer.seek(savedTime);
+          audioPlayer.pause();
+          audioPlayer.setVolume(v);
+        }, 260);
+      }
     } else {
       audioPlayer.replay();
     }

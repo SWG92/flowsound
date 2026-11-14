@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { usePlayerStore } from "@/lib/store";
 import { getDesktop } from "@/lib/desktop";
 
@@ -10,9 +11,31 @@ import { getDesktop } from "@/lib/desktop";
  * - 关闭行为偏好同步（设置页写 localStorage，挂载时上报主进程）
  * - 任务栏进度条（播放秒级节流上报）
  * - 托盘播放态（图标切换 + tooltip 歌名）
+ * - 常用路由预取（防快速点击侧栏时 RSC 请求互相中止触发整页硬刷新）
  * 浏览器环境 getDesktop() 为 null，全部零开销跳过。
  */
+
+const PREFETCH_ROUTES = ["/", "/daily", "/favorites", "/history", "/playlist", "/blacklist", "/search"];
+
 export function DesktopMediaBridge() {
+  const router = useRouter();
+
+  // 路由预取：桌面壳内挂载即预取 + 每 30s 保活。
+  // 快速连点侧栏时，App Router 会中止上一次 RSC 请求（net::ERR_ABORTED），
+  // Next 对中止/失败的导航会降级成整页硬刷新 → 播放器随之停摆；
+  // 预取后点击直接命中本地缓存，不再发起竞争请求。
+  useEffect(() => {
+    if (!getDesktop()) return;
+    const prefetchAll = () => {
+      for (const r of PREFETCH_ROUTES) {
+        try { router.prefetch(r); } catch { /* ignore */ }
+      }
+    };
+    prefetchAll();
+    const t = setInterval(prefetchAll, 30000);
+    return () => clearInterval(t);
+  }, [router]);
+
   useEffect(() => {
     const d = getDesktop();
     if (!d) return;

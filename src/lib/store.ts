@@ -240,16 +240,42 @@ function prevShuffleIndex(queue: Song[], currentIndex: number): number {
 // 的频率调 setVolume，状态需要即时更新，但没必要每次都同步写存储
 let volumeSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
+// 播放快照持久化：刷新/崩溃后恢复"正在播放的歌 + 队列 + 进度"。
+// 桌面壳内 Next 偶发整页刷新不再导致音乐凭空消失（标准播放器行为）。
+const PLAYBACK_SNAPSHOT_KEY = "flowsound_playback_snapshot";
+interface PlaybackSnapshot {
+  currentSong: Song | null;
+  queue: Song[];
+  queueIndex: number;
+  currentTime: number;
+  isPlaying: boolean;
+}
+function loadPlaybackSnapshot(): PlaybackSnapshot | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(PLAYBACK_SNAPSHOT_KEY);
+    if (!raw) return null;
+    const snap = JSON.parse(raw);
+    if (snap?.currentSong?.url && Array.isArray(snap.queue)) {
+      return snap as PlaybackSnapshot;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+const playbackSnapshot = loadPlaybackSnapshot();
+// 是否从快照恢复（供 use-player 区分"恢复暂停态"与"正常起播"）
+export const playbackRestored = !!playbackSnapshot;
+
 export const usePlayerStore = create<PlayerState>((set, get) => ({
-  currentSong: null,
-  isPlaying: false,
-  currentTime: 0,
+  currentSong: playbackSnapshot?.currentSong ?? null,
+  isPlaying: playbackSnapshot?.isPlaying ?? false,
+  currentTime: playbackSnapshot?.currentTime ?? 0,
   duration: 0,
   volume: initialVolume,
   playMode: initialPlayMode,
   speed: initialSpeed,
-  queue: [],
-  queueIndex: -1,
+  queue: playbackSnapshot?.queue ?? [],
+  queueIndex: playbackSnapshot?.queueIndex ?? -1,
   lyrics: [],
   currentLyricIndex: -1,
   favorites: initialFavorites,
@@ -267,6 +293,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   sourceIndex: -1,
 
   playSong: async (song, queue, sourceList) => {
+    console.warn("[store] playSong", song?.name, new Error("trace").stack);
     const gen = ++playGeneration;
     set({ isLoading: true });
 
@@ -658,3 +685,22 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   sleepAtEndOfTrack: false,
   setSleepAtEndOfTrack: (on) => set({ sleepAtEndOfTrack: on }),
 }));
+
+// 播放快照保存：currentSong/queue/进度变化后 1s 节流写入（临时埋点 [store] 一并保留）
+let snapshotTimer: ReturnType<typeof setTimeout> | null = null;
+usePlayerStore.subscribe((state, prev) => {
+  if (state.currentSong !== prev.currentSong || state.queue !== prev.queue || Math.floor(state.currentTime) !== Math.floor(prev.currentTime)) {
+    if (snapshotTimer) clearTimeout(snapshotTimer);
+    snapshotTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(PLAYBACK_SNAPSHOT_KEY, JSON.stringify({
+          currentSong: state.currentSong,
+          queue: state.queue,
+          queueIndex: state.queueIndex,
+          currentTime: state.currentTime,
+          isPlaying: state.isPlaying,
+        }));
+      } catch { /* ignore */ }
+    }, 1000);
+  }
+});
