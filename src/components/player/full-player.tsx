@@ -275,31 +275,12 @@ export function FullPlayer() {
         )}
       </div>
 
-      {/* 歌名 + 歌手 + 收藏/评论（汽水式：按钮随歌名居中） */}
-      <div className="relative z-10 px-8 mt-4 pb-2 flex items-center justify-center gap-4">
-        <div className="text-center min-w-0">
-          <h2 className="text-2xl font-bold text-white truncate">{currentSong.name}</h2>
-          <p className="text-white/60 text-sm mt-1">
-            {currentSong.artists?.map((a) => a.name).join(" / ")}
-          </p>
-        </div>
-        <button
-          onClick={() => toggleFavorite(currentSong)}
-          className={cn(
-            "w-11 h-11 shrink-0 rounded-full flex items-center justify-center cursor-pointer transition-colors",
-            fav ? "bg-white/20 text-red-400" : "bg-white/10 text-white/85 hover:bg-white/20 hover:text-white"
-          )}
-          title={fav ? "取消收藏" : "收藏"}
-        >
-          <Heart className={cn("h-5 w-5", fav && "fill-red-400")} />
-        </button>
-        <button
-          onClick={() => setShowComments(true)}
-          className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center cursor-pointer transition-colors bg-white/10 text-white/85 hover:bg-white/20 hover:text-white"
-          title="评论"
-        >
-          <MessageCircle className="h-5 w-5" />
-        </button>
+      {/* 歌名 + 歌手（与歌词区拉开距离） */}
+      <div className="relative z-10 px-8 mt-4 pb-2 text-center">
+        <h2 className="text-2xl font-bold text-white truncate">{currentSong.name}</h2>
+        <p className="text-white/60 text-sm mt-1">
+          {currentSong.artists?.map((a) => a.name).join(" / ")}
+        </p>
       </div>
 
       {/* 底部控制区（悬停时保持显示） */}
@@ -389,6 +370,27 @@ export function FullPlayer() {
           <button onClick={() => nextSong()} className="text-white cursor-pointer transition-transform active:scale-90" title="下一首">
             <SkipForward className="h-8 w-8" fill="currentColor" />
           </button>
+
+          {/* 收藏 / 评论：本行最右端（汽水式） */}
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            <button
+              onClick={() => toggleFavorite(currentSong)}
+              className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-colors",
+                fav ? "text-red-400" : "text-white/75 hover:text-white hover:bg-white/10"
+              )}
+              title={fav ? "取消收藏" : "收藏"}
+            >
+              <Heart className={cn("h-5 w-5", fav && "fill-red-400")} />
+            </button>
+            <button
+              onClick={() => setShowComments(true)}
+              className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white/75 hover:text-white hover:bg-white/10"
+              title="评论"
+            >
+              <MessageCircle className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </div>
 
