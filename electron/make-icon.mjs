@@ -31,3 +31,8 @@ mkdirSync(path.dirname(out), { recursive: true });
 writeFileSync(path.resolve("build/icon.svg"), svg);
 await sharp(Buffer.from(svg), { density: 512 }).resize(512, 512).png().toFile(out);
 console.log("icon ->", out);
+
+// 播放态托盘图标：右下角加一颗品牌绿圆点（托盘图标随播放状态切换 + tooltip 显示歌名）
+const playingSvg = svg.replace("</svg>", '<circle cx="20.6" cy="20.6" r="2.8" fill="#1ed760" stroke="rgba(0,0,0,0.5)" stroke-width="0.3"/></svg>');
+await sharp(Buffer.from(playingSvg), { density: 512 }).resize(512, 512).png().toFile(path.resolve("desktop/build/icon-playing.png"));
+console.log("icon-playing ->", path.resolve("desktop/build/icon-playing.png"));

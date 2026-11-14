@@ -25,9 +25,11 @@ extraResources:
     to: server/.next/static
   - from: public
     to: server/public
-  # 托盘/窗口图标
+  # 托盘/窗口图标（icon-playing：播放态带绿点，托盘随播放状态切换）
   - from: desktop/build/icon.png
     to: icon.png
+  - from: desktop/build/icon-playing.png
+    to: icon-playing.png
 win:
   target: nsis
 nsis:

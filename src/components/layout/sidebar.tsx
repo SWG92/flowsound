@@ -98,7 +98,7 @@ export function Sidebar() {
   return (
     <>
       {/* 桌面端：固定侧栏 */}
-      <aside className="hidden md:flex flex-col w-56 shrink-0 glass h-[calc(100vh-120px)] rounded-[28px] m-3 mr-0 p-4 overflow-hidden sticky top-3 self-start">
+      <aside className="fs-sidebar hidden md:flex flex-col w-56 shrink-0 glass h-[calc(100vh-120px)] rounded-[28px] m-3 mr-0 p-4 overflow-hidden sticky top-3 self-start">
         {navContent}
       </aside>
 

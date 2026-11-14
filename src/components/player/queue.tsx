@@ -120,7 +120,10 @@ export function PlayQueue() {
           fullPlayerOpen ? "glass-refract" : "glass"
         )}
         style={{
-          top: fullPlayerOpen ? "calc(4.5rem + var(--safe-top))" : "0.75rem",
+          // 桌面壳下整体下移避让自绘标题栏（--fs-shell-top 浏览器端为 0）
+          top: fullPlayerOpen
+            ? "calc(4.5rem + var(--safe-top) + var(--fs-shell-top, 0px))"
+            : "calc(0.75rem + var(--fs-shell-top, 0px))",
           bottom: "calc(96px + var(--safe-bottom))",
         }}
       >

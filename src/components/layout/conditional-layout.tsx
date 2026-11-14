@@ -1,17 +1,22 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { TopNav } from "./top-nav";
 import { PlayerBar } from "@/components/player/player-bar";
 import { PlayQueue } from "@/components/player/queue";
 import { FloatingLyrics } from "@/components/player/floating-lyrics";
+import { DesktopTitleBar } from "@/components/electron/desktop-title-bar";
+import { getDesktop } from "@/lib/desktop";
 import { useNavTracker } from "@/hooks/use-nav-tracker";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
   useNavTracker();
   return (
     <>
+      {/* 桌面壳自绘标题栏（浏览器端不渲染） */}
+      <DesktopTitleBar />
       <Sidebar />
       <main className="flex-1 flex flex-col overflow-hidden" style={{ paddingBottom: "calc(84px + var(--safe-bottom))" }}>
         <TopNav />
@@ -27,6 +32,11 @@ function MainLayout({ children }: { children: React.ReactNode }) {
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isDesktopLyrics = pathname === "/lyrics-desktop";
+  // 桌面壳内的悬浮歌词窗：容器背景透明（原生窗口本身透明）
+  const [shell, setShell] = useState(false);
+  useEffect(() => {
+    if (getDesktop()) setShell(true);
+  }, []);
 
   if (isDesktopLyrics) {
     return (
@@ -35,7 +45,7 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
           width: "100vw",
           height: "100vh",
           overflow: "hidden",
-          background: "rgba(0,0,0,0.85)",
+          background: shell ? "transparent" : "rgba(0,0,0,0.85)",
           color: "#fff",
           margin: 0,
           padding: 0,

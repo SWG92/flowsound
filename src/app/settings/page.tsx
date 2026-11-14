@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon, Download, Upload, Languages } from "lucide-react";
+import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon, Download, Upload, Languages, RefreshCw } from "lucide-react";
+import { getDesktop } from "@/lib/desktop";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
@@ -59,6 +60,35 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
   const [performanceOn, setPerformanceOn] = useState(false);
   const importFileRef = useRef<HTMLInputElement>(null);
+  // 桌面壳（Electron）专属：版本显示 / 检查更新 / 关闭行为偏好
+  const [deskVersion, setDeskVersion] = useState<string | null>(null);
+  const [updateMsg, setUpdateMsg] = useState("");
+  const [closeAction, setCloseActionState] = useState<"tray" | "exit">("tray");
+  useEffect(() => {
+    const d = getDesktop();
+    if (!d) return;
+    d.getAppVersion?.().then((v) => setDeskVersion(v)).catch(() => {});
+    d.onUpdateStatus?.((s) => {
+      if (s.type === "available") setUpdateMsg(`发现新版本 v${s.version}，正在后台下载…`);
+      else if (s.type === "progress") setUpdateMsg(`下载中 ${s.percent ?? 0}%`);
+      else if (s.type === "downloaded") setUpdateMsg(`v${s.version} 已就绪，重启应用完成更新`);
+      else if (s.type === "error") setUpdateMsg("更新失败，可从 GitHub Releases 手动下载");
+    });
+    try {
+      setCloseActionState(localStorage.getItem("flowsound_close_action") === "exit" ? "exit" : "tray");
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleCheckUpdate = () => {
+    setUpdateMsg("正在检查更新…");
+    getDesktop()?.checkForUpdates?.();
+  };
+
+  const applyCloseAction = (a: "tray" | "exit") => {
+    setCloseActionState(a);
+    try { localStorage.setItem("flowsound_close_action", a); } catch { /* ignore */ }
+    getDesktop()?.setCloseAction(a);
+  };
   useEffect(() => {
     const t = setTimeout(() => {
       setMounted(true);
@@ -344,6 +374,56 @@ export default function SettingsPage() {
           </Button>
         </div>
       </section>
+
+      {/* 桌面版（仅 Electron 壳内显示） */}
+      {deskVersion !== null && (
+        <section className="glass rounded-xl p-6 space-y-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Monitor className="h-5 w-5 text-primary" />
+            桌面版
+          </h2>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">软件更新</p>
+              <p className="text-xs text-muted-foreground">
+                {updateMsg || `当前版本 v${deskVersion} · 自动检查新版本，下载完成后提示重启`}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleCheckUpdate} className="cursor-pointer">
+              <RefreshCw className="h-4 w-4 mr-1.5" />
+              检查更新
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">关闭按钮行为</p>
+              <p className="text-xs text-muted-foreground">
+                点窗口 X 时：缩到托盘继续播放，或直接退出应用
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={closeAction === "tray" ? "default" : "outline"}
+                size="sm"
+                onClick={() => applyCloseAction("tray")}
+                className="cursor-pointer"
+              >
+                缩到托盘
+              </Button>
+              <Button
+                variant={closeAction === "exit" ? "default" : "outline"}
+                size="sm"
+                onClick={() => applyCloseAction("exit")}
+                className="cursor-pointer"
+              >
+                直接退出
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* 关于 */}
       <section className="glass rounded-xl p-6 space-y-3">

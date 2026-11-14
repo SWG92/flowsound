@@ -183,6 +183,8 @@ export function FullPlayer() {
       onTouchEnd={onTouchEnd}
       onMouseMove={pokeControls}
       style={{
+        // 桌面壳下让出自绘标题栏高度（浏览器端为 0）
+        top: "var(--fs-shell-top, 0px)",
         transform: dragY ? `translateY(${dragY}px)` : undefined,
         transition: dragY ? "none" : "transform 0.3s ease",
         "--accent": accent ?? undefined,

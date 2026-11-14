@@ -551,3 +551,24 @@ a:active {
   background: var(--accent, rgba(255, 255, 255, 0.85));
 }
 
+
+/* ============ Electron 桌面壳（DesktopTitleBar 自绘标题栏）============ */
+/* 拖拽区：标题栏整体可拖动/双击最大化；交互元素加 .app-no-drag */
+.app-drag {
+  -webkit-app-region: drag;
+}
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}
+/* 壳内布局整体下移 40px 避让标题栏；各组件内偏移用 --fs-shell-top 叠加 */
+html.desktop-shell {
+  --fs-shell-top: 40px;
+}
+html.desktop-shell body {
+  padding-top: 40px;
+}
+/* 侧栏（sticky 偏移相对视口，需手动让出标题栏高度） */
+html.desktop-shell .fs-sidebar {
+  top: calc(0.75rem + var(--fs-shell-top));
+  height: calc(100vh - 120px - var(--fs-shell-top));
+}

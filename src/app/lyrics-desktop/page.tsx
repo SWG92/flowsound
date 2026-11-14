@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { onLyricsBroadcast, sendLyricsCommand, isHeartbeatFresh, type LyricsMessage } from "@/lib/lyrics-broadcast";
+import { getDesktop } from "@/lib/desktop";
 
 const LYRIC_COLORS = [
   { name: "绿", hex: "#1ed760", glow: "rgba(30,215,96,0.5)" },
@@ -104,6 +105,11 @@ export default function DesktopLyricsPage() {
     window.addEventListener("mouseup", up);
     return () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
   }, [dragging]);
+
+  // 桌面壳：锁定 = 原生鼠标穿透（悬浮窗变纯展示；解锁回到主窗口的悬浮歌词面板操作）
+  useEffect(() => {
+    getDesktop()?.setLyricsClickThrough(locked);
+  }, [locked]);
 
   const cycleColor = () => {
     const next = (colorIdx + 1) % LYRIC_COLORS.length;
