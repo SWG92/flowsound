@@ -11,12 +11,12 @@ export interface FlowSoundDesktop {
   setCloseAction(a: "tray" | "exit"): void;
   setProgress(v: number): void;
   setTrayState(s: { playing: boolean; title: string }): void;
-  openLyrics(): void;
-  setLyricsClickThrough(on: boolean): void;
-  setLyricsPinned(on: boolean): void;
-  resizeOverlayStart(x: number, y: number): void;
-  resizeOverlayMove(x: number, y: number): void;
-  resizeOverlayEnd(): void;
+  closeLyrics(): void;
+  setLyricsLocked(on: boolean): void;
+  onLyricsLockState(cb: (locked: boolean) => void): void;
+  dragOverlayStart(x: number, y: number): void;
+  dragOverlayMove(x: number, y: number): void;
+  dragOverlayEnd(): void;
   checkForUpdates(): Promise<unknown>;
   onUpdateStatus(cb: (s: { type: string; version?: string; percent?: number; message?: string }) => void): void;
   getAppVersion(): Promise<string>;

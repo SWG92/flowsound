@@ -398,18 +398,6 @@ export default function SettingsPage() {
 
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-sm">桌面悬浮歌词</p>
-              <p className="text-xs text-muted-foreground">
-                独立于主窗口的置顶歌词窗，可拖动、可锁定鼠标穿透
-              </p>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => getDesktop()?.openLyrics()} className="cursor-pointer">
-              打开
-            </Button>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
               <p className="font-medium text-sm">关闭按钮行为</p>
               <p className="text-xs text-muted-foreground">
                 点窗口 X 时：缩到托盘继续播放，或直接退出应用

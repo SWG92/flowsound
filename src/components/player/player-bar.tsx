@@ -23,8 +23,6 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePlayerStore } from "@/lib/store";
-import { getDesktop } from "@/lib/desktop";
-import { openDesktopLyrics } from "@/lib/lyrics-broadcast";
 import { getSongUrl } from "@/lib/api";
 import { AUDIO_QUALITY } from "@/lib/constants";
 import type { AudioQuality } from "@/lib/constants";
@@ -42,7 +40,6 @@ import { ProgressBar } from "./progress";
 import { PLAYER_DIALOG_SIZE } from "./dialog-sizes";
 import { useDominantColor } from "@/hooks/use-dominant-color";
 import { useDocumentTitle } from "@/hooks/use-document-title";
-import { useLyricsBroadcast } from "@/hooks/use-lyrics-broadcast";
 import { useMediaSession } from "@/hooks/use-media-session";
 
 const MODE_ICONS: Record<PlayMode, typeof Repeat> = {
@@ -112,8 +109,6 @@ export function PlayerBar() {
   const sleepRef = useRef<HTMLDivElement>(null);
   const qualityRef = useRef<HTMLDivElement>(null);
 
-  // 启用桌面悬浮歌词广播
-  useLyricsBroadcast();
   // 启用系统媒体控制（锁屏/通知中心）
   useMediaSession();
   // 标签页标题显示当前歌曲
@@ -370,22 +365,6 @@ export function PlayerBar() {
             </Button>
             <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8" onClick={() => nextSong()} disabled={isLoading}>
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <SkipForward className="h-4 w-4" />}
-            </Button>
-            {/* 桌面悬浮歌词按钮 */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="cursor-pointer h-8 w-8 text-xs font-bold hidden sm:inline-flex"
-              onClick={() => {
-                // 桌面壳：直开/关原生悬浮歌词窗（汽水式横幅）；浏览器：弹独立歌词窗
-                const d = getDesktop();
-                if (d) d.openLyrics();
-                else openDesktopLyrics();
-              }}
-              title="桌面悬浮歌词"
-              style={{ borderRadius: 8 }}
-            >
-              <span className="text-sky-500">词</span>
             </Button>
             {/* 可视化条右移 */}
             <div className="ml-1 hidden sm:block">

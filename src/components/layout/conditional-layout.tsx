@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { TopNav } from "./top-nav";
 import { PlayerBar } from "@/components/player/player-bar";
 import { PlayQueue } from "@/components/player/queue";
 import { DesktopWindowControls } from "@/components/electron/desktop-title-bar";
-import { getDesktop } from "@/lib/desktop";
 import { useNavTracker } from "@/hooks/use-nav-tracker";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
@@ -28,31 +26,5 @@ function MainLayout({ children }: { children: React.ReactNode }) {
 }
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isDesktopLyrics = pathname === "/lyrics-desktop" || pathname === "/lyrics-bar";
-  // 桌面壳内的悬浮歌词窗：容器背景透明（原生窗口本身透明）
-  const [shell, setShell] = useState(false);
-  useEffect(() => {
-    if (getDesktop()) setShell(true);
-  }, []);
-
-  if (isDesktopLyrics) {
-    return (
-      <div
-        style={{
-          width: "100vw",
-          height: "100vh",
-          overflow: "hidden",
-          background: shell ? "#1a1d26" : "rgba(0,0,0,0.85)",
-          color: "#fff",
-          margin: 0,
-          padding: 0,
-        }}
-      >
-        {children}
-      </div>
-    );
-  }
-
   return <MainLayout>{children}</MainLayout>;
 }

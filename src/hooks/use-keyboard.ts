@@ -9,6 +9,8 @@ let lastNonZeroVolume = 0.8;
 
 export function useKeyboard() {
   useEffect(() => {
+    // 歌词窗是独立渲染进程，store 里没有歌；它也不该响应空格播放之类的全局手感键
+
     function handleKeyDown(e: KeyboardEvent) {
       // 忽略输入框、富文本编辑器和正在拖动的滑块内的按键
       const target = e.target as HTMLElement | null;

@@ -567,3 +567,8 @@ a:active {
   -webkit-app-region: drag;
   position: absolute;
 }
+
+/* ============ 桌面歌词窗（原生透明窗的整页透明底）============
+   body 默认带 bg-gradient-main 不透明渐变，body::before/::after 还有两团光斑；
+   透明 BrowserWindow 会让这些底色变成一块实心黑/深灰，所以歌词路由必须抹掉。 */
+/* 悬停控制条淡入 */

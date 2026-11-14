@@ -21,9 +21,6 @@ contextBridge.exposeInMainWorld("flowsoundDesktop", {
   // —— 托盘播放态（图标 + tooltip 歌名）——
   setTrayState: (s) => ipcRenderer.send("set-tray-state", s),
   // —— 桌面悬浮歌词窗口 ——
-  openLyrics: () => ipcRenderer.send("open-lyrics"),
-  setLyricsClickThrough: (on) => ipcRenderer.send("lyrics-click-through", on),
-  setLyricsPinned: (on) => ipcRenderer.send("set-lyrics-pinned", on),
   resizeOverlayStart: (x, y) => ipcRenderer.send("lyrics-resize-start", x, y),
   resizeOverlayMove: (x, y) => ipcRenderer.send("lyrics-resize", x, y),
   resizeOverlayEnd: () => ipcRenderer.send("lyrics-resize-end"),

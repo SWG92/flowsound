@@ -16,8 +16,6 @@ export function DesktopMediaBridge() {
   useEffect(() => {
     const d = getDesktop();
     if (!d) return;
-    // 悬浮歌词窗不同步播放状态（其 store 为空，会覆盖主窗口上报的托盘/进度）
-    if (window.location.pathname === "/lyrics-desktop") return;
 
     // 关闭行为：挂载时把本地偏好同步给主进程
     try {

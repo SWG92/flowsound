@@ -1,6 +1,6 @@
 // FlowSound Electron 主进程
 // 职责：启动内嵌 Next.js standalone 服务器 → 创建无框主窗口（自绘标题栏）→
-//       托盘常驻（播放态图标/tooltip）→ 全局媒体键 → 桌面悬浮歌词窗口 →
+//       托盘常驻（播放态图标/tooltip）→ 全局媒体键 →
 //       任务栏进度条 → 软件内自动更新（electron-updater + GitHub Releases）
 const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, dialog, shell, nativeImage, screen } = require("electron");
 const { spawn } = require("child_process");
@@ -15,11 +15,9 @@ const PORT_RETRY = 20;
 let serverProc = null;
 let serverPort = 0;
 let mainWindow = null;
-let lyricsWin = null;
 let tray = null;
 let quitting = false;
 let closeAction = "tray";     // 关闭按钮行为：tray=最小化到托盘 / exit=直接退出（设置页可改）
-let lyricsPinned = true;      // 歌词横幅置顶默认开（桌面歌词本该浮在最上，横幅上图钉可关）
 let isPlayingState = false;
 let playingTitle = "";
 
@@ -134,6 +132,9 @@ function createWindow() {
     icon: appIcon(),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
+      // 主窗口常驻托盘后是隐藏状态，默认节流会把歌词广播的定时器压到 1 次/分钟，
+      // 桌面歌词就会卡住不动 —— 隐藏后台也要保持原速。
+      backgroundThrottling: false,
     },
   });
 
@@ -150,15 +151,8 @@ function createWindow() {
     mainWindow.hide();
   });
 
-  // 站外链接一律走系统浏览器；桌面歌词页转原生悬浮窗
+  // 站外链接一律走系统浏览器
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    try {
-      const u = new URL(url);
-      if (u.origin === `http://127.0.0.1:${serverPort}` && u.pathname === "/lyrics-desktop") {
-        openLyricsWindow();
-        return { action: "deny" };
-      }
-    } catch { /* 非法 URL 走默认拒绝 */ }
     if (/^https?:/i.test(url) && !url.startsWith(`http://127.0.0.1:${serverPort}`)) {
       shell.openExternal(url);
     }
@@ -212,13 +206,11 @@ function updateTrayState(s) {
   }
 }
 
-function createTray() {
-  tray = new Tray(trayIconFor(false));
-  tray.setToolTip("FlowSound — 让音乐流动起来");
+function buildTrayMenu() {
+  if (!tray) return;
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: "显示主界面", click: showWindow },
-      { label: "桌面悬浮歌词", click: () => openLyricsWindow() },
       { label: "检查更新", click: () => checkUpdates(true) },
       {
         label: "开机自启",
@@ -237,81 +229,13 @@ function createTray() {
       },
     ])
   );
+}
+
+function createTray() {
+  tray = new Tray(trayIconFor(false));
+  tray.setToolTip("FlowSound — 让音乐流动起来");
+  buildTrayMenu();
   tray.on("double-click", showWindow);
-}
-
-// ============ 桌面悬浮歌词窗口 ============
-
-// 尺寸/位置持久化（FloatLyrics 同款：userData JSON）
-const LYRICS_MIN = { width: 480, height: 180 };
-let lyricsBoundsTimer = null;
-let overlayResize = null;
-
-function lyricsBoundsFile() {
-  return path.join(app.getPath("userData"), "lyrics-window-bounds-v2.json");
-}
-function loadLyricsBounds() {
-  try {
-    const raw = JSON.parse(fs.readFileSync(lyricsBoundsFile(), "utf-8"));
-    if (raw && Number.isFinite(raw.width) && Number.isFinite(raw.height)) return raw;
-  } catch { /* ignore */ }
-  return null;
-}
-function saveLyricsBounds(win) {
-  try {
-    fs.writeFileSync(lyricsBoundsFile(), JSON.stringify(win.getBounds()));
-  } catch { /* 窗口持久化不打扰歌词展示 */ }
-}
-function scheduleLyricsBoundsSave() {
-  if (lyricsBoundsTimer) clearTimeout(lyricsBoundsTimer);
-  lyricsBoundsTimer = setTimeout(() => {
-    if (lyricsWin && !lyricsWin.isDestroyed()) saveLyricsBounds(lyricsWin);
-  }, 250);
-}
-
-function openLyricsWindow() {
-  // 已开着 → 显示并聚焦（不做关闭切换：避免误触把歌词窗藏起来找不到）
-  if (lyricsWin && !lyricsWin.isDestroyed()) {
-    lyricsWin.show();
-    lyricsWin.focus();
-    return;
-  }
-  // FloatLyrics 验证配方：transparent + resizable:false（缩放走右下角 grip IPC，
-  // 规避 WS_THICKFRAME 在 DPI 缩放下拖动变大的 bug）+ bounds 持久化
-  const initialBounds = loadLyricsBounds();
-  const { workArea } = screen.getPrimaryDisplay();
-  const w = initialBounds?.width ?? 1150;
-  const h = initialBounds?.height ?? 150;
-  const x = initialBounds?.x ?? workArea.x + Math.round((workArea.width - w) / 2);
-  const y = initialBounds?.y ?? workArea.y + Math.max(0, workArea.height - h - 110);
-  lyricsWin = new BrowserWindow({
-    x, y, width: w, height: h,
-    minWidth: LYRICS_MIN.width,
-    minHeight: LYRICS_MIN.height,
-    frame: false,
-    transparent: false,        // 透明窗在部分显卡/驱动下 alpha 被丢弃（实锤），改不透明
-    backgroundColor: "#262b36",
-    hasShadow: true,
-    roundedCorners: true,      // Win11 系统圆角
-    resizable: false,
-    maximizable: false,
-    alwaysOnTop: lyricsPinned,
-    skipTaskbar: true,
-    backgroundColor: "#00000000",
-    webPreferences: { preload: path.join(__dirname, "preload.cjs") },
-  });
-  if (lyricsPinned) lyricsWin.setAlwaysOnTop(true);
-  // 注意：不要调用 setVisibleOnAllWorkspaces——Windows 上实测会把窗口整个藏起来
-  lyricsWin.loadURL(`http://127.0.0.1:${serverPort}/lyrics-bar`);
-  lyricsWin.on("close", () => {
-    if (lyricsWin) saveLyricsBounds(lyricsWin);
-  });
-  lyricsWin.on("closed", () => {
-    overlayResize = null;
-    lyricsWin = null;
-  });
-  lyricsWin.on("resize", scheduleLyricsBoundsSave);
-  lyricsWin.on("move", scheduleLyricsBoundsSave);
 }
 
 // ============ 全局媒体键 ============
@@ -426,36 +350,8 @@ ipcMain.on("set-progress", (_e, v) => {
   }
 });
 ipcMain.on("set-tray-state", (_e, s) => updateTrayState(s));
-ipcMain.on("open-lyrics", () => openLyricsWindow());
-ipcMain.on("lyrics-click-through", (_e, on) => {
-  if (lyricsWin && !lyricsWin.isDestroyed()) {
-    lyricsWin.setIgnoreMouseEvents(!!on, { forward: !!on });
-  }
-});
-ipcMain.on("set-lyrics-pinned", (_e, on) => {
-  if (lyricsWin && !lyricsWin.isDestroyed()) {
-    lyricsWin.setAlwaysOnTop(!!on);
-  }
-});
 
-// 右下角 grip 缩放（FloatLyrics 同款：主进程从 startBounds + 屏幕坐标差计算，无累积漂移）
-ipcMain.on("lyrics-resize-start", (event, screenX, screenY) => {
-  if (!lyricsWin || event.sender !== lyricsWin.webContents || !Number.isFinite(screenX) || !Number.isFinite(screenY)) return;
-  overlayResize = { startBounds: lyricsWin.getBounds(), startX: screenX, startY: screenY };
-});
-ipcMain.on("lyrics-resize", (event, screenX, screenY) => {
-  if (!lyricsWin || !overlayResize || event.sender !== lyricsWin.webContents || !Number.isFinite(screenX) || !Number.isFinite(screenY)) return;
-  const { startBounds, startX, startY } = overlayResize;
-  const display = screen.getDisplayMatching(startBounds);
-  const maxW = Math.max(LYRICS_MIN.width, startBounds.width, display.workArea.x + display.workArea.width - startBounds.x);
-  const maxH = Math.max(LYRICS_MIN.height, startBounds.height, display.workArea.y + display.workArea.height - startBounds.y);
-  const width = Math.min(maxW, Math.max(LYRICS_MIN.width, Math.round(startBounds.width + screenX - startX)));
-  const height = Math.min(maxH, Math.max(LYRICS_MIN.height, Math.round(startBounds.height + screenY - startY)));
-  lyricsWin.setBounds({ ...startBounds, width, height }, false);
-});
-ipcMain.on("lyrics-resize-end", () => {
-  overlayResize = null;
-});
+
 
 // ============ 生命周期 ============
 
@@ -477,7 +373,6 @@ app.whenReady().then(async () => {
 
 app.on("before-quit", () => {
   quitting = true;
-  if (lyricsWin && !lyricsWin.isDestroyed()) lyricsWin.destroy();
 });
 app.on("quit", () => {
   serverProc?.kill();
