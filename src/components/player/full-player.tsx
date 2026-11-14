@@ -199,6 +199,7 @@ export function FullPlayer() {
       <div className="absolute inset-0 bg-black/55" />
       {accent && <div className="absolute inset-0" style={{ background: "var(--accent-soft)" }} />}
 
+
       {/* 顶部：收起 + 标题（悬停时保持显示） */}
       <div
         className="relative z-10 flex items-center justify-between px-6 pt-6 transition-opacity duration-300"

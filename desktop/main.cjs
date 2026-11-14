@@ -282,7 +282,7 @@ function openLyricsWindow() {
   const w = initialBounds?.width ?? 1150;
   const h = initialBounds?.height ?? 150;
   const x = initialBounds?.x ?? workArea.x + Math.round((workArea.width - w) / 2);
-  const y = initialBounds?.y ?? workArea.y + Math.max(0, workArea.height - h - 60);
+  const y = initialBounds?.y ?? workArea.y + Math.max(0, workArea.height - h - 110);
   lyricsWin = new BrowserWindow({
     x, y, width: w, height: h,
     minWidth: LYRICS_MIN.width,

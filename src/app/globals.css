@@ -561,20 +561,12 @@ a:active {
 .app-no-drag {
   -webkit-app-region: no-drag;
 }
+/* 桌面壳拖拽区：容器 drag + 交互子元素 no-drag 掐洞（Chromium 区域算法标准用法） */
 html.desktop-shell .fs-topnav {
   -webkit-app-region: drag;
-  padding-top: 0.65rem;
-  padding-bottom: 0.65rem;
 }
 html.desktop-shell .fs-topnav button,
 html.desktop-shell .fs-topnav a,
 html.desktop-shell .fs-topnav input {
-  -webkit-app-region: no-drag;
-}
-html.desktop-shell .fs-sidebar-head {
-  -webkit-app-region: drag;
-}
-html.desktop-shell .fs-sidebar-head button,
-html.desktop-shell .fs-sidebar-head a {
   -webkit-app-region: no-drag;
 }
