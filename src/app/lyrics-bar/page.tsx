@@ -59,8 +59,8 @@ export default function LyricsBarPage() {
   useEffect(() => {
     if (!getDesktop()) return;
     setShell(true);
-    document.documentElement.style.background = "transparent";
-    document.body.style.background = "transparent";
+    document.documentElement.style.background = "#262b36";
+    document.body.style.background = "#262b36";
   }, []);
 
   // 置顶开关同步主进程
@@ -142,7 +142,7 @@ export default function LyricsBarPage() {
       onMouseLeave={() => setHover(false)}
       style={{
         margin: 0, padding: 0, width: "100vw", height: "100vh",
-        overflow: "hidden", background: "transparent",
+        overflow: "hidden", background: "linear-gradient(160deg, #2a2f3c 0%, #232833 55%, #1d212b 100%)",
         display: "flex", alignItems: "center", justifyContent: "center",
         position: "relative",
         fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif',
@@ -153,13 +153,9 @@ export default function LyricsBarPage() {
       {/* 薄条主体（半透明玻璃，透出桌面） */}
       <div
         style={{
-          width: "calc(100% - 16px)", height: "calc(100% - 16px)",
-          borderRadius: 16,
-          background: "rgba(15,17,23,0.38)",
-          backdropFilter: "blur(24px) saturate(150%)",
-          WebkitBackdropFilter: "blur(24px) saturate(150%)",
-          border: `1px solid ${isPlaying ? lyricColor.hex + "2e" : "rgba(255,255,255,0.10)"}`,
-          boxShadow: "0 10px 34px rgba(0,0,0,0.32)",
+          width: "100%", height: "100%",
+          background: "linear-gradient(160deg, #2e3340 0%, #262b36 55%, #222630 100%)",
+          border: `1px solid ${isPlaying ? lyricColor.hex + "30" : "rgba(255,255,255,0.09)"}`,
           display: "flex", alignItems: "center",
           overflow: "hidden", position: "relative",
           transition: "border-color 0.4s ease",

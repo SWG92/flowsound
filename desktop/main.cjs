@@ -289,8 +289,10 @@ function openLyricsWindow() {
     minWidth: LYRICS_MIN.width,
     minHeight: LYRICS_MIN.height,
     frame: false,
-    transparent: true,
-    hasShadow: false,
+    transparent: false,        // 透明窗在部分显卡/驱动下 alpha 被丢弃（实锤），改不透明
+    backgroundColor: "#262b36",
+    hasShadow: true,
+    roundedCorners: true,      // Win11 系统圆角
     resizable: false,
     maximizable: false,
     alwaysOnTop: lyricsPinned,
