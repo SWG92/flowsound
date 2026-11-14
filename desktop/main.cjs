@@ -259,9 +259,13 @@ function openLyricsWindow() {
     frame: false,
     transparent: true,
     hasShadow: false,
+    // thickFrame:false 根治 Windows 缩放显示下透明窗「拖动即变大」的 DWM 取整 bug
+    thickFrame: false,
     alwaysOnTop: true,
     skipTaskbar: true,
-    resizable: false,
+    resizable: true,
+    minWidth: 480,
+    minHeight: 180,
     webPreferences: { preload: path.join(__dirname, "preload.cjs") },
   });
   lyricsWin.setAlwaysOnTop(true, "screen-saver");

@@ -25,6 +25,7 @@ export default function LyricsBarPage() {
   const [state, setState] = useState<LyricsMessage>({ type: "sync" });
   const [colorIdx, setColorIdx] = useState(0);
   const [locked, setLocked] = useState(false);
+  const [shell, setShell] = useState(false);
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, origX: 0, origY: 0 });
 
@@ -52,9 +53,12 @@ export default function LyricsBarPage() {
     return () => { unsub(); clearInterval(interval); };
   }, []);
 
-  // 桌面壳：原生透明窗口要求 html/body 全透明
+  // 桌面壳：原生透明窗口要求 html/body 全透明；
+  // 拖拽交给系统（app-region）——手动 moveTo 循环在 Windows 缩放显示下
+  // 会因 DPI 取整让透明窗口越拖越大（Electron 已知问题）
   useEffect(() => {
     if (!getDesktop()) return;
+    setShell(true);
     document.documentElement.style.background = "transparent";
     document.body.style.background = "transparent";
   }, []);
@@ -66,13 +70,13 @@ export default function LyricsBarPage() {
 
   // 整个横幅按住拖动
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (locked) return;
+    if (locked || shell) return; // 壳内用系统级 app-region 拖拽，不走手动循环
     const target = e.target as HTMLElement;
     if (target.closest("button")) return;
     setDragging(true);
     dragRef.current = { startX: e.screenX, startY: e.screenY, origX: window.screenX, origY: window.screenY };
     e.preventDefault();
-  }, [locked]);
+  }, [locked, shell]);
 
   useEffect(() => {
     if (!dragging) return;
