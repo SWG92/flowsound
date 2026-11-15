@@ -43,3 +43,4 @@ publish:
   provider: github
   owner: SWG92
   repo: flowsound
+  releaseType: release

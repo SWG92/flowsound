@@ -9,6 +9,10 @@ const net = require("net");
 const path = require("path");
 const fs = require("fs");
 
+// 系统证书链含拦截证书时，Node TLS（更新器/GitHub 访问）会报"unable to verify
+// the first certificate"——改用系统 CA 验证即可正常访问 GitHub 更新源
+app.commandLine.appendSwitch("use-system-ca");
+
 const BASE_PORT = 37120;      // 内嵌服务器起始端口（避开常用 3000，冲突自动 +1 重试）
 const PORT_RETRY = 20;
 
@@ -304,8 +308,20 @@ async function checkUpdates(manual) {
   try {
     const r = await autoUpdater.checkForUpdates();
     const v = r?.updateInfo?.version;
-    if (manual && !v) {
-      dialog.showMessageBox(mainWindow, { type: "info", title: "检查更新", message: "当前已是最新版本" });
+    // 手动检查：同版本提示已是最新（新版本走 update-available 事件自动下载）
+    if (manual && v && v !== app.getVersion()) {
+      dialog.showMessageBox(mainWindow, {
+        type: "info",
+        title: "发现新版本",
+        message: `发现新版本 v${v}，正在后台下载…`,
+        buttons: ["确定"],
+      });
+    } else if (manual) {
+      dialog.showMessageBox(mainWindow, {
+        type: "info",
+        title: "检查更新",
+        message: `当前已是最新版本（v${app.getVersion()}）`,
+      });
     }
   } catch (e) {
     if (manual) {
