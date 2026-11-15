@@ -136,9 +136,8 @@ function createWindow() {
     icon: appIcon(),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
-      // 主窗口常驻托盘后是隐藏状态，默认节流会把歌词广播的定时器压到 1 次/分钟，
-      // 桌面歌词就会卡住不动 —— 隐藏后台也要保持原速。
-      backgroundThrottling: false,
+      // 默认节流即可：音频播放由 Howler 驱动不受影响；隐藏到托盘时
+      // 定时器/渲染降频反而省 CPU（桌面歌词功能已移除，无实时同步需求）
     },
   });
 
