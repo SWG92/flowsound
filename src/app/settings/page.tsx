@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon, Download, Upload, Languages, RefreshCw } from "lucide-react";
+import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon, Download, Upload, RefreshCw } from "lucide-react";
 import { getDesktop } from "@/lib/desktop";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/lib/store";
@@ -52,8 +52,6 @@ export default function SettingsPage() {
   const theme = usePlayerStore((s) => s.theme);
   const setTheme = usePlayerStore((s) => s.setTheme);
   // 歌词翻译开关（持久化，全屏页/歌词弹窗/悬浮歌词共享同源状态）
-  const lyricTrans = usePlayerStore((s) => s.lyricTrans);
-  const setLyricTrans = usePlayerStore((s) => s.setLyricTrans);
   const { showToast } = useToast();
   // 音质等偏好存在 localStorage，服务端渲染时只能拿到默认值；
   // 挂载后再显示客户端状态，避免 hydration 不匹配（异步置位以满足 set-state-in-effect 规则）
@@ -63,16 +61,19 @@ export default function SettingsPage() {
   // 桌面壳（Electron）专属：版本显示 / 检查更新 / 关闭行为偏好
   const [deskVersion, setDeskVersion] = useState<string | null>(null);
   const [updateMsg, setUpdateMsg] = useState("");
+  const [updateReady, setUpdateReady] = useState(false);
   const [closeAction, setCloseActionState] = useState<"tray" | "exit">("tray");
   useEffect(() => {
     const d = getDesktop();
     if (!d) return;
     d.getAppVersion?.().then((v) => setDeskVersion(v)).catch(() => {});
     d.onUpdateStatus?.((s) => {
-      if (s.type === "available") setUpdateMsg(`发现新版本 v${s.version}，正在后台下载…`);
-      else if (s.type === "progress") setUpdateMsg(`下载中 ${s.percent ?? 0}%`);
-      else if (s.type === "downloaded") setUpdateMsg(`v${s.version} 已就绪，重启应用完成更新`);
-      else if (s.type === "error") setUpdateMsg("更新失败，可从 GitHub Releases 手动下载");
+      if (s.type === "checking") setUpdateMsg("正在检查更新…");
+      else if (s.type === "up-to-date") setUpdateMsg(`已是最新版本 v${s.version ?? deskVersion ?? ""}`);
+      else if (s.type === "available") setUpdateMsg(`发现新版本 v${s.version}，正在后台下载…`);
+      else if (s.type === "progress") setUpdateMsg(`下载新版本 ${s.percent ?? 0}%`);
+      else if (s.type === "downloaded") { setUpdateMsg(`v${s.version} 已就绪`); setUpdateReady(true); }
+      else if (s.type === "error") setUpdateMsg("更新失败，可稍后重试或到 GitHub Releases 手动下载");
     });
     try {
       setCloseActionState(localStorage.getItem("flowsound_close_action") === "exit" ? "exit" : "tray");
@@ -81,6 +82,7 @@ export default function SettingsPage() {
 
   const handleCheckUpdate = () => {
     setUpdateMsg("正在检查更新…");
+    setUpdateReady(false);
     getDesktop()?.checkForUpdates?.();
   };
 
@@ -289,30 +291,6 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* 播放设置 */}
-      <section className="glass rounded-xl p-6 space-y-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Languages className="h-5 w-5 text-primary" />
-          歌词设置
-        </h2>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium text-sm">显示歌词翻译</p>
-            <p className="text-xs text-muted-foreground">
-              外语歌曲歌词下方显示翻译行（需要歌曲有官方翻译）
-            </p>
-          </div>
-          <Button
-            variant={mounted && lyricTrans ? "default" : "outline"}
-            size="sm"
-            onClick={() => setLyricTrans(!lyricTrans)}
-            className="cursor-pointer"
-          >
-            {mounted ? (lyricTrans ? "已开启" : "已关闭") : "…"}
-          </Button>
-        </div>
-      </section>
-
       {/* 数据备份 */}
       <section className="glass rounded-xl p-6 space-y-4">
         <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -390,10 +368,17 @@ export default function SettingsPage() {
                 {updateMsg || `当前版本 v${deskVersion} · 自动检查新版本，下载完成后提示重启`}
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={handleCheckUpdate} className="cursor-pointer">
-              <RefreshCw className="h-4 w-4 mr-1.5" />
-              检查更新
-            </Button>
+            {updateReady ? (
+              <Button variant="default" size="sm" onClick={() => getDesktop()?.restartForUpdate()} className="cursor-pointer">
+                <RefreshCw className="h-4 w-4 mr-1.5" />
+                重启并更新
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={handleCheckUpdate} className="cursor-pointer">
+                <RefreshCw className="h-4 w-4 mr-1.5" />
+                检查更新
+              </Button>
+            )}
           </div>
 
           <div className="flex items-center justify-between">

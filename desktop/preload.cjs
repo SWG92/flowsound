@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld("flowsoundDesktop", {
   resizeOverlayEnd: () => ipcRenderer.send("lyrics-resize-end"),
   // —— 自动更新 ——
   checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
+  restartForUpdate: () => ipcRenderer.send("quit-and-install"),
   onUpdateStatus: (cb) => {
     ipcRenderer.on("update-status", (_e, s) => cb(s));
   },

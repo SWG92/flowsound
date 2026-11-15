@@ -281,20 +281,15 @@ function setupAutoUpdater() {
   autoUpdater.on("download-progress", (p) => {
     sendUpdateStatus({ type: "progress", percent: Math.round(p.percent) });
   });
-  autoUpdater.on("update-downloaded", async (info) => {
+  autoUpdater.on("update-downloaded", (info) => {
     sendUpdateStatus({ type: "downloaded", version: info.version });
-    const r = await dialog.showMessageBox(mainWindow, {
-      type: "info",
-      title: "更新就绪",
-      message: `新版本 v${info.version} 已下载完成`,
-      detail: "重启 FlowSound 即可完成更新。",
-      buttons: ["立即重启", "稍后"],
-      defaultId: 0,
-    });
-    if (r.response === 0) {
-      quitting = true;
-      autoUpdater.quitAndInstall();
-    }
+    try {
+      tray?.displayBalloon({
+        iconType: "info",
+        title: "FlowSound 更新就绪",
+        content: `v${info.version} 已下载完成，到 设置→桌面版 点击「重启并更新」`,
+      });
+    } catch { /* 非 Windows 忽略 */ }
   });
   autoUpdater.on("error", (e) => {
     console.error("[updater]", e.message);
@@ -308,33 +303,13 @@ async function checkUpdates(manual) {
   try {
     const r = await autoUpdater.checkForUpdates();
     const v = r?.updateInfo?.version;
-    // 手动检查：同版本提示已是最新（新版本走 update-available 事件自动下载）
-    if (manual && v && v !== app.getVersion()) {
-      dialog.showMessageBox(mainWindow, {
-        type: "info",
-        title: "发现新版本",
-        message: `发现新版本 v${v}，正在后台下载…`,
-        buttons: ["确定"],
-      });
-    } else if (manual) {
-      dialog.showMessageBox(mainWindow, {
-        type: "info",
-        title: "检查更新",
-        message: `当前已是最新版本（v${app.getVersion()}）`,
-      });
+    // 同版本 → 回传"已是最新"状态（设置页内联展示）；新版本 → update-available 事件自动流转下载
+    if (manual && (!v || v === app.getVersion())) {
+      sendUpdateStatus({ type: "up-to-date", version: app.getVersion() });
     }
   } catch (e) {
-    if (manual) {
-      dialog.showMessageBox(mainWindow, {
-        type: "warning",
-        title: "检查更新失败",
-        message: "无法连接更新源（GitHub）",
-        detail: `${e.message}\n\n可到 Releases 页手动下载：\nhttps://github.com/SWG92/flowsound/releases`,
-        buttons: ["打开 Releases 页", "确定"],
-      }).then((r) => {
-        if (r.response === 0) shell.openExternal("https://github.com/SWG92/flowsound/releases");
-      });
-    }
+    if (manual) sendUpdateStatus({ type: "error", message: String(e.message || e) });
+    console.error("[updater]", e.message);
   }
 }
 
@@ -342,6 +317,10 @@ async function checkUpdates(manual) {
 
 ipcMain.handle("check-for-updates", () => checkUpdates(true));
 ipcMain.handle("app-version", () => app.getVersion());
+ipcMain.on("quit-and-install", () => {
+  quitting = true;
+  autoUpdater.quitAndInstall();
+});
 
 ipcMain.on("window-minimize", () => mainWindow?.minimize());
 ipcMain.on("window-max-toggle", () => {

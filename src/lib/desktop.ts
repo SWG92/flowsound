@@ -18,6 +18,7 @@ export interface FlowSoundDesktop {
   dragOverlayMove(x: number, y: number): void;
   dragOverlayEnd(): void;
   checkForUpdates(): Promise<unknown>;
+  restartForUpdate(): void;
   onUpdateStatus(cb: (s: { type: string; version?: string; percent?: number; message?: string }) => void): void;
   getAppVersion(): Promise<string>;
 }
