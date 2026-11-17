@@ -155,13 +155,42 @@ export const neteaseAdapter: PlatformAdapter = {
 
   async getPlaylistDetail(listId) {
     await ensureLogin();
-    const data = await fetchJSON<{
-      result?: { tracks: Song[] };
-      playlist?: { tracks: Song[] };
-    }>(`${NETEASE_API.playlistDetail}?id=${listId}`);
 
-    return (data.result?.tracks || data.playlist?.tracks || []).filter(
-      (s: Song) => s.fee !== 1
-    );
+    // v6 接口：trackIds 拿全量曲目 ID（旧接口匿名只回前几首），再批量 song/detail 补全详情
+    const data = await fetchJSON<{
+      playlist?: {
+        trackIds?: Array<{ id: number }>;
+        tracks?: Song[];
+      };
+    }>(`${NETEASE_BASE}/api/v6/playlist/detail?id=${listId}&n=10`);
+
+    const ids = (data.playlist?.trackIds || [])
+      .map((x) => x.id)
+      .filter(Boolean);
+    if (ids.length === 0) {
+      // 兜底：v6 无 trackIds 时回退旧接口（部分歌单旧链路仍返回完整 tracks）
+      const legacy = await fetchJSON<{ result?: { tracks: Song[] } }>(
+        `${NETEASE_API.playlistDetail}?id=${listId}`
+      );
+      return (legacy.result?.tracks || []).filter((s: Song) => s.fee !== 1);
+    }
+
+    // 批量取曲目详情（每批 50 个 ID），song/detail 返回完整字段（歌手/专辑图/fee）
+    const songs: Song[] = [];
+    for (let i = 0; i < ids.length; i += 50) {
+      const batch = ids.slice(i, i + 50);
+      try {
+        const detail = await fetchJSON<{ songs?: Song[] }>(
+          `${NETEASE_BASE}/api/song/detail?ids=[${batch.join(",")}]`
+        );
+        for (const s of detail.songs || []) {
+          if (s.fee === 1) continue; // VIP 匿名取不到址，不下发
+          songs.push(s);
+        }
+      } catch {
+        // 该批次失败跳过，不影响整体
+      }
+    }
+    return songs;
   },
 };

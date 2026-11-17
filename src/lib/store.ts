@@ -249,6 +249,8 @@ interface PlaybackSnapshot {
   queueIndex: number;
   currentTime: number;
   isPlaying: boolean;
+  sourceList: Song[];
+  sourceIndex: number;
 }
 function loadPlaybackSnapshot(): PlaybackSnapshot | null {
   if (typeof window === "undefined") return null;
@@ -257,7 +259,11 @@ function loadPlaybackSnapshot(): PlaybackSnapshot | null {
     if (!raw) return null;
     const snap = JSON.parse(raw);
     if (snap?.currentSong?.url && Array.isArray(snap.queue)) {
-      return snap as PlaybackSnapshot;
+      return {
+        ...snap,
+        sourceList: Array.isArray(snap.sourceList) ? snap.sourceList : [],
+        sourceIndex: Number.isFinite(snap.sourceIndex) ? snap.sourceIndex : -1,
+      } as PlaybackSnapshot;
     }
   } catch { /* ignore */ }
   return null;
@@ -289,8 +295,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   theme: initialTheme,
   audioQuality: initialAudioQuality,
   lyricTrans: initialLyricTrans,
-  sourceList: [],
-  sourceIndex: -1,
+  sourceList: playbackSnapshot?.sourceList ?? [],
+  sourceIndex: playbackSnapshot?.sourceIndex ?? -1,
 
   playSong: async (song, queue, sourceList) => {
     console.warn("[store] playSong", song?.name, new Error("trace").stack);
@@ -699,6 +705,8 @@ usePlayerStore.subscribe((state, prev) => {
           queueIndex: state.queueIndex,
           currentTime: state.currentTime,
           isPlaying: state.isPlaying,
+          sourceList: state.sourceList,
+          sourceIndex: state.sourceIndex,
         }));
       } catch { /* ignore */ }
     }, 1000);

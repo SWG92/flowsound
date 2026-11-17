@@ -1,0 +1,149 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { Radio, Play, RefreshCw, Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SongList } from "@/components/playlist/song-list";
+import { usePlayerStore } from "@/lib/store";
+import { useToast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
+import type { Song } from "@/lib/types";
+import {
+  ROAMING_GENRES,
+  buildRoamingPool,
+  type RoamingGenre,
+} from "@/lib/roaming";
+
+/**
+ * 音乐漫游：选一个流派 → 生成漫游曲池 → 无限播放。
+ * 曲池 = 该流派精选歌单合并去重洗牌；播放走现有队列机制，
+ * 队列尾部自动绕回 → 天然无限漫游；刷新后播放快照恢复队列不中断。
+ */
+export default function RoamingPage() {
+  const [genre, setGenre] = useState<RoamingGenre | null>(null);
+  const [pool, setPool] = useState<Song[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const setQueue = usePlayerStore((s) => s.setQueue);
+  const playSong = usePlayerStore((s) => s.playSong);
+  const { showToast } = useToast();
+
+  const loadPool = useCallback(
+    async (g: RoamingGenre) => {
+      setLoading(true);
+      setError(false);
+      setPool([]);
+      try {
+        const songs = await buildRoamingPool(g);
+        if (songs.length === 0) throw new Error("empty");
+        setPool(songs);
+        setQueue(songs);
+      } catch {
+        setError(true);
+        showToast("漫游曲池拉取失败，请重试或换个流派", "error");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setQueue, showToast]
+  );
+
+  const pickGenre = (g: RoamingGenre) => {
+    setGenre(g);
+    loadPool(g);
+  };
+
+  const startRoaming = () => {
+    if (pool.length === 0) return;
+    setQueue(pool);
+    playSong(pool[0], pool, pool);
+    showToast(`开始漫游「${genre?.label}」· ${pool.length} 首已入列`, "success");
+  };
+
+  // 刷新后恢复上次漫游的流派与曲池（队列由播放快照自动还原）
+  useEffect(() => {
+    try {
+      const last = localStorage.getItem("flowsound_roaming_genre");
+      if (!last) return;
+      const g = ROAMING_GENRES.find((x) => x.id === last);
+      if (g && usePlayerStore.getState().queue.length > 0) {
+        setGenre(g);
+        setLoading(false);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const selectGenre = (g: RoamingGenre) => {
+    setGenre(g);
+    try { localStorage.setItem("flowsound_roaming_genre", g.id); } catch { /* ignore */ }
+    loadPool(g);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <span className="gradient-text">音乐漫游</span>
+          <Radio className="h-5 w-5 text-primary" />
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          选一个流派，让音乐带你漂 · 播完自动接续，循环漫游不重样
+        </p>
+      </div>
+
+      {/* 流派胶囊墙 */}
+      <div className="flex flex-wrap gap-2.5">
+        {ROAMING_GENRES.map((g) => (
+          <button
+            key={g.id}
+            onClick={() => selectGenre(g)}
+            className={cn(
+              "px-4 py-2 rounded-full text-sm cursor-pointer transition-all border",
+              genre?.id === g.id
+                ? "bg-primary/15 text-primary font-medium border-primary/40"
+                : "text-muted-foreground border-border hover:text-foreground hover:border-foreground/30 hover:bg-white/5"
+            )}
+          >
+            {g.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 选中流派描述 */}
+      {genre && (
+        <p className="text-xs text-muted-foreground">{genre.desc}</p>
+      )}
+
+      {/* 曲池区域 */}
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 bg-black/5" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="text-sm text-muted-foreground py-8 text-center">
+          曲池拉取失败，点击上面的流派重试
+        </div>
+      ) : pool.length > 0 ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              漫游池已就绪 · {pool.length} 首 · 播完自动绕回池首
+            </p>
+            <Button size="sm" onClick={startRoaming} className="cursor-pointer">
+              <Play className="h-4 w-4 mr-1.5" />
+              开始漫游
+            </Button>
+          </div>
+          <SongList songs={pool} showIndex showAlbum={false} virtual />
+        </div>
+      ) : (
+        <div className="text-sm text-muted-foreground py-8 text-center">
+          点击上面任意流派，开启一场不设终点的听觉漫游
+        </div>
+      )}
+    </div>
+  );
+}
