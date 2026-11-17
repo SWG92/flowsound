@@ -7,7 +7,6 @@ import { DesktopMediaBridge } from "@/components/electron/desktop-media-bridge";
 import { PERFORMANCE_KEY } from "@/lib/constants";
 
 export function ClientWrapper({ children }: { children: React.ReactNode }) {
-  console.warn("[mount] ClientWrapper");
   useKeyboard();
 
   // Service Worker：仅浏览器端注册（PWA 离线缓存）。

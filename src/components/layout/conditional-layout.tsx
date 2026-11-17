@@ -9,7 +9,6 @@ import { DesktopWindowControls } from "@/components/electron/desktop-title-bar";
 import { useNavTracker } from "@/hooks/use-nav-tracker";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
-  console.warn("[mount] MainLayout");
   useNavTracker();
   return (
     <>
