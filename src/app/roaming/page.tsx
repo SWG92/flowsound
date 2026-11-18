@@ -69,6 +69,8 @@ export default function RoamingPage() {
       const g = ROAMING_GENRES.find((x) => x.id === last);
       if (g && usePlayerStore.getState().queue.length > 0) {
         setGenre(g);
+        // 曲池回显：播放快照恢复的队列就是上次漫游池
+        setPool(usePlayerStore.getState().queue);
         setLoading(false);
       }
     } catch { /* ignore */ }
