@@ -1,6 +1,11 @@
 // FlowSound 预加载桥：向渲染层暴露最小桌面能力
 const { contextBridge, ipcRenderer } = require("electron");
 
+// 桌面壳标记：在首帧绘制前就打到 <html> 上，渲染层的 Web 进场动画
+// 据此用 CSS 隐藏（桌面端用原生启动屏，避免双重动画）。
+// 必须在 preload 里做——等 hydration 后再判断会闪一下且产生水合分歧
+try { document.documentElement.classList.add("fs-desktop"); } catch { /* ignore */ }
+
 contextBridge.exposeInMainWorld("flowsoundDesktop", {
   isDesktop: true,
   // —— 媒体键（主进程 → 渲染层）——

@@ -19,6 +19,8 @@ const PORT_RETRY = 20;
 let serverProc = null;
 let serverPort = 0;
 let mainWindow = null;
+let splashWin = null;
+let splashShownAt = 0;
 let tray = null;
 let quitting = false;
 let closeAction = "tray";     // 关闭按钮行为：tray=最小化到托盘 / exit=直接退出（设置页可改）
@@ -112,6 +114,53 @@ async function startServer() {
   throw new Error("内嵌服务器文件缺失（resources/server）");
 }
 
+// ============ 启动屏（进场动画）============
+
+// 覆盖内嵌服务器启动 + 首屏加载的空白期：双击图标立刻看到品牌进场动画，
+// 主窗口首次绘制完成后无缝交接。最短展示 600ms，避免就绪太快时闪一下。
+const SPLASH_MIN_MS = 600;
+
+function createSplash() {
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, "icon.png")
+    : path.join(__dirname, "build", "icon.png");
+  splashWin = new BrowserWindow({
+    width: 440,
+    height: 320,
+    frame: false,
+    transparent: true,          // 圆角卡片直接浮在桌面壁纸前
+    resizable: false,
+    movable: true,
+    center: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    show: false,
+    webPreferences: { sandbox: true },
+  });
+  splashWin.on("closed", () => { splashWin = null; });
+  splashWin.once("ready-to-show", () => {
+    splashShownAt = Date.now();
+    splashWin?.show();
+    splashWin?.focus();
+  });
+  splashWin.loadFile(path.join(__dirname, "splash.html"), {
+    search: `icon=${encodeURIComponent(iconPath)}`,
+  });
+}
+
+function closeSplash() {
+  if (!splashWin || splashWin.isDestroyed()) {
+    splashWin = null;
+    return;
+  }
+  const win = splashWin;
+  splashWin = null;
+  const wait = Math.max(0, SPLASH_MIN_MS - (Date.now() - splashShownAt));
+  setTimeout(() => {
+    try { win.close(); } catch { /* ignore */ }
+  }, wait);
+}
+
 // ============ 主窗口（无框 + 自绘标题栏）============
 
 function resIcon(file) {
@@ -141,7 +190,10 @@ function createWindow() {
     },
   });
 
-  mainWindow.once("ready-to-show", () => mainWindow.show());
+  mainWindow.once("ready-to-show", () => {
+    closeSplash();
+    mainWindow.show();
+  });
   mainWindow.loadURL(`http://127.0.0.1:${serverPort}`);
 
   // 关闭按钮行为由设置决定：tray=最小化到托盘 / exit=直接退出
@@ -352,10 +404,12 @@ ipcMain.on("set-tray-state", (_e, s) => updateTrayState(s));
 app.on("second-instance", showWindow);
 
 app.whenReady().then(async () => {
+  createSplash();             // 启动屏先行：立刻有画面，盖住服务器启动的空白期
   createTray();
   try {
     await startServer();
   } catch (e) {
+    closeSplash();
     dialog.showErrorBox("FlowSound 启动失败", String(e.message || e));
     app.quit();
     return;

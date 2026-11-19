@@ -240,15 +240,16 @@ function prevShuffleIndex(queue: Song[], currentIndex: number): number {
 // 的频率调 setVolume，状态需要即时更新，但没必要每次都同步写存储
 let volumeSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-// 播放快照持久化：刷新/崩溃后恢复"正在播放的歌 + 队列 + 进度"。
-// 桌面壳内 Next 偶发整页刷新不再导致音乐凭空消失（标准播放器行为）。
+// 播放快照持久化：刷新/重启后恢复"正在播放的歌 + 队列 + 进度"的界面现场。
+// 注意：不存/不恢复 isPlaying——启动一律暂停态，不自动播放（用户手动起播时
+// 由 use-player 走 playSong 重新取址续播，快照 URL 过期也能跨平台找替代）。
 const PLAYBACK_SNAPSHOT_KEY = "flowsound_playback_snapshot";
 interface PlaybackSnapshot {
   currentSong: Song | null;
   queue: Song[];
   queueIndex: number;
   currentTime: number;
-  isPlaying: boolean;
+  duration: number;
   sourceList: Song[];
   sourceIndex: number;
 }
@@ -261,6 +262,7 @@ function loadPlaybackSnapshot(): PlaybackSnapshot | null {
     if (snap?.currentSong?.url && Array.isArray(snap.queue)) {
       return {
         ...snap,
+        duration: Number.isFinite(snap.duration) ? snap.duration : 0,
         sourceList: Array.isArray(snap.sourceList) ? snap.sourceList : [],
         sourceIndex: Number.isFinite(snap.sourceIndex) ? snap.sourceIndex : -1,
       } as PlaybackSnapshot;
@@ -274,9 +276,10 @@ export const playbackRestored = !!playbackSnapshot;
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentSong: playbackSnapshot?.currentSong ?? null,
-  isPlaying: playbackSnapshot?.isPlaying ?? false,
+  // 启动一律暂停态：恢复界面现场但不自动出声
+  isPlaying: false,
   currentTime: playbackSnapshot?.currentTime ?? 0,
-  duration: 0,
+  duration: playbackSnapshot?.duration ?? 0,
   volume: initialVolume,
   playMode: initialPlayMode,
   speed: initialSpeed,
@@ -704,7 +707,7 @@ usePlayerStore.subscribe((state, prev) => {
           queue: state.queue,
           queueIndex: state.queueIndex,
           currentTime: state.currentTime,
-          isPlaying: state.isPlaying,
+          duration: state.duration,
           sourceList: state.sourceList,
           sourceIndex: state.sourceIndex,
         }));

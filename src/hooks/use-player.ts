@@ -4,9 +4,16 @@ import { useEffect, useCallback, useRef } from "react";
 import { audioPlayer } from "@/lib/audio-player";
 import { usePlayerStore, playbackRestored } from "@/lib/store";
 
-// 快照恢复意图：仅启动后的首次起播消费一次（恢复暂停态→静音加载压回暂停；
-// 恢复播放态→定位到快照进度续播）。之后回归正常播放调度，不受影响。
+// 快照恢复意图：仅启动后的首次起播消费一次。
+// 恢复策略：启动只还原界面现场（歌 + 队列 + 进度），不预载音频、不自动播放——
+// 快照里的 URL 可能已过期，预载只会白跑一次注定失败的请求。用户按播放时
+// （isPlaying effect 检测到无音频实例）走 playSong 完整链路重新取址（含跨平台
+// 回退），从快照进度精准续播。之后回归正常播放调度，不受影响。
 let restorePending = playbackRestored;
+// 恢复态首次起播要续播到快照进度：playSong 会把 currentTime 清零，先暂存到这里，
+// 由播放调度 effect 消费一次性转为 startAt。带歌曲 id 校验——若恢复的歌不可播
+// 触发了自动跳下一首，进度不能错误地带到新歌上
+let restoreSeek: { id: number; time: number } | null = null;
 
 export function useAudioPlayer() {
   const prevSongUrl = useRef<string | null>(null);
@@ -24,21 +31,26 @@ export function useAudioPlayer() {
     const url = currentSong?.url;
     if (!url) return;
 
+    // 恢复态起播：把暂存的快照进度转成本次起播定位（仅限同一首歌、>3s 才补跳）
+    const seekAt = restoreSeek && currentSong && restoreSeek.id === currentSong.id
+      ? restoreSeek.time
+      : null;
+    restoreSeek = null;
+    const opts = seekAt && seekAt > 3 ? { startAt: seekAt } : undefined;
+
     if (url !== prevSongUrl.current) {
       prevSongUrl.current = url;
-      // 快照恢复（刷新/重启后续播）：store.currentTime >3s 说明是从进度恢复——
-      // 走 play 的 startAt/startPaused 选项（加载完成后精准补跳定位），
-      // 避免 setTimeout 定时 seek 在音频流加载完成前触发而被丢弃的竞态
-      const savedTime = usePlayerStore.getState().currentTime;
-      const restoring = restorePending && savedTime > 3;
-      const startPaused = restorePending && !usePlayerStore.getState().isPlaying;
-      restorePending = false;
-      audioPlayer.play(url, volume, speed, {
-        startAt: restoring ? savedTime : undefined,
-        startPaused,
-      });
-    } else {
+      if (restorePending) {
+        // 启动恢复：只记录快照 URL，不预载音频（等用户按播放重新取址）
+        restorePending = false;
+        return;
+      }
+      audioPlayer.play(url, volume, speed, opts);
+    } else if (audioPlayer.getHowl()) {
       audioPlayer.replay();
+    } else {
+      // URL 相同但还没有音频实例（恢复态重新取址恰好拿到同一地址）
+      audioPlayer.play(url, volume, speed, opts);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 刻意只依赖 URL/nonce：volume/speed 各有独立 effect 同步，不应触发重载
   }, [currentSong?.url, replayNonce]);
@@ -48,6 +60,13 @@ export function useAudioPlayer() {
     if (!currentSong?.url) return;
 
     if (isPlaying) {
+      // 恢复态首次起播：音频尚未加载（启动不预载），走 playSong 重新取址续播
+      if (!audioPlayer.getHowl()) {
+        const s = usePlayerStore.getState();
+        if (s.currentSong) restoreSeek = { id: s.currentSong.id, time: s.currentTime };
+        s.playSong(s.currentSong!, s.queue, s.sourceList);
+        return;
+      }
       audioPlayer.resume();
     } else {
       audioPlayer.pause();

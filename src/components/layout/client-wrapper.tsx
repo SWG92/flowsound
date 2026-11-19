@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useKeyboard } from "@/hooks/use-keyboard";
 import { getDesktop } from "@/lib/desktop";
 import { DesktopMediaBridge } from "@/components/electron/desktop-media-bridge";
+import { AppSplash } from "@/components/layout/app-splash";
 import { PERFORMANCE_KEY } from "@/lib/constants";
 
 export function ClientWrapper({ children }: { children: React.ReactNode }) {
@@ -80,6 +81,7 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <AppSplash />
       <DesktopMediaBridge />
       {children}
     </>
