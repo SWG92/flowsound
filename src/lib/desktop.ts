@@ -11,6 +11,7 @@ export interface FlowSoundDesktop {
   setCloseAction(a: "tray" | "exit"): void;
   setProgress(v: number): void;
   setTrayState(s: { playing: boolean; title: string }): void;
+  clearDiskCache(): Promise<{ ok: boolean; message?: string }>;
   closeLyrics(): void;
   setLyricsLocked(on: boolean): void;
   onLyricsLockState(cb: (locked: boolean) => void): void;

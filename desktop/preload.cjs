@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld("flowsoundDesktop", {
   setProgress: (v) => ipcRenderer.send("set-progress", v),
   // —— 托盘播放态（图标 + tooltip 歌名）——
   setTrayState: (s) => ipcRenderer.send("set-tray-state", s),
+  // —— 清理磁盘缓存（HTTP 缓存 + 更新器遗留安装包，不动用户数据）——
+  clearDiskCache: () => ipcRenderer.invoke("clear-disk-cache"),
   // —— 桌面悬浮歌词窗口 ——
   resizeOverlayStart: (x, y) => ipcRenderer.send("lyrics-resize-start", x, y),
   resizeOverlayMove: (x, y) => ipcRenderer.send("lyrics-resize", x, y),

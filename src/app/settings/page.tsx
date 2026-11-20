@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon, Download, Upload, RefreshCw } from "lucide-react";
+import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon, Download, Upload, RefreshCw, Eraser } from "lucide-react";
 import { getDesktop } from "@/lib/desktop";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/lib/store";
@@ -63,6 +63,29 @@ export default function SettingsPage() {
   const [updateMsg, setUpdateMsg] = useState("");
   const [updateReady, setUpdateReady] = useState(false);
   const [closeAction, setCloseActionState] = useState<"tray" | "exit">("tray");
+  const [cacheMsg, setCacheMsg] = useState("");
+  const [clearingCache, setClearingCache] = useState(false);
+
+  // 清理磁盘缓存：封面图/字体/接口临时副本 + 更新器遗留安装包。
+  // 收藏/历史/偏好/播放快照在 Local Storage，完全不经过这里
+  const handleClearDiskCache = async () => {
+    const d = getDesktop();
+    if (!d?.clearDiskCache) return;
+    setClearingCache(true);
+    setCacheMsg("正在清理磁盘缓存…");
+    try {
+      const r = await d.clearDiskCache();
+      setCacheMsg(
+        r?.ok
+          ? "已清理。封面图下次播放时会重新下载，收藏与历史不受影响"
+          : `清理失败：${r.message || "未知错误"}`
+      );
+    } catch {
+      setCacheMsg("清理失败：与桌面壳通信中断");
+    } finally {
+      setClearingCache(false);
+    }
+  };
   useEffect(() => {
     const d = getDesktop();
     if (!d) return;
@@ -379,6 +402,19 @@ export default function SettingsPage() {
                 检查更新
               </Button>
             )}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">清理磁盘缓存</p>
+              <p className="text-xs text-muted-foreground">
+                {cacheMsg || "清除封面图/字体/接口临时副本与更新遗留安装包，收藏与历史不受影响"}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleClearDiskCache} disabled={clearingCache} className="cursor-pointer">
+              <Eraser className="h-4 w-4 mr-1.5" />
+              {clearingCache ? "清理中…" : "清理缓存"}
+            </Button>
           </div>
 
           <div className="flex items-center justify-between">

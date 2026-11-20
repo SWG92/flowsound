@@ -2,7 +2,7 @@
 // 职责：启动内嵌 Next.js standalone 服务器 → 创建无框主窗口（自绘标题栏）→
 //       托盘常驻（播放态图标/tooltip）→ 全局媒体键 →
 //       任务栏进度条 → 软件内自动更新（electron-updater + GitHub Releases）
-const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, dialog, shell, nativeImage, screen } = require("electron");
+const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, dialog, shell, nativeImage, screen, session } = require("electron");
 const { spawn } = require("child_process");
 const http = require("http");
 const net = require("net");
@@ -396,6 +396,26 @@ ipcMain.on("set-progress", (_e, v) => {
   }
 });
 ipcMain.on("set-tray-state", (_e, s) => updateTrayState(s));
+
+// 清理磁盘缓存：Chromium HTTP 磁盘缓存（封面图/字体/接口临时副本，增长大头）
+// + 软件内更新遗留的安装包副本。收藏/历史等 Local Storage 用户数据不受影响。
+ipcMain.handle("clear-disk-cache", async () => {
+  try {
+    await session.defaultSession.clearCache();
+    try {
+      const updaterDir = path.join(process.env.LOCALAPPDATA || "", `${app.getName()}-updater`);
+      const files = await fs.promises.readdir(updaterDir).catch(() => []);
+      for (const f of files) {
+        if (/\.exe$/i.test(f)) {
+          await fs.promises.rm(path.join(updaterDir, f), { force: true }).catch(() => {});
+        }
+      }
+    } catch { /* 更新缓存目录不存在属正常 */ }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: String(e.message || e) };
+  }
+});
 
 
 
