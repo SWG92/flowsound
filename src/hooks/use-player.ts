@@ -3,6 +3,8 @@
 import { useEffect, useCallback, useRef } from "react";
 import { audioPlayer } from "@/lib/audio-player";
 import { usePlayerStore, playbackRestored } from "@/lib/store";
+import { getLyrics } from "@/lib/api";
+import type { MusicPlatform } from "@/lib/types";
 
 // 快照恢复意图：仅启动后的首次起播消费一次。
 // 恢复策略：启动只还原界面现场（歌 + 队列 + 进度），不预载音频、不自动播放——
@@ -43,6 +45,20 @@ export function useAudioPlayer() {
       if (restorePending) {
         // 启动恢复：只记录快照 URL，不预载音频（等用户按播放重新取址）
         restorePending = false;
+        // 恢复态补拉歌词：暂停现场也能看到歌词（起播后 playSong 会再取，
+        // 命中内存缓存不浪费请求）；失败静默，起播时还有完整跨平台回退链路
+        const s = usePlayerStore.getState();
+        if (s.currentSong && s.lyrics.length === 0) {
+          getLyrics(
+            s.currentSong.id,
+            (s.currentSong.platform || "netease") as MusicPlatform,
+            s.currentSong.platformId
+          )
+            .then((l) => {
+              if (l.length > 0) usePlayerStore.getState().setLyrics(l);
+            })
+            .catch(() => {});
+        }
         return;
       }
       audioPlayer.play(url, volume, speed, opts);

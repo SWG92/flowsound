@@ -241,8 +241,14 @@ function prevShuffleIndex(queue: Song[], currentIndex: number): number {
 let volumeSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 // 播放快照持久化：刷新/重启后恢复"正在播放的歌 + 队列 + 进度"的界面现场。
+// 拆双键写入：静态部分（歌/队列/来源列表，可达几百 KB）只在变化时防抖写入；
+// 动态部分（进度/时长，几十字节）播放中每秒一次。旧实现每秒全量序列化大对象，
+// 大队列下主线程每秒卡顿一次 + 无谓磁盘写入。
 // 注意：不存/不恢复 isPlaying——启动一律暂停态，不自动播放（用户手动起播时
 // 由 use-player 走 playSong 重新取址续播，快照 URL 过期也能跨平台找替代）。
+const PB_STATIC_KEY = "flowsound_pb_static";
+const PB_LIVE_KEY = "flowsound_pb_live";
+// 旧版合并键：只读兼容（老用户首次启动自动迁移），写入一律走新双键
 const PLAYBACK_SNAPSHOT_KEY = "flowsound_playback_snapshot";
 interface PlaybackSnapshot {
   currentSong: Song | null;
@@ -256,12 +262,27 @@ interface PlaybackSnapshot {
 function loadPlaybackSnapshot(): PlaybackSnapshot | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(PLAYBACK_SNAPSHOT_KEY);
-    if (!raw) return null;
-    const snap = JSON.parse(raw);
+    let snap: Partial<PlaybackSnapshot> | null = null;
+    const staticRaw = localStorage.getItem(PB_STATIC_KEY);
+    if (staticRaw) {
+      snap = JSON.parse(staticRaw);
+      const liveRaw = localStorage.getItem(PB_LIVE_KEY);
+      if (snap && liveRaw) {
+        try {
+          const live = JSON.parse(liveRaw) as { currentTime?: number; duration?: number };
+          snap.currentTime = live.currentTime;
+          snap.duration = live.duration;
+        } catch { /* live 损坏时用静态里的值 */ }
+      }
+    } else {
+      // 老用户迁移：旧单键里什么都有
+      const legacy = localStorage.getItem(PLAYBACK_SNAPSHOT_KEY);
+      if (legacy) snap = JSON.parse(legacy);
+    }
     if (snap?.currentSong?.url && Array.isArray(snap.queue)) {
       return {
         ...snap,
+        currentTime: Number.isFinite(snap.currentTime) ? snap.currentTime : 0,
         duration: Number.isFinite(snap.duration) ? snap.duration : 0,
         sourceList: Array.isArray(snap.sourceList) ? snap.sourceList : [],
         sourceIndex: Number.isFinite(snap.sourceIndex) ? snap.sourceIndex : -1,
@@ -302,7 +323,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   sourceIndex: playbackSnapshot?.sourceIndex ?? -1,
 
   playSong: async (song, queue, sourceList) => {
-    console.warn("[store] playSong", song?.name, new Error("trace").stack);
     const gen = ++playGeneration;
     set({ isLoading: true });
 
@@ -695,21 +715,47 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setSleepAtEndOfTrack: (on) => set({ sleepAtEndOfTrack: on }),
 }));
 
-// 播放快照保存：currentSong/queue/进度变化后 1s 节流写入（临时埋点 [store] 一并保留）
-let snapshotTimer: ReturnType<typeof setTimeout> | null = null;
+// 播放快照保存：静态部分变化后 1s 防抖写入（大对象，切歌/改队列才触发）；
+// 进度/时长每秒一次写小对象（播放中持续发生）。两键合并读，见 loadPlaybackSnapshot。
+let staticTimer: ReturnType<typeof setTimeout> | null = null;
+let liveTimer: ReturnType<typeof setTimeout> | null = null;
 usePlayerStore.subscribe((state, prev) => {
-  if (state.currentSong !== prev.currentSong || state.queue !== prev.queue || Math.floor(state.currentTime) !== Math.floor(prev.currentTime)) {
-    if (snapshotTimer) clearTimeout(snapshotTimer);
-    snapshotTimer = setTimeout(() => {
+  const staticChanged =
+    state.currentSong !== prev.currentSong ||
+    state.queue !== prev.queue ||
+    state.queueIndex !== prev.queueIndex ||
+    state.sourceList !== prev.sourceList ||
+    state.sourceIndex !== prev.sourceIndex;
+  const liveChanged =
+    Math.floor(state.currentTime) !== Math.floor(prev.currentTime) ||
+    state.duration !== prev.duration;
+  if (!staticChanged && !liveChanged) return;
+
+  if (staticChanged) {
+    if (staticTimer) clearTimeout(staticTimer);
+    staticTimer = setTimeout(() => {
+      staticTimer = null;
       try {
-        localStorage.setItem(PLAYBACK_SNAPSHOT_KEY, JSON.stringify({
+        localStorage.setItem(PB_STATIC_KEY, JSON.stringify({
           currentSong: state.currentSong,
           queue: state.queue,
           queueIndex: state.queueIndex,
-          currentTime: state.currentTime,
-          duration: state.duration,
           sourceList: state.sourceList,
           sourceIndex: state.sourceIndex,
+        }));
+        // 老用户迁移成功后清掉旧合并键（进度已过期，留着会在双键缺失时被误读）
+        localStorage.removeItem(PLAYBACK_SNAPSHOT_KEY);
+      } catch { /* ignore */ }
+    }, 1000);
+  }
+  if (liveChanged) {
+    if (liveTimer) clearTimeout(liveTimer);
+    liveTimer = setTimeout(() => {
+      liveTimer = null;
+      try {
+        localStorage.setItem(PB_LIVE_KEY, JSON.stringify({
+          currentTime: state.currentTime,
+          duration: state.duration,
         }));
       } catch { /* ignore */ }
     }, 1000);
