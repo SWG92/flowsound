@@ -81,9 +81,13 @@ export default function SettingsPage() {
       else if (s.type === "downloaded") { setUpdateMsg(`v${s.version} 已就绪`); setUpdateReady(true); }
       else if (s.type === "error") setUpdateMsg("更新失败，可稍后重试或到 GitHub Releases 手动下载");
     });
-    try {
-      setCloseActionState(localStorage.getItem("flowsound_close_action") === "exit" ? "exit" : "tray");
-    } catch { /* ignore */ }
+    // 本地偏好延后一拍再同步：effect 内同步 setState 会触发级联渲染（React Compiler 规则）
+    const t = setTimeout(() => {
+      try {
+        setCloseActionState(localStorage.getItem("flowsound_close_action") === "exit" ? "exit" : "tray");
+      } catch { /* ignore */ }
+    }, 0);
+    return () => clearTimeout(t);
   }, []);
 
   const handleCheckUpdate = () => {
