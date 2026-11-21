@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 // 取色结果缓存：切回同一首歌不重复计算（页面内 Map，会话级）
 const colorCache = new Map<string, string>();
+// 容量上限：超限淘汰最早插入的条目（对齐 api.ts 的缓存策略），长会话不无限增长
+const MAX_COLOR_CACHE = 300;
 
 /**
  * 从封面图提取主色（Material You / YouTube Music 式动态取色）。
@@ -90,6 +92,10 @@ export function useDominantColor(coverUrl: string | undefined | null): string | 
         const rgb = hslToRgb2(hue, sat, light);
         const hex = rgbToHex(rgb[0], rgb[1], rgb[2]);
 
+        if (colorCache.size >= MAX_COLOR_CACHE) {
+          const oldest = colorCache.keys().next().value;
+          if (oldest !== undefined) colorCache.delete(oldest);
+        }
         colorCache.set(coverUrl, hex);
         if (!cancelled) setColor(hex);
       } catch {

@@ -172,10 +172,51 @@ function appIcon() {
   return resIcon("icon.png");
 }
 
+// ============ 窗口状态记忆 ============
+// 记住上次关闭时的窗口大小/位置/最大化，下次启动还原（外接显示器拔掉、
+// 分辨率变化时自动回退默认，避免窗口"消失在屏幕外"）。全屏不记录——
+// 误触全屏后退出，下次还是恢复成窗口更符合直觉。
+const WINDOW_STATE_FILE = () => path.join(app.getPath("userData"), "window-state.json");
+
+function loadWindowState() {
+  try {
+    const s = JSON.parse(fs.readFileSync(WINDOW_STATE_FILE(), "utf8"));
+    if (!Number.isFinite(s.width) || !Number.isFinite(s.height)) return null;
+    if (s.width < 380 || s.height < 600) return null; // 低于最小尺寸视为脏数据
+    const ok = screen.getAllDisplays().some((d) => {
+      const a = d.workArea;
+      return s.x >= a.x - 60 && s.y >= a.y - 60 && s.x < a.x + a.width && s.y < a.y + a.height;
+    });
+    return ok ? s : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveWindowState() {
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isMinimized()) return;
+  if (mainWindow.isFullScreen()) return; // 全屏尺寸不记，保留最后一次窗口态
+  try {
+    fs.writeFileSync(WINDOW_STATE_FILE(), JSON.stringify({
+      ...mainWindow.getBounds(),
+      maximized: mainWindow.isMaximized(),
+    }));
+  } catch { /* ignore */ }
+}
+
+let windowStateTimer = null;
+function queueSaveWindowState() {
+  if (windowStateTimer) clearTimeout(windowStateTimer);
+  windowStateTimer = setTimeout(saveWindowState, 300); // resize/move 高频触发，防抖落盘
+}
+
 function createWindow() {
+  const saved = loadWindowState();
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: saved?.width ?? 1200,
+    height: saved?.height ?? 800,
+    x: saved?.x,                // 无记录时 undefined → Electron 自动居中
+    y: saved?.y,
     minWidth: 380,
     minHeight: 600,
     frame: false,              // 无框：标题栏由渲染层 DesktopTitleBar 自绘（汽水音乐同款集成式）
@@ -189,6 +230,7 @@ function createWindow() {
       // 定时器/渲染降频反而省 CPU（桌面歌词功能已移除，无实时同步需求）
     },
   });
+  if (saved?.maximized) mainWindow.maximize(); // 在 show 之前最大化，避免闪一帧小窗
 
   mainWindow.once("ready-to-show", () => {
     closeSplash();
@@ -196,10 +238,17 @@ function createWindow() {
   });
   mainWindow.loadURL(`http://127.0.0.1:${serverPort}`);
 
+  // 窗口状态记忆：尺寸/位置变化防抖落盘
+  mainWindow.on("resize", queueSaveWindowState);
+  mainWindow.on("move", queueSaveWindowState);
+  mainWindow.on("maximize", queueSaveWindowState);
+  mainWindow.on("unmaximize", queueSaveWindowState);
+
   // 关闭按钮行为由设置决定：tray=最小化到托盘 / exit=直接退出
   mainWindow.on("close", (e) => {
     if (quitting || closeAction === "exit") {
       quitting = true;
+      saveWindowState(); // 退出路径同步落盘，保证状态不丢
       return;
     }
     e.preventDefault();
@@ -441,6 +490,7 @@ app.whenReady().then(async () => {
 
 app.on("before-quit", () => {
   quitting = true;
+  saveWindowState(); // 托盘"退出"/快捷键退出等所有路径都补一次落盘
 });
 app.on("quit", () => {
   serverProc?.kill();
