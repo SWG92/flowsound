@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { X, Lock, GripVertical, Trash2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,17 @@ export function PlayQueue() {
   const accent = useDominantColor(currentSong ? getCoverUrl(currentSong) : null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dropIdx, setDropIdx] = useState<number | null>(null);
+
+  // 队列虚拟化：大歌单（数百首）打开/滚动不再全量渲染 DOM。
+  // 拖拽只发生在可见行之间（不可见的行本来也拖不到），与虚拟化天然兼容。
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: queue.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 56,
+    overscan: 8,
+    getItemKey: (index) => `${queue[index].id}-${index}`,
+  });
 
   const handleDragStart = useCallback((e: React.DragEvent, idx: number) => {
     e.dataTransfer.effectAllowed = "move";
@@ -164,14 +176,17 @@ export function PlayQueue() {
         </div>
       </div>
 
-      {/* 歌曲列表 */}
-      <div className="flex-1 overflow-y-auto p-2" onWheel={(e) => e.stopPropagation()}>
+      {/* 歌曲列表（虚拟化：只渲染可视区 ± overscan 的行） */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-2" onWheel={(e) => e.stopPropagation()}>
         {queue.length === 0 ? (
           <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
             播放队列为空
           </div>
         ) : (
-          queue.map((song, index) => {
+          <div style={{ height: rowVirtualizer.getTotalSize(), position: "relative" }}>
+          {rowVirtualizer.getVirtualItems().map((vi) => {
+            const song = queue[vi.index];
+            const index = vi.index;
             const isCurrent = currentSong?.id === song.id;
             const isPaid = song.fee === 1;
             const isDragging = dragIdx === index;
@@ -181,7 +196,16 @@ export function PlayQueue() {
 
             return (
               <div
-                key={`${song.id}-${index}`}
+                key={vi.key}
+                ref={rowVirtualizer.measureElement}
+                data-index={index}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${vi.start}px)`,
+                }}
                 draggable={!isPaid}
                 className={cn(
                   "flex items-center gap-2 px-2 py-2 rounded-lg transition-all group",
@@ -268,7 +292,8 @@ export function PlayQueue() {
                 )}
               </div>
             );
-          })
+          })}
+          </div>
         )}
       </div>
       </div>

@@ -36,6 +36,11 @@ class AudioPlayer {
   private lastSpeed = 1;
   private pendingSeek = 0;
 
+  // 起播失败自动重试：弱网/上游抖动时同一地址延后重载一次（有界，不循环）。
+  // playToken 令牌防止重试落地前用户已切歌；loadRetryCount 保证最多重试一次。
+  private playToken = 0;
+  private loadRetryCount = 0;
+
   private constructor() {}
 
   static getInstance(): AudioPlayer {
@@ -71,13 +76,16 @@ class AudioPlayer {
     url: string,
     volume: number,
     speed: number,
-    opts?: { startPaused?: boolean; startAt?: number }
+    opts?: { startPaused?: boolean; startAt?: number; isRetry?: boolean }
   ) {
     // 取消待执行的 onend 回调
     if (this.endTimeout) {
       clearTimeout(this.endTimeout);
       this.endTimeout = null;
     }
+    const playToken = ++this.playToken;
+    const startPausedOpt = !!opts?.startPaused;
+    if (!opts?.isRetry) this.loadRetryCount = 0; // 用户新发起的播放重置重试预算
 
     this.lastUrl = url;
     this.lastVolume = volume;
@@ -175,6 +183,25 @@ class AudioPlayer {
         },
         onloaderror: (_id, err: unknown) => {
           logError("Audio load error:", err);
+          // 自动重试一次（有界）：同一地址延后 600ms 重载，上游瞬时抖动常见。
+          // 令牌校验：重试落地前用户已切歌/重播则作废；二次仍失败才提示。
+          if (this.loadRetryCount < 1) {
+            this.loadRetryCount++;
+            setTimeout(() => {
+              if (this.playToken !== playToken) return;
+              let pos = this.pendingSeek;
+              try {
+                const t = this.sound?.seek();
+                if (typeof t === "number" && !isNaN(t) && t > 1) pos = t;
+              } catch { /* ignore */ }
+              this.play(url, volume, speed, {
+                ...(pos > 1 ? { startAt: pos } : {}),
+                startPaused: startPausedOpt,
+                isRetry: true,
+              });
+            }, 600);
+            return;
+          }
           usePlayerStore.getState().setPlaying(false);
           usePlayerStore.getState().setLoading(false);
           try {
