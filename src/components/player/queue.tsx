@@ -205,6 +205,9 @@ export function PlayQueue() {
                   left: 0,
                   width: "100%",
                   transform: `translateY(${vi.start}px)`,
+                  ...(isCurrent && currentColor
+                    ? ({ "--eq-bar-color": currentColor, background: hexA(currentColor, 0.13) } as React.CSSProperties)
+                    : {}),
                 }}
                 draggable={!isPaid}
                 className={cn(
@@ -214,10 +217,6 @@ export function PlayQueue() {
                   isOver && (index > (dragIdx ?? -1) ? "border-t-2 border-primary/50" : "border-b-2 border-primary/50"),
                   isPaid ? "cursor-not-allowed" : "cursor-pointer hover:bg-muted/30"
                 )}
-                style={isCurrent && currentColor ? ({
-                  "--eq-bar-color": currentColor,
-                  background: hexA(currentColor, 0.13),
-                } as React.CSSProperties) : undefined}
                 onClick={() => !isPaid && playSong(song, queue)}
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragOver={(e) => handleDragOver(e, index)}
