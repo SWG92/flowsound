@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Settings as SettingsIcon, Monitor, Database, Info, Sun, Moon, Download, Upload, RefreshCw } from "lucide-react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
+import { Monitor, Laptop, Database, Sun, Moon, Download, Upload, RefreshCw, type LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { getDesktop } from "@/lib/desktop";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/lib/store";
@@ -53,6 +54,32 @@ const BACKUP_DATA_KEYS = [
 
 // 备份文件结构标记
 const BACKUP_MAGIC = "flowsound-backup";
+
+/** 设置分组：安静的小标题 + 素面卡片（黄金法则：就近分组、降低视觉噪音） */
+function Section({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-border/50 bg-card/40 p-5">
+      <h2 className="flex items-center gap-1.5 text-xs font-medium tracking-widest text-muted-foreground mb-1">
+        <Icon className="h-3.5 w-3.5" />
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+/** 统一设置行：左侧标题+描述、右侧控件（黄金法则：一致性——所有行同一节奏） */
+function Row({ title, desc, children, first }: { title: string; desc?: string; children: ReactNode; first?: boolean }) {
+  return (
+    <div className={cn("flex items-center justify-between gap-4 py-3.5", !first && "border-t border-border/40")}>
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{title}</p>
+        {desc && <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{desc}</p>}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">{children}</div>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const theme = usePlayerStore((s) => s.theme);
@@ -252,30 +279,33 @@ export default function SettingsPage() {
       />
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <SettingsIcon className="h-6 w-6 text-primary" />
           <span className="gradient-text">设置</span>
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          自定义你的音乐体验
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">自定义你的音乐体验</p>
       </div>
 
-      {/* 音频设置：音质选择已移至播放栏（倍速按钮左侧），随时可切 */}
-
-      {/* 界面设置 */}
-      <section className="glass rounded-xl p-6 space-y-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Monitor className="h-5 w-5 text-primary" />
-          界面设置
-        </h2>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium text-sm">性能模式</p>
-            <p className="text-xs text-muted-foreground">
-              关闭背景模糊与光斑动画，低配设备更流畅（开启后玻璃质感会简化）
-            </p>
-          </div>
+      <Section icon={Monitor} title="界面">
+        <Row first title="主题模式" desc={mounted ? (theme === "dark" ? "当前：深色模式" : "当前：浅色模式") : "主题模式"}>
+          <Button
+            variant={mounted && theme === "light" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setTheme("light")}
+            className="cursor-pointer"
+          >
+            <Sun className="h-4 w-4 mr-1" />
+            浅色
+          </Button>
+          <Button
+            variant={mounted && theme === "dark" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setTheme("dark")}
+            className="cursor-pointer"
+          >
+            <Moon className="h-4 w-4 mr-1" />
+            深色
+          </Button>
+        </Row>
+        <Row title="性能模式" desc="关闭背景模糊与光斑动画，低配设备更流畅（玻璃质感会简化）">
           <Button
             variant={mounted && performanceOn ? "default" : "outline"}
             size="sm"
@@ -284,65 +314,17 @@ export default function SettingsPage() {
           >
             {mounted && performanceOn ? "已开启" : "已关闭"}
           </Button>
-        </div>
+        </Row>
+      </Section>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium text-sm">主题模式</p>
-            {/* 主题存在 localStorage/Cookie，服务端渲染时只有默认值：
-                挂载后再显示实际状态，避免 hydration 不匹配（与侧栏做法一致） */}
-            <p className="text-xs text-muted-foreground">
-              {mounted ? (theme === "dark" ? "当前：深色模式" : "当前：浅色模式") : "主题模式"}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant={mounted && theme === "light" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTheme("light")}
-              className="cursor-pointer"
-            >
-              <Sun className="h-4 w-4 mr-1" />
-              浅色
-            </Button>
-            <Button
-              variant={mounted && theme === "dark" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTheme("dark")}
-              className="cursor-pointer"
-            >
-              <Moon className="h-4 w-4 mr-1" />
-              深色
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* 数据备份 */}
-      <section className="glass rounded-xl p-6 space-y-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Download className="h-5 w-5 text-primary" />
-          数据备份
-        </h2>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium text-sm">导出数据</p>
-            <p className="text-xs text-muted-foreground">
-              歌单、收藏、黑名单、播放记录打包为 JSON 文件下载，可跨设备迁移
-            </p>
-          </div>
+      <Section icon={Database} title="数据与缓存">
+        <Row first title="导出数据" desc="歌单、收藏、黑名单、播放记录打包为 JSON 文件下载，可跨设备迁移">
           <Button variant="outline" size="sm" onClick={handleExport} className="cursor-pointer">
             <Download className="h-4 w-4 mr-1.5" />
             导出
           </Button>
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium text-sm">导入数据</p>
-            <p className="text-xs text-muted-foreground">
-              从备份文件恢复（导入前会自动备份当前数据，以防误操作）
-            </p>
-          </div>
+        </Row>
+        <Row title="导入数据" desc="从备份文件恢复（导入前会自动备份当前数据，以防误操作）">
           <Button
             variant="outline"
             size="sm"
@@ -352,49 +334,18 @@ export default function SettingsPage() {
             <Upload className="h-4 w-4 mr-1.5" />
             导入
           </Button>
-        </div>
-      </section>
-
-      {/* 缓存管理 */}
-      <section className="glass rounded-xl p-6 space-y-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Database className="h-5 w-5 text-primary" />
-          缓存管理
-        </h2>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium text-sm">清除缓存</p>
-              <p className="text-xs text-muted-foreground">
-                清理接口缓存、每日推荐、离线资源与桌面端磁盘缓存（封面图/字体/接口临时副本，下次自动重建）；收藏、歌单、播放记录、黑名单、本地评论等数据会完整保留
-              </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleClearCache}
-            className="cursor-pointer"
-          >
+        </Row>
+        <Row title="清除缓存" desc="接口缓存、离线资源与桌面端磁盘缓存（临时副本，下次自动重建）；收藏、歌单等数据完整保留">
+          <Button variant="outline" size="sm" onClick={handleClearCache} className="cursor-pointer">
             清除缓存
           </Button>
-        </div>
-      </section>
+        </Row>
+      </Section>
 
       {/* 桌面版（仅 Electron 壳内显示） */}
       {deskVersion !== null && (
-        <section className="glass rounded-xl p-6 space-y-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Monitor className="h-5 w-5 text-primary" />
-            桌面版
-          </h2>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">软件更新</p>
-              <p className="text-xs text-muted-foreground">
-                {updateMsg || `当前版本 v${deskVersion} · 自动检查新版本，下载完成后提示重启`}
-              </p>
-            </div>
+        <Section icon={Laptop} title="桌面版">
+          <Row first title="软件更新" desc={updateMsg || `当前版本 v${deskVersion} · 自动检查新版本，下载完成后提示重启`}>
             {updateReady ? (
               <Button variant="default" size="sm" onClick={() => getDesktop()?.restartForUpdate()} className="cursor-pointer">
                 <RefreshCw className="h-4 w-4 mr-1.5" />
@@ -406,15 +357,8 @@ export default function SettingsPage() {
                 检查更新
               </Button>
             )}
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">关闭按钮行为</p>
-              <p className="text-xs text-muted-foreground">
-                点窗口 X 时：缩到托盘继续播放，或直接退出应用
-              </p>
-            </div>
+          </Row>
+          <Row title="关闭按钮行为" desc="点窗口 X 时：缩到托盘继续播放，或直接退出应用">
             <div className="flex gap-2">
               <Button
                 variant={closeAction === "tray" ? "default" : "outline"}
@@ -433,32 +377,13 @@ export default function SettingsPage() {
                 直接退出
               </Button>
             </div>
-          </div>
-        </section>
+          </Row>
+        </Section>
       )}
 
-      {/* 关于 */}
-      <section className="glass rounded-xl p-6 space-y-3">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Info className="h-5 w-5 text-primary" />
-          关于
-        </h2>
-
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">应用名称</span>
-            <span className="font-medium">{APP_INFO.name}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">版本</span>
-            <span className="font-medium">{APP_INFO.version}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">技术栈</span>
-            <span className="font-medium">{APP_INFO.tech}</span>
-          </div>
-        </div>
-      </section>
+      <p className="px-1 pt-2 text-xs text-muted-foreground/70">
+        {APP_INFO.name} · v{APP_INFO.version} · {APP_INFO.tech}
+      </p>
     </div>
   );
 }
