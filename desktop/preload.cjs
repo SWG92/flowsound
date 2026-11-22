@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld("flowsoundDesktop", {
   // —— 桌面歌词窗（播放栏"词"按钮开关；closed 时主进程回推状态）——
   openLyricsWindow: () => ipcRenderer.send("open-lyrics-window"),
   closeLyricsWindow: () => ipcRenderer.send("close-lyrics-window"),
+  setLyricsLocked: (locked) => ipcRenderer.send("set-lyrics-locked", locked),
   onLyricsWindowState: (cb) => {
     ipcRenderer.on("lyrics-window-state", (_e, open) => cb(open));
   },

@@ -292,27 +292,65 @@ function showWindow() {
 // ============ 桌面歌词窗（原生透明小窗）============
 // 独立渲染进程，加载 /desktop-lyrics 路由；歌词行由主窗口经
 // BroadcastChannel("flowsound-lyrics") 推送（同源窗口间广播，无需主进程中转）。
+// 支持位置记忆 + 锁定（鼠标穿透，防误点；解锁走托盘菜单）。
+
+let lyricsLocked = false;
+
+const LYRICS_STATE_FILE = () => path.join(app.getPath("userData"), "lyrics-window-state.json");
+
+function loadLyricsBounds() {
+  try {
+    const s = JSON.parse(fs.readFileSync(LYRICS_STATE_FILE(), "utf8"));
+    if (!Number.isFinite(s.x) || !Number.isFinite(s.y)) return null;
+    const ok = screen.getAllDisplays().some((d) => {
+      const a = d.workArea;
+      return s.x >= a.x - 60 && s.y >= a.y - 60 && s.x < a.x + a.width && s.y < a.y + a.height;
+    });
+    return ok ? s : null;
+  } catch {
+    return null;
+  }
+}
+
+let lyricsStateTimer = null;
+function saveLyricsBounds() {
+  if (!lyricsWindow || lyricsWindow.isDestroyed()) return;
+  try {
+    fs.writeFileSync(LYRICS_STATE_FILE(), JSON.stringify(lyricsWindow.getBounds()));
+  } catch { /* ignore */ }
+}
+
+function applyLyricsLock(locked) {
+  lyricsLocked = !!locked;
+  if (lyricsWindow && !lyricsWindow.isDestroyed()) {
+    // forward: true —— 锁定时鼠标移动事件仍转发给页面（仅点击被穿透）
+    lyricsWindow.setIgnoreMouseEvents(lyricsLocked, { forward: true });
+  }
+  buildTrayMenu(); // 托盘菜单里"解锁桌面歌词"项随锁定状态显隐
+}
 
 function createLyricsWindow() {
   if (lyricsWindow && !lyricsWindow.isDestroyed()) {
     lyricsWindow.show();
     return;
   }
+  const saved = loadLyricsBounds();
+  const bounds = saved ?? (() => {
+    try {
+      const a = screen.getPrimaryDisplay().workArea;
+      return {
+        x: a.x + Math.round((a.width - 680) / 2),
+        y: a.y + a.height - 170,
+      };
+    } catch {
+      return { x: 100, y: 600 };
+    }
+  })();
   lyricsWindow = new BrowserWindow({
     width: 680,
     height: 140,
-    x: (() => {
-      try {
-        const a = screen.getPrimaryDisplay().workArea;
-        return a.x + Math.round((a.width - 680) / 2);
-      } catch { return 100; }
-    })(),
-    y: (() => {
-      try {
-        const a = screen.getPrimaryDisplay().workArea;
-        return a.y + a.height - 170;
-      } catch { return 600; }
-    })(),
+    x: bounds.x,
+    y: bounds.y,
     frame: false,
     transparent: true,
     resizable: false,
@@ -326,20 +364,33 @@ function createLyricsWindow() {
   lyricsWindow.setAlwaysOnTop(true, "screen-saver"); // 压过大部分置顶窗口
   lyricsWindow.loadURL(`http://127.0.0.1:${serverPort}/desktop-lyrics`);
   lyricsWindow.once("ready-to-show", () => lyricsWindow?.showInactive()); // 不抢主窗口焦点
+  lyricsWindow.on("move", () => {
+    if (lyricsStateTimer) clearTimeout(lyricsStateTimer);
+    lyricsStateTimer = setTimeout(saveLyricsBounds, 300);
+  });
   lyricsWindow.on("closed", () => {
     lyricsWindow = null;
+    applyLyricsLock(false);
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("lyrics-window-state", false);
     }
   });
+  applyLyricsLock(false);
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("lyrics-window-state", true);
   }
 }
 
 function closeLyricsWindow() {
-  if (lyricsWindow && !lyricsWindow.isDestroyed()) lyricsWindow.close();
+  if (lyricsWindow && !lyricsWindow.isDestroyed()) {
+    saveLyricsBounds();
+    lyricsWindow.close();
+  }
 }
+
+ipcMain.on("open-lyrics-window", () => createLyricsWindow());
+ipcMain.on("close-lyrics-window", () => closeLyricsWindow());
+ipcMain.on("set-lyrics-locked", (_e, locked) => applyLyricsLock(locked));
 
 // ============ 托盘（播放态图标 + tooltip 歌名）============
 
@@ -365,27 +416,30 @@ function updateTrayState(s) {
 
 function buildTrayMenu() {
   if (!tray) return;
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: "显示主界面", click: showWindow },
-      { label: "检查更新", click: () => checkUpdates(true) },
-      {
-        label: "开机自启",
-        type: "checkbox",
-        checked: app.getLoginItemSettings().openAtLogin,
-        click: (item) =>
-          app.setLoginItemSettings({ openAtLogin: item.checked, path: process.execPath }),
+  const items = [
+    { label: "显示主界面", click: showWindow },
+    // 桌面歌词锁定（鼠标穿透）后窗口不吃任何点击，托盘是唯一解锁入口
+    ...(lyricsLocked
+      ? [{ label: "解锁桌面歌词", click: () => applyLyricsLock(false) }]
+      : []),
+    { label: "检查更新", click: () => checkUpdates(true) },
+    {
+      label: "开机自启",
+      type: "checkbox",
+      checked: app.getLoginItemSettings().openAtLogin,
+      click: (item) =>
+        app.setLoginItemSettings({ openAtLogin: item.checked, path: process.execPath }),
+    },
+    { type: "separator" },
+    {
+      label: "退出",
+      click: () => {
+        quitting = true;
+        app.quit();
       },
-      { type: "separator" },
-      {
-        label: "退出",
-        click: () => {
-          quitting = true;
-          app.quit();
-        },
-      },
-    ])
-  );
+    },
+  ];
+  tray.setContextMenu(Menu.buildFromTemplate(items));
 }
 
 function createTray() {
@@ -498,10 +552,6 @@ ipcMain.on("set-progress", (_e, v) => {
   }
 });
 ipcMain.on("set-tray-state", (_e, s) => updateTrayState(s));
-
-// 桌面歌词窗开关（播放栏"词"按钮切换）
-ipcMain.on("open-lyrics-window", () => createLyricsWindow());
-ipcMain.on("close-lyrics-window", () => closeLyricsWindow());
 
 // 清理磁盘缓存：Chromium HTTP 磁盘缓存（封面图/字体/接口临时副本，增长大头）
 // + 软件内更新遗留的安装包副本。收藏/历史等 Local Storage 用户数据不受影响。

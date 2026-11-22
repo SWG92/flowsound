@@ -15,6 +15,7 @@ export interface FlowSoundDesktop {
   // —— 桌面歌词窗 ——
   openLyricsWindow(): void;
   closeLyricsWindow(): void;
+  setLyricsLocked(locked: boolean): void;
   onLyricsWindowState(cb: (open: boolean) => void): void;
   checkForUpdates(): Promise<unknown>;
   restartForUpdate(): void;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { X, Lock } from "lucide-react";
 import { getDesktop } from "@/lib/desktop";
 
 /**
@@ -38,6 +38,13 @@ export default function DesktopLyricsPage() {
   return (
     <div className="desktop-lyrics-root">
       <div className="desktop-lyrics-tools">
+        <button
+          onClick={() => getDesktop()?.setLyricsLocked(true)}
+          title="锁定（鼠标穿透防误点，托盘菜单可解锁）"
+          className="p-1 rounded-full text-white/70 hover:text-white hover:bg-black/30 cursor-pointer bg-black/20"
+        >
+          <Lock className="h-3.5 w-3.5" />
+        </button>
         <button
           onClick={() => getDesktop()?.closeLyricsWindow()}
           title="关闭桌面歌词"
