@@ -87,7 +87,7 @@ export default function RoamingPage() {
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0 gap-4">
+    <div className="flex flex-col flex-1 min-h-0 gap-4">
       <div className="shrink-0">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <span className="gradient-text">音乐漫游</span>

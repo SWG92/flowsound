@@ -384,7 +384,9 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
 
   return (
     <>
-      <div className="space-y-1">
+      {/* fill 模式：根容器撑满父级并纵向 flex——表头固定，滚动区吃掉剩余高度，
+          否则 h-full 链在 auto 高度的根节点上断裂，退化为整页滚动 */}
+      <div className={cn("space-y-1", fill && "flex h-full min-h-0 flex-col")}>
         {/* 表头 */}
         <div className="grid grid-cols-[2rem_2.5rem_1fr_3rem_1.5rem] md:grid-cols-[3rem_2.5rem_1.2fr_1fr_0.8fr_5rem_2.5rem] gap-2 md:gap-3 px-2 md:px-4 py-2 text-xs text-muted-foreground uppercase tracking-wider">
           <div className="text-center">#</div>
@@ -400,7 +402,7 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
         {virtual ? (
           <div
             ref={scrollRef}
-            className={cn("overflow-y-auto", fill && "h-full")}
+            className={cn("overflow-y-auto", fill && "flex-1 min-h-0")}
             style={fill ? undefined : { maxHeight: maxHeight || "calc(100vh - 320px)" }}
             // 无限滚动必须挂在列表自身的滚动上：虚拟列表有自己的滚动条，
             // 页面几乎不滚动，若把哨兵放在页面流里会一直停在视口内、把全部页一次加载完

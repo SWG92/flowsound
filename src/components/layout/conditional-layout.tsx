@@ -15,13 +15,14 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       {/* 桌面壳窗口控制按钮（悬浮右上，浏览器端不渲染） */}
       <DesktopWindowControls />
       <Sidebar />
-      <main className="flex-1 flex flex-col overflow-hidden" style={{ paddingBottom: "calc(84px + var(--safe-bottom))" }}>
+      <main className="flex-1 flex flex-col overflow-hidden">
         <TopNav />
-        {/* 内容磨砂面板：全出血铺满内容区——渐变只做最底层背景，不再从面板缝隙漏光。
-            min-h-full + flex：短内容页（漫游等 flex 填充页）撑满视口且页面不滚动；
-            长内容页（设置）超出部分由外层滚动 */}
-        <div className="flex-1 overflow-y-auto bg-card/45 backdrop-blur-md">
-          <div className="min-h-full flex flex-col max-w-[1500px] mx-auto px-3 md:px-6 py-4 md:py-6">
+        {/* 内容磨砂面板：铺满 main 全区（含播放栏背后）——渐变不再从面板与播放栏之间的缝隙漏出。
+            内层 h-full：给 flex 填充页（漫游/发现）一条确定高度链，页面自身不滚、歌单内部滚；
+            长内容页（设置）内容自然溢出内层，由本层滚动。
+            底部留白挂在滚动容器上（calc 的 + 必须带空格，Tailwind 用下划线），滚动到头也有 96px 呼吸区 */}
+        <div className="flex-1 overflow-y-auto bg-card/45 backdrop-blur-md pb-[calc(96px_+_var(--safe-bottom))]">
+          <div className="h-full flex flex-col max-w-[1500px] mx-auto px-3 md:px-6 pt-4 md:pt-6">
             {children}
           </div>
         </div>
