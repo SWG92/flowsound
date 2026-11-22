@@ -12,12 +12,6 @@ export interface FlowSoundDesktop {
   setProgress(v: number): void;
   setTrayState(s: { playing: boolean; title: string }): void;
   clearDiskCache(): Promise<{ ok: boolean; message?: string }>;
-  // —— 桌面歌词窗 ——
-  openLyricsWindow(): void;
-  closeLyricsWindow(): void;
-  setLyricsLocked(locked: boolean): void;
-  moveLyricsWindowBy(dx: number, dy: number): void;
-  onLyricsWindowState(cb: (open: boolean) => void): void;
   checkForUpdates(): Promise<unknown>;
   restartForUpdate(): void;
   onUpdateStatus(cb: (s: { type: string; version?: string; percent?: number; message?: string }) => void): void;

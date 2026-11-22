@@ -18,9 +18,7 @@ import {
   Gauge,
   SlidersHorizontal,
   MessageCircle,
-  Captions,
 } from "lucide-react";
-import { getDesktop } from "@/lib/desktop";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -102,13 +100,6 @@ export function PlayerBar() {
   const [showEQ, setShowEQ] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [prevVolume, setPrevVolume] = useState(0.8);
-  // 桌面歌词窗开关状态（歌词窗自身关闭时由主进程回推同步）
-  const [lyricsWinOpen, setLyricsWinOpen] = useState(false);
-  useEffect(() => {
-    const d = getDesktop();
-    if (!d?.onLyricsWindowState) return;
-    d.onLyricsWindowState((open) => setLyricsWinOpen(open));
-  }, []);
   const sleepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isFadingRef = useRef(false);
@@ -510,23 +501,6 @@ export function PlayerBar() {
               </div>
             )}
           </div>
-
-          {/* 桌面歌词窗（仅桌面壳）：透明置顶小窗，随专辑主色染色 */}
-          {getDesktop() && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn("cursor-pointer h-8 w-8 hidden md:flex", lyricsWinOpen && "text-primary")}
-              onClick={() =>
-                lyricsWinOpen
-                  ? getDesktop()?.closeLyricsWindow()
-                  : getDesktop()?.openLyricsWindow()
-              }
-              title="桌面歌词"
-            >
-              <Captions className="h-4 w-4" />
-            </Button>
-          )}
 
           {/* 播放队列 */}
           <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8 hidden md:flex" onClick={() => setShowQueue(!showQueue)} title="播放队列">

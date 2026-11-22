@@ -318,7 +318,7 @@ export default function SettingsPage() {
             {mounted && performanceOn ? "已开启" : "已关闭"}
           </Button>
         </Row>
-        <Row title="音频增强" desc="播放走本机流转发：解锁全部音源的均衡器与真实频谱可视化。切换后下一首生效；网页端默认关">
+        <Row title="音频增强" desc="播放走本机流转发以支持均衡器与频谱（实验性，可能影响播放流畅度）。切换后下一首生效">
           <Button
             variant={mounted && audioEnhance ? "default" : "outline"}
             size="sm"

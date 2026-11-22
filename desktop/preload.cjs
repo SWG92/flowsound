@@ -27,14 +27,6 @@ contextBridge.exposeInMainWorld("flowsoundDesktop", {
   setTrayState: (s) => ipcRenderer.send("set-tray-state", s),
   // —— 清理磁盘缓存（HTTP 缓存 + 更新器遗留安装包，不动用户数据）——
   clearDiskCache: () => ipcRenderer.invoke("clear-disk-cache"),
-  // —— 桌面歌词窗（播放栏"词"按钮开关；closed 时主进程回推状态）——
-  openLyricsWindow: () => ipcRenderer.send("open-lyrics-window"),
-  closeLyricsWindow: () => ipcRenderer.send("close-lyrics-window"),
-  setLyricsLocked: (locked) => ipcRenderer.send("set-lyrics-locked", locked),
-  moveLyricsWindowBy: (dx, dy) => ipcRenderer.send("move-lyrics-window-by", dx, dy),
-  onLyricsWindowState: (cb) => {
-    ipcRenderer.on("lyrics-window-state", (_e, open) => cb(open));
-  },
   // —— 自动更新 ——
   checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
   restartForUpdate: () => ipcRenderer.send("quit-and-install"),

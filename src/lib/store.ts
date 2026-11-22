@@ -5,7 +5,6 @@ import type { Song, PlayMode, LyricLine, MusicPlatform } from "./types";
 import { getSongUrl, getLyrics, prefetchSongUrl, searchSongs } from "./api";
 import { STORAGE_KEYS, MAX_HISTORY, THEME_COOKIE, AUDIO_QUALITY } from "./constants";
 import { useToastStore } from "./toast-store";
-import { getDesktop } from "./desktop";
 import type { AudioQuality } from "./constants";
 
 interface PlayerState {
@@ -123,11 +122,9 @@ const initialSpeed = loadFromStorage<number>(STORAGE_KEYS.speed, 1);
 const initialAudioQuality = loadFromStorage<AudioQuality>(STORAGE_KEYS.audioQuality, "high");
 // 歌词翻译显示：默认开（有翻译时显示译文行）
 const initialLyricTrans = loadFromStorage<boolean>(STORAGE_KEYS.lyricTrans, true);
-// 音频增强（同源流代理）：桌面端默认开（EQ/频谱可视化依赖它），网页端默认关
-// （serverless 函数流式转发音频会受时长/流量限制）
+// 音频增强（同源流代理）：默认关——直连 CDN 的播放体验更稳，增强只作实验性选项
 const initialAudioEnhance =
-  loadFromStorage<boolean | undefined>(STORAGE_KEYS.audioEnhance, undefined) ??
-  (getDesktop() !== null);
+  loadFromStorage<boolean | undefined>(STORAGE_KEYS.audioEnhance, undefined) ?? false;
 
 // 首屏主题以服务端渲染的 html class 为准（它来自 Cookie）：这样客户端首次渲染与
 // 服务端完全一致，不会出现 hydration 不匹配；老用户（只有 localStorage、没有 Cookie）
