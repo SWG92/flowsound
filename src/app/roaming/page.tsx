@@ -61,19 +61,23 @@ export default function RoamingPage() {
     showToast(`开始漫游「${genre?.label}」· ${pool.length} 首已入列`, "success");
   };
 
-  // 刷新后恢复上次漫游的流派与曲池（队列由播放快照自动还原）
+  // 刷新后恢复上次漫游的流派与曲池（队列由播放快照自动还原）。
+  // 延后一拍：effect 内同步 setState 会触发级联渲染（React Compiler 规则）
   useEffect(() => {
-    try {
-      const last = localStorage.getItem("flowsound_roaming_genre");
-      if (!last) return;
-      const g = ROAMING_GENRES.find((x) => x.id === last);
-      if (g && usePlayerStore.getState().queue.length > 0) {
-        setGenre(g);
-        // 曲池回显：播放快照恢复的队列就是上次漫游池
-        setPool(usePlayerStore.getState().queue);
-        setLoading(false);
-      }
-    } catch { /* ignore */ }
+    const t = setTimeout(() => {
+      try {
+        const last = localStorage.getItem("flowsound_roaming_genre");
+        if (!last) return;
+        const g = ROAMING_GENRES.find((x) => x.id === last);
+        if (g && usePlayerStore.getState().queue.length > 0) {
+          setGenre(g);
+          // 曲池回显：播放快照恢复的队列就是上次漫游池
+          setPool(usePlayerStore.getState().queue);
+          setLoading(false);
+        }
+      } catch { /* ignore */ }
+    }, 0);
+    return () => clearTimeout(t);
   }, []);
 
   const selectGenre = (g: RoamingGenre) => {
