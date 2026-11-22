@@ -52,13 +52,19 @@
   /* iPhone 刘海屏/手势条安全区（配合 viewport-fit=cover） */
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
+  /* 主题色相组：a=主色 b=副色 c=冷辅 d=清辅（预设经 html[data-theme] 覆盖，
+     深浅色共用同一组相值——治愈紫为默认，见下方预设块） */
+  --theme-hue-a: 280;
+  --theme-hue-b: 330;
+  --theme-hue-c: 250;
+  --theme-hue-d: 200;
   --background: oklch(0.97 0.005 270);
   --foreground: oklch(0.2 0.01 270);
   --card: oklch(1 0 0 / 0.6);
   --card-foreground: oklch(0.2 0.01 270);
   --popover: oklch(1 0 0 / 0.8);
   --popover-foreground: oklch(0.2 0.01 270);
-  --primary: oklch(0.58 0.14 280);
+  --primary: oklch(0.58 0.14 var(--theme-hue-a));
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.95 0.005 270);
   --secondary-foreground: oklch(0.3 0.01 270);
@@ -69,21 +75,21 @@
   --destructive: oklch(0.6 0.2 25);
   --border: oklch(0 0 0 / 8%);
   --input: oklch(0 0 0 / 6%);
-  --ring: oklch(0.58 0.14 280);
-  --chart-1: oklch(0.7 0.2 280);
-  --chart-2: oklch(0.65 0.2 320);
-  --chart-3: oklch(0.6 0.15 250);
-  --chart-4: oklch(0.55 0.18 200);
+  --ring: oklch(0.58 0.14 var(--theme-hue-a));
+  --chart-1: oklch(0.7 0.2 var(--theme-hue-a));
+  --chart-2: oklch(0.65 0.2 var(--theme-hue-b));
+  --chart-3: oklch(0.6 0.15 var(--theme-hue-c));
+  --chart-4: oklch(0.55 0.18 var(--theme-hue-d));
   --chart-5: oklch(0.5 0.12 160);
   --radius: 1rem;
   --sidebar: oklch(1 0 0 / 0.5);
   --sidebar-foreground: oklch(0.2 0.01 270);
-  --sidebar-primary: oklch(0.58 0.14 280);
+  --sidebar-primary: oklch(0.58 0.14 var(--theme-hue-a));
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.93 0.01 270);
   --sidebar-accent-foreground: oklch(0.2 0.01 270);
   --sidebar-border: oklch(0 0 0 / 6%);
-  --sidebar-ring: oklch(0.58 0.14 280);
+  --sidebar-ring: oklch(0.58 0.14 var(--theme-hue-a));
 }
 
 @layer base {
@@ -98,6 +104,22 @@
   }
 }
 
+/* 主题色预设（data-theme 由设置页写入 html，ThemeProvider 启动时恢复） */
+html[data-theme="sunset"] {
+  /* 治愈橙：落日暖调——橙为主，珊瑚粉作副色，杏黄/浅绿做光斑 */
+  --theme-hue-a: 55;
+  --theme-hue-b: 25;
+  --theme-hue-c: 75;
+  --theme-hue-d: 150;
+}
+html[data-theme="ocean"] {
+  /* 科技蓝：冷调高对比——电光蓝为主，青作副色，紫靛/青绿做光斑 */
+  --theme-hue-a: 255;
+  --theme-hue-b: 200;
+  --theme-hue-c: 290;
+  --theme-hue-d: 180;
+}
+
 /* 深色主题 */
 .dark {
   --background: oklch(0.15 0.01 270);
@@ -106,7 +128,7 @@
   --card-foreground: oklch(0.92 0.005 270);
   --popover: oklch(0.18 0.005 270 / 0.9);
   --popover-foreground: oklch(0.92 0.005 270);
-  --primary: oklch(0.68 0.13 280);
+  --primary: oklch(0.68 0.13 var(--theme-hue-a));
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.22 0.005 270);
   --secondary-foreground: oklch(0.9 0.005 270);
@@ -117,20 +139,20 @@
   --destructive: oklch(0.5 0.2 25);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 8%);
-  --ring: oklch(0.68 0.13 280);
-  --chart-1: oklch(0.7 0.2 280);
-  --chart-2: oklch(0.65 0.2 320);
-  --chart-3: oklch(0.6 0.15 250);
-  --chart-4: oklch(0.55 0.18 200);
+  --ring: oklch(0.68 0.13 var(--theme-hue-a));
+  --chart-1: oklch(0.7 0.2 var(--theme-hue-a));
+  --chart-2: oklch(0.65 0.2 var(--theme-hue-b));
+  --chart-3: oklch(0.6 0.15 var(--theme-hue-c));
+  --chart-4: oklch(0.55 0.18 var(--theme-hue-d));
   --chart-5: oklch(0.5 0.12 160);
   --sidebar: oklch(0.18 0.005 270 / 0.6);
   --sidebar-foreground: oklch(0.92 0.005 270);
-  --sidebar-primary: oklch(0.68 0.13 280);
+  --sidebar-primary: oklch(0.68 0.13 var(--theme-hue-a));
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.22 0.01 270);
   --sidebar-accent-foreground: oklch(0.92 0.005 270);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.68 0.13 280);
+  --sidebar-ring: oklch(0.68 0.13 var(--theme-hue-a));
 }
 
 /* ===== Liquid Glass 液态玻璃材质系统 =====
@@ -180,18 +202,18 @@ body::after {
 
 /* 浅色光斑 */
 body::before {
-  background: radial-gradient(circle at 40% 40%, oklch(0.85 0.09 285 / 0.4), transparent 65%);
+  background: radial-gradient(circle at 40% 40%, oklch(0.85 0.09 var(--theme-hue-a) / 0.4), transparent 65%);
 }
 body::after {
-  background: radial-gradient(circle at 55% 55%, oklch(0.87 0.07 210 / 0.3), transparent 65%);
+  background: radial-gradient(circle at 55% 55%, oklch(0.87 0.07 var(--theme-hue-d) / 0.3), transparent 65%);
 }
 
 /* 深色光斑：更饱和、更暗，让深色玻璃有折射内容 */
 .dark body::before {
-  background: radial-gradient(circle at 40% 40%, oklch(0.42 0.12 285 / 0.32), transparent 65%);
+  background: radial-gradient(circle at 40% 40%, oklch(0.42 0.12 var(--theme-hue-a) / 0.32), transparent 65%);
 }
 .dark body::after {
-  background: radial-gradient(circle at 55% 55%, oklch(0.38 0.09 215 / 0.28), transparent 65%);
+  background: radial-gradient(circle at 55% 55%, oklch(0.38 0.09 var(--theme-hue-d) / 0.28), transparent 65%);
 }
 
 /* ===== 液态玻璃面板（浅色为默认，深色在 .dark 下覆盖） ===== */
@@ -357,16 +379,16 @@ body::after {
 /* 深色渐变背景 */
 .dark .bg-gradient-main {
   background:
-    radial-gradient(circle at 15% 30%, oklch(0.3 0.1 280), transparent 40%),
-    radial-gradient(circle at 85% 20%, oklch(0.3 0.08 330), transparent 35%),
-    radial-gradient(circle at 50% 80%, oklch(0.3 0.06 250), transparent 40%),
-    radial-gradient(circle at 30% 70%, oklch(0.28 0.05 200), transparent 30%),
+    radial-gradient(circle at 15% 30%, oklch(0.3 0.1 var(--theme-hue-a)), transparent 40%),
+    radial-gradient(circle at 85% 20%, oklch(0.3 0.08 var(--theme-hue-b)), transparent 35%),
+    radial-gradient(circle at 50% 80%, oklch(0.3 0.06 var(--theme-hue-c)), transparent 40%),
+    radial-gradient(circle at 30% 70%, oklch(0.28 0.05 var(--theme-hue-d)), transparent 30%),
     oklch(0.15 0.01 270);
   background-attachment: fixed;
 }
 
 .dark .gradient-text {
-  background: linear-gradient(135deg, oklch(0.72 0.12 280), oklch(0.72 0.09 320));
+  background: linear-gradient(135deg, oklch(0.72 0.12 var(--theme-hue-a)), oklch(0.72 0.09 var(--theme-hue-b)));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -387,7 +409,7 @@ body::after {
 
 /* 深色歌词 */
 .dark .lyric-active {
-  color: oklch(0.72 0.13 280);
+  color: oklch(0.72 0.13 var(--theme-hue-a));
 }
 
 .dark .lyric-inactive {
@@ -397,7 +419,7 @@ body::after {
 /* 深色 EQ 条（同样支持 --eq-bar-color 覆盖为专辑主色；此规则优先级高于
    .eq-bar，之前写死颜色导致深色主题下主色变量失效） */
 .dark .eq-bar {
-  background: var(--eq-bar-color, oklch(0.72 0.13 280));
+  background: var(--eq-bar-color, oklch(0.72 0.13 var(--theme-hue-a)));
 }
 
 /* （毛玻璃材质已升级为 Liquid Glass，见文件头部的材质系统） */
@@ -405,17 +427,17 @@ body::after {
 /* 渐变背景 - 柔和淡彩，给玻璃一点可透的层次但不抢注意力 */
 .bg-gradient-main {
   background:
-    radial-gradient(circle at 15% 30%, oklch(0.82 0.09 280), transparent 55%),
-    radial-gradient(circle at 85% 20%, oklch(0.86 0.07 330), transparent 50%),
-    radial-gradient(circle at 50% 80%, oklch(0.84 0.06 250), transparent 55%),
-    radial-gradient(circle at 30% 70%, oklch(0.89 0.05 200), transparent 45%),
+    radial-gradient(circle at 15% 30%, oklch(0.82 0.09 var(--theme-hue-a)), transparent 55%),
+    radial-gradient(circle at 85% 20%, oklch(0.86 0.07 var(--theme-hue-b)), transparent 50%),
+    radial-gradient(circle at 50% 80%, oklch(0.84 0.06 var(--theme-hue-c)), transparent 55%),
+    radial-gradient(circle at 30% 70%, oklch(0.89 0.05 var(--theme-hue-d)), transparent 45%),
     oklch(0.97 0.005 270);
   background-attachment: fixed;
 }
 
 /* 渐变文字 */
 .gradient-text {
-  background: linear-gradient(135deg, oklch(0.5 0.11 280), oklch(0.5 0.08 320));
+  background: linear-gradient(135deg, oklch(0.5 0.11 var(--theme-hue-a)), oklch(0.5 0.08 var(--theme-hue-b)));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -423,7 +445,7 @@ body::after {
 
 /* 歌词高亮（字号/字重由组件的 Tailwind 类控制，避免这里的规则覆盖工具类） */
 .lyric-active {
-  color: oklch(0.72 0.13 280);
+  color: oklch(0.72 0.13 var(--theme-hue-a));
   transition: all 0.3s ease;
 }
 
@@ -561,8 +583,8 @@ a:active {
 
 /* 播放动画（--glow-color 可被容器覆盖为专辑主色，默认主题紫） */
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 15px color-mix(in srgb, var(--glow-color, oklch(0.66 0.13 280)) 30%, transparent); }
-  50% { box-shadow: 0 0 25px color-mix(in srgb, var(--glow-color, oklch(0.66 0.13 280)) 50%, transparent); }
+  0%, 100% { box-shadow: 0 0 15px color-mix(in srgb, var(--glow-color, oklch(0.66 0.13 var(--theme-hue-a))) 30%, transparent); }
+  50% { box-shadow: 0 0 25px color-mix(in srgb, var(--glow-color, oklch(0.66 0.13 var(--theme-hue-a))) 50%, transparent); }
 }
 
 .playing-glow {
@@ -580,7 +602,7 @@ a:active {
   display: inline-block;
   width: 3px;
   /* 容器可设 --eq-bar-color 覆盖（如全屏页队列浮层用专辑主色） */
-  background: var(--eq-bar-color, oklch(0.66 0.13 280));
+  background: var(--eq-bar-color, oklch(0.66 0.13 var(--theme-hue-a)));
   border-radius: 2px;
   margin: 0 1px;
   vertical-align: bottom;

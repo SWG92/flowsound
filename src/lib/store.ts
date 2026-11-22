@@ -39,6 +39,7 @@ interface PlayerState {
 
   // 主题与设置
   theme: "light" | "dark";
+  themePreset: ThemePreset; // 主题色预设（治愈紫/治愈橙/科技蓝）
   audioQuality: AudioQuality;
   lyricTrans: boolean; // 歌词翻译显示（默认开：有翻译时显示译文行）
   setLyricTrans: (on: boolean) => void;
@@ -73,6 +74,7 @@ interface PlayerState {
   setShowQueue: (show: boolean) => void;
   setLoading: (loading: boolean) => void;
   setTheme: (theme: "light" | "dark") => void;
+  setThemePreset: (preset: ThemePreset) => void;
   setAudioQuality: (quality: AudioQuality) => void;
   setShowFullPlayer: (show: boolean) => void;
   sleepAtEndOfTrack: boolean; // 播完当前歌曲后停止（Apple Music "End of Track" 式睡眠定时）
@@ -132,6 +134,10 @@ function readInitialTheme(): "light" | "dark" {
   return loadFromStorage<"light" | "dark">("flowsound_theme", "light");
 }
 const initialTheme = readInitialTheme();
+
+/** 主题色预设：aurora=治愈紫（默认） sunset=治愈橙 ocean=科技蓝 */
+export type ThemePreset = "aurora" | "sunset" | "ocean";
+const initialThemePreset = loadFromStorage<ThemePreset>("flowsound_theme_preset", "aurora");
 
 // 从 favoriteSongs 派生 favorites ID 列表
 const initialFavorites = initialFavoriteSongs.map((s) => s.id);
@@ -317,6 +323,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isLoading: false,
   showFullPlayer: false,
   theme: initialTheme,
+  themePreset: initialThemePreset,
   audioQuality: initialAudioQuality,
   lyricTrans: initialLyricTrans,
   sourceList: playbackSnapshot?.sourceList ?? [],
@@ -698,6 +705,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     // 这样首屏就是正确主题，不需要任何内联脚本（React 19 会警告组件内渲染 script）
     writeThemeCookie(theme);
     set({ theme });
+  },
+
+  setThemePreset: (preset) => {
+    saveToStorage("flowsound_theme_preset", preset);
+    // 写在 html 的 data-theme 上：globals.css 的预设块据此覆盖主题色相组
+    if (typeof document !== "undefined") {
+      if (preset === "aurora") delete document.documentElement.dataset.theme;
+      else document.documentElement.dataset.theme = preset;
+    }
+    set({ themePreset: preset });
   },
 
   setAudioQuality: (quality) => {

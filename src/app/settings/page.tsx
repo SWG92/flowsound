@@ -23,6 +23,7 @@ const PRESERVE_KEYS = [
   "fc_likes",
   // 偏好设置
   "flowsound_theme",
+  "flowsound_theme_preset",
   "flowsound_audio_quality",
   "flowsound_volume",
   "flowsound_play_mode",
@@ -55,6 +56,13 @@ const BACKUP_DATA_KEYS = [
 // 备份文件结构标记
 const BACKUP_MAGIC = "flowsound-backup";
 
+// 主题色预设（与 store 的 ThemePreset 对应；dot 为设置页色板小圆点的渐变）
+const THEME_PRESETS: { id: "aurora" | "sunset" | "ocean"; label: string; dot: string }[] = [
+  { id: "aurora", label: "治愈紫", dot: "linear-gradient(135deg, oklch(0.62 0.14 280), oklch(0.62 0.1 330))" },
+  { id: "sunset", label: "治愈橙", dot: "linear-gradient(135deg, oklch(0.62 0.14 55), oklch(0.62 0.1 25))" },
+  { id: "ocean", label: "科技蓝", dot: "linear-gradient(135deg, oklch(0.62 0.14 255), oklch(0.62 0.1 200))" },
+];
+
 /** 设置分组：安静的小标题 + 玻璃卡片（与全局材质一致，分组靠行分隔线表达） */
 function Section({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
   return (
@@ -84,6 +92,8 @@ function Row({ title, desc, children, first }: { title: string; desc?: string; c
 export default function SettingsPage() {
   const theme = usePlayerStore((s) => s.theme);
   const setTheme = usePlayerStore((s) => s.setTheme);
+  const themePreset = usePlayerStore((s) => s.themePreset);
+  const setThemePreset = usePlayerStore((s) => s.setThemePreset);
   // 歌词翻译开关（持久化，全屏页/歌词弹窗/悬浮歌词共享同源状态）
   const { showToast } = useToast();
   // 音质等偏好存在 localStorage，服务端渲染时只能拿到默认值；
@@ -304,6 +314,28 @@ export default function SettingsPage() {
             <Moon className="h-4 w-4 mr-1" />
             深色
           </Button>
+        </Row>
+        <Row title="主题色" desc="治愈紫 / 治愈橙 / 科技蓝——主色、渐变、光斑整套联动，深浅色通用">
+          <div className="flex gap-2">
+            {THEME_PRESETS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setThemePreset(p.id)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm cursor-pointer transition-all border",
+                  themePreset === p.id
+                    ? "bg-primary/10 text-primary font-medium border-primary/40"
+                    : "text-muted-foreground border-border hover:text-foreground hover:border-foreground/30"
+                )}
+              >
+                <span
+                  className="w-3.5 h-3.5 rounded-full inline-block ring-1 ring-black/10"
+                  style={{ background: p.dot }}
+                />
+                {p.label}
+              </button>
+            ))}
+          </div>
         </Row>
         <Row title="性能模式" desc="关闭背景模糊与光斑动画，低配设备更流畅（玻璃质感会简化）">
           <Button

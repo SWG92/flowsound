@@ -5,6 +5,7 @@ import { usePlayerStore, writeThemeCookie } from "@/lib/store";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = usePlayerStore((s) => s.theme);
+  const themePreset = usePlayerStore((s) => s.themePreset);
 
   // 客户端切换主题时同步类名（首屏类名由服务端按 Cookie 渲染）
   useEffect(() => {
@@ -17,6 +18,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       html.classList.remove("dark");
     }
   }, [theme]);
+
+  // 主题色预设同步到 html[data-theme]（预设块据此覆盖主题色相组；治愈紫=默认无属性）
+  useEffect(() => {
+    const html = document.documentElement;
+    if (themePreset === "aurora") delete html.dataset.theme;
+    else html.dataset.theme = themePreset;
+  }, [themePreset]);
 
   // 挂载后校正一次主题来源：
   // - 已有 Cookie：服务端已渲染正确主题，无需处理
