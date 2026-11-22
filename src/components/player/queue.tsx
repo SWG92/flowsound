@@ -131,6 +131,20 @@ export function PlayQueue() {
     return () => window.removeEventListener("keydown", onKey);
   }, [showQueue, setShowQueue]);
 
+  // 面板打开时自动定位到正在播放的行（大队列下不用手动翻找）
+  useEffect(() => {
+    if (!showQueue) return;
+    const idx = usePlayerStore.getState().queueIndex;
+    if (idx < 0 || idx >= queue.length) return;
+    const t = setTimeout(() => {
+      try {
+        rowVirtualizer.scrollToIndex(idx, { align: "center" });
+      } catch { /* ignore */ }
+    }, 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 只在面板打开时定位一次
+  }, [showQueue]);
+
   if (!showQueue) return null;
 
   return (
