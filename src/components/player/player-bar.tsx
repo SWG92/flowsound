@@ -18,7 +18,6 @@ import {
   Gauge,
   SlidersHorizontal,
   MessageCircle,
-  AudioLines,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -507,11 +506,6 @@ export function PlayerBar() {
               </div>
             )}
           </div>
-
-          {/* 歌词（全屏页歌词视图） */}
-          <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8 hidden md:flex" onClick={() => setShowFullPlayer(true)} title="歌词">
-            <AudioLines className="h-4 w-4" />
-          </Button>
 
           {/* 播放队列 */}
           <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8 hidden md:flex" onClick={() => setShowQueue(!showQueue)} title="播放队列">
