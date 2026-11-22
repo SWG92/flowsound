@@ -588,6 +588,12 @@ ipcMain.handle("clear-disk-cache", async () => {
 app.on("second-instance", showWindow);
 
 app.whenReady().then(async () => {
+  // 清 HTTP 缓存：安装新版本后，缓存的旧 HTML 会引用旧 chunk（extraResources
+  // 目录合并不清旧文件），界面会一直跑旧代码——每次启动清一次，保证渲染最新版
+  try {
+    await session.defaultSession.clearCache();
+  } catch { /* ignore */ }
+
   createSplash();             // 启动屏先行：立刻有画面，盖住服务器启动的空白期
   createTray();
   try {
