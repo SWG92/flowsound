@@ -225,7 +225,7 @@ export function CommentsDialog({ song, open, onOpenChange }: CommentsDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("glass-player flex flex-col p-0 overflow-hidden", PLAYER_DIALOG_SIZE)}>
+      <DialogContent className={cn("bg-background border shadow-2xl flex flex-col p-0 overflow-hidden rounded-2xl", PLAYER_DIALOG_SIZE)}>
         <DialogHeader className="px-5 pt-4 pb-2 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 text-base">
             <MessageCircle className="h-5 w-5" /> 评论
@@ -238,7 +238,7 @@ export function CommentsDialog({ song, open, onOpenChange }: CommentsDialogProps
           {loading ? (
             <div className="space-y-4 py-2">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex gap-3"><Skeleton className="w-8 h-8 rounded-full bg-white/5 shrink-0" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-16 bg-white/5" /><Skeleton className="h-4 w-full bg-white/5" /></div></div>
+                <div key={i} className="flex gap-3"><Skeleton className="w-8 h-8 rounded-full bg-muted shrink-0" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-16 bg-muted" /><Skeleton className="h-4 w-full bg-muted" /></div></div>
               ))}
             </div>
           ) : error ? (
@@ -282,8 +282,8 @@ export function CommentsDialog({ song, open, onOpenChange }: CommentsDialogProps
           )}
         </div>
 
-        <div className="flex-shrink-0 px-4 py-3 border-t border-white/10 flex items-center gap-2">
-          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSend(); } }} placeholder="写下评论..." maxLength={500} className="flex-1 bg-white/8 rounded-full px-4 py-2 text-sm outline-none border border-white/10 focus:border-white/25 transition-colors placeholder:text-white/35" />
+        <div className="flex-shrink-0 px-4 py-3 border-t border-border flex items-center gap-2">
+          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSend(); } }} placeholder="写下评论..." maxLength={500} className="flex-1 bg-muted/60 rounded-full px-4 py-2 text-sm outline-none border border-border focus:border-ring transition-colors placeholder:text-muted-foreground/70" />
           <button onClick={handleSend} disabled={!input.trim() || sending} className="p-2 rounded-full bg-primary/80 hover:bg-primary text-white transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed flex items-center shrink-0">
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>

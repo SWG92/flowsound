@@ -17,9 +17,9 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <main className="flex-1 flex flex-col overflow-hidden" style={{ paddingBottom: "calc(84px + var(--safe-bottom))" }}>
         <TopNav />
-        {/* 内容磨砂面板：文字铺在柔和渐变上会发糊——统一垫一层磨砂底保证对比度 */}
-        <div className="flex-1 overflow-y-auto px-2 md:px-4 pb-1">
-          <div className="mx-auto max-w-[1500px] min-h-full rounded-2xl bg-card/45 backdrop-blur-md border border-white/20 dark:border-white/10 px-3 md:px-6 py-4 md:py-6">
+        {/* 内容磨砂面板：全出血铺满内容区——渐变只做最底层背景，不再从面板缝隙漏光 */}
+        <div className="flex-1 overflow-y-auto bg-card/45 backdrop-blur-md">
+          <div className="max-w-[1500px] mx-auto px-3 md:px-6 py-4 md:py-6">
             {children}
           </div>
         </div>
