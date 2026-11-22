@@ -11,6 +11,14 @@ type HandlerFn = (params: Record<string, string>) => Promise<unknown>;
 
 const VALID_PLATFORMS: MusicPlatform[] = ["netease", "qq", "kugou"];
 
+// 音频流代理允许的 CDN 域名白名单（防 SSRF：仅音乐平台已知音源域）
+const STREAM_ALLOWED_HOSTS = [
+  "music.126.net", // 网易云 CDN（m701~m801.music.126.net 等）
+  "qqmusic.qq.com", // QQ 音乐流（ws/isure/aqqmusic.stream 等）
+  "qq.com", // QQ 音乐多 CDN 子域兜底
+  "kugou.com", // 酷狗音源
+];
+
 // 服务端缓存 TTL：歌词/歌单基本不变可长缓存；搜索/联想短缓存；
 // 取址 URL 会过期，只做短缓存去重（客户端重试、回退、预加载会短时间重复打同一接口）
 const SERVER_TTL: Record<string, number> = {
@@ -134,6 +142,58 @@ export async function GET(request: NextRequest) {
   const fn = request.nextUrl.searchParams.get("fn");
   if (!fn) {
     return NextResponse.json({ error: "Missing fn" }, { status: 400 });
+  }
+
+  // 音频流代理：把跨域 CDN 音频转成同源流——Web Audio（EQ/频谱可视化）要求
+  // 资源同源或跨域干净，而音乐 CDN 都不带 CORS 头，直连接入会得到静音。
+  // Range 头透传（拖动 seek 依赖 206）；不设超时（音频是长流，由客户端断开取消）。
+  if (fn === "stream") {
+    const raw = request.nextUrl.searchParams.get("url") || "";
+    let target: URL;
+    try {
+      target = new URL(raw);
+      if (target.protocol !== "https:" && target.protocol !== "http:") {
+        throw new Error("bad protocol");
+      }
+      const host = target.hostname;
+      const allowed = STREAM_ALLOWED_HOSTS.some(
+        (h) => host === h || host.endsWith(`.${h}`)
+      );
+      if (!allowed) {
+        return NextResponse.json({ error: "host not allowed" }, { status: 403 });
+      }
+    } catch {
+      return NextResponse.json({ error: "invalid url" }, { status: 400 });
+    }
+
+    try {
+      const range = request.headers.get("range");
+      const upstream = await fetch(target.toString(), {
+        headers: range ? { Range: range } : {},
+        redirect: "follow",
+      });
+      if (!upstream.ok && upstream.status !== 206) {
+        return NextResponse.json(
+          { error: `upstream ${upstream.status}` },
+          { status: 502 }
+        );
+      }
+      const headers = new Headers();
+      for (const h of ["content-type", "content-length", "content-range"]) {
+        const v = upstream.headers.get(h);
+        if (v) headers.set(h, v);
+      }
+      headers.set("accept-ranges", "bytes");
+      headers.set("Cache-Control", "no-store");
+      return new Response(upstream.body, {
+        status: upstream.status,
+        headers,
+      });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "stream error";
+      logError(`[music-api] stream:`, msg);
+      return NextResponse.json({ error: msg }, { status: 502 });
+    }
   }
 
   const handler = HANDLERS[fn];

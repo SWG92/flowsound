@@ -5,6 +5,7 @@ import type { Song, PlayMode, LyricLine, MusicPlatform } from "./types";
 import { getSongUrl, getLyrics, prefetchSongUrl, searchSongs } from "./api";
 import { STORAGE_KEYS, MAX_HISTORY, THEME_COOKIE, AUDIO_QUALITY } from "./constants";
 import { useToastStore } from "./toast-store";
+import { getDesktop } from "./desktop";
 import type { AudioQuality } from "./constants";
 
 interface PlayerState {
@@ -42,6 +43,9 @@ interface PlayerState {
   audioQuality: AudioQuality;
   lyricTrans: boolean; // 歌词翻译显示（默认开：有翻译时显示译文行）
   setLyricTrans: (on: boolean) => void;
+  // 音频增强：播放走同源流代理（fn=stream），Web Audio 可接入 → EQ 全音源可用 + 真实频谱可视化
+  audioEnhance: boolean;
+  setAudioEnhance: (on: boolean) => void;
 
   // 播放来源列表：点播时所在页面列表及当前歌的位置。
   // 队列（用户加的歌）播完后按它顺序连播（"队列之外"的续播），session 内有效
@@ -119,6 +123,11 @@ const initialSpeed = loadFromStorage<number>(STORAGE_KEYS.speed, 1);
 const initialAudioQuality = loadFromStorage<AudioQuality>(STORAGE_KEYS.audioQuality, "high");
 // 歌词翻译显示：默认开（有翻译时显示译文行）
 const initialLyricTrans = loadFromStorage<boolean>(STORAGE_KEYS.lyricTrans, true);
+// 音频增强（同源流代理）：桌面端默认开（EQ/频谱可视化依赖它），网页端默认关
+// （serverless 函数流式转发音频会受时长/流量限制）
+const initialAudioEnhance =
+  loadFromStorage<boolean | undefined>(STORAGE_KEYS.audioEnhance, undefined) ??
+  (getDesktop() !== null);
 
 // 首屏主题以服务端渲染的 html class 为准（它来自 Cookie）：这样客户端首次渲染与
 // 服务端完全一致，不会出现 hydration 不匹配；老用户（只有 localStorage、没有 Cookie）
@@ -319,6 +328,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   theme: initialTheme,
   audioQuality: initialAudioQuality,
   lyricTrans: initialLyricTrans,
+  audioEnhance: initialAudioEnhance,
   sourceList: playbackSnapshot?.sourceList ?? [],
   sourceIndex: playbackSnapshot?.sourceIndex ?? -1,
 
@@ -462,7 +472,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       if (srcIdx < 0) src = [];
     }
 
-    const songWithUrl = { ...song, url };
+    // 音频增强：播放地址走同源流代理（fn=stream）——Web Audio（EQ/频谱可视化）
+    // 需要同源资源；CDN 直链不带 CORS 头接入只会得到静音。关=直连 CDN 原地址
+    const playUrl =
+      get().audioEnhance && url.startsWith("http")
+        ? `/api/music?fn=stream&url=${encodeURIComponent(url)}`
+        : url;
+    const songWithUrl = { ...song, url: playUrl };
     const index = newQueue.findIndex((s) => s.id === song.id);
 
     set({
@@ -708,6 +724,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setLyricTrans: (on) => {
     saveToStorage(STORAGE_KEYS.lyricTrans, on);
     set({ lyricTrans: on });
+  },
+
+  setAudioEnhance: (on) => {
+    saveToStorage(STORAGE_KEYS.audioEnhance, on);
+    set({ audioEnhance: on });
   },
 
   setShowFullPlayer: (show) => {

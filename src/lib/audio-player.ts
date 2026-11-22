@@ -266,10 +266,9 @@ class AudioPlayer {
   private setupEQ(): boolean {
     if (!this.sound) return false;
     const { enabled, bands } = useEQStore.getState();
-    if (!enabled) return false;
-    // setupEQForHowl 内部有安全闸门：元素不是跨域加载的会拒绝接入（避免静音）
-    const ok = setupEQForHowl(this.sound, bands, true);
-    if (ok) {
+    // EQ 关 → 建零增益透传图（频谱可视化仍可用）；EQ 开 → 应用频段 + 启动静音看门狗
+    const ok = setupEQForHowl(this.sound, bands, enabled);
+    if (ok && enabled) {
       this.startEQWatchdog();
     }
     return ok;

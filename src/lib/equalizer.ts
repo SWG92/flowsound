@@ -82,14 +82,16 @@ function routeThroughEQ(graph: EQGraph) {
   }
 }
 
-// source → destination（EQ 旁路，但音频仍在 Web Audio 图里，不会断声）
+// source → destination（EQ 旁路，但音频仍在 Web Audio 图里，不会断声）。
+// 分析节点保留在链路上：EQ 关闭时频谱可视化照常工作
 function routeDirect(graph: EQGraph) {
   if (!audioContext) return;
   try {
     graph.source.disconnect();
     for (const f of graph.filters) f.disconnect();
     graph.analyser.disconnect();
-    graph.source.connect(audioContext.destination);
+    graph.source.connect(graph.analyser);
+    graph.analyser.connect(audioContext.destination);
   } catch {
     // ignore
   }
@@ -124,10 +126,9 @@ function createGraph(element: HTMLAudioElement, bands: EQBand[]): EQGraph | null
 /**
  * 为当前歌曲建立/复用 Web Audio 图。
  * 元素已建过图则直接复用（切歌/切回同一元素都安全）。
+ * enabled=false 时频段增益归零：图仍在（频谱可视化可用），但无 EQ 染色。
  */
 export function setupEQForHowl(howl: Howl, bands: EQBand[], enabled: boolean): boolean {
-  if (!enabled) return false;
-
   const element = getAudioElement(howl);
   if (!element) return false;
 
@@ -136,11 +137,12 @@ export function setupEQForHowl(howl: Howl, bands: EQBand[], enabled: boolean): b
   // 该元素会永久静音并可能被 Howler 回收到元素池，导致后续歌曲一起变哑。
   if (element.crossOrigin !== "anonymous") return false;
 
+  const effective = enabled ? bands : bands.map((b) => ({ ...b, gain: 0 }));
   let graph = graphs.get(element) ?? null;
   if (!graph) {
-    graph = createGraph(element, bands);
+    graph = createGraph(element, effective);
   } else {
-    applyBands(bands, graph);
+    applyBands(effective, graph);
   }
   if (!graph) return false;
 

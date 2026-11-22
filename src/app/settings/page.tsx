@@ -84,6 +84,9 @@ function Row({ title, desc, children, first }: { title: string; desc?: string; c
 export default function SettingsPage() {
   const theme = usePlayerStore((s) => s.theme);
   const setTheme = usePlayerStore((s) => s.setTheme);
+  // 音频增强（同源流代理）：桌面端默认开，网页端默认关（serverless 转发音频受限）
+  const audioEnhance = usePlayerStore((s) => s.audioEnhance);
+  const setAudioEnhance = usePlayerStore((s) => s.setAudioEnhance);
   // 歌词翻译开关（持久化，全屏页/歌词弹窗/悬浮歌词共享同源状态）
   const { showToast } = useToast();
   // 音质等偏好存在 localStorage，服务端渲染时只能拿到默认值；
@@ -313,6 +316,16 @@ export default function SettingsPage() {
             className="cursor-pointer"
           >
             {mounted && performanceOn ? "已开启" : "已关闭"}
+          </Button>
+        </Row>
+        <Row title="音频增强" desc="播放走本机流转发：解锁全部音源的均衡器与真实频谱可视化。切换后下一首生效；网页端默认关">
+          <Button
+            variant={mounted && audioEnhance ? "default" : "outline"}
+            size="sm"
+            onClick={() => setAudioEnhance(!audioEnhance)}
+            className="cursor-pointer"
+          >
+            {mounted && audioEnhance ? "已开启" : "已关闭"}
           </Button>
         </Row>
       </Section>

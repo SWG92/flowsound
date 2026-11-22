@@ -7,6 +7,7 @@ import { audioPlayer } from "@/lib/audio-player";
 import { cn, getCoverUrl } from "@/lib/utils";
 import { ProgressFill } from "./progress";
 import { CommentsDialog } from "./comments-dialog";
+import { VisualizerBars } from "./visualizer-bars";
 import { useDominantColor } from "@/hooks/use-dominant-color";
 import type { PlayMode } from "@/lib/types";
 
@@ -271,6 +272,8 @@ export function FullPlayer() {
                 <div className="w-full h-full bg-white/10 flex items-center justify-center text-6xl">🎵</div>
               )}
             </div>
+            {/* 真实频谱可视化（音频增强开启时随音乐律动；关闭时为节奏动画兜底） */}
+            <VisualizerBars barCount={14} maxHeight={34} className="mt-2" />
           </div>
         )}
       </div>

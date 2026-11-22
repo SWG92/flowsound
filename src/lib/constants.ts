@@ -75,6 +75,7 @@ export const STORAGE_KEYS = {  favorites: "flowsound_favorite_songs",
   playlists: "flowsound_playlists",
   playCounts: "flowsound_play_counts",
   lyricTrans: "flowsound_lyric_trans",
+  audioEnhance: "flowsound_audio_enhance",
 } as const;
 
 // Toast 持续时间 (ms)
