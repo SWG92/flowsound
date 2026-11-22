@@ -7,9 +7,17 @@ import { PlayerBar } from "@/components/player/player-bar";
 import { PlayQueue } from "@/components/player/queue";
 import { DesktopWindowControls } from "@/components/electron/desktop-title-bar";
 import { useNavTracker } from "@/hooks/use-nav-tracker";
+import { cn } from "@/lib/utils";
+
+/** flex 填充页：内层给确定高度（h-full），页面自身不滚、歌单内部滚。
+    其余页（设置/歌单/黑名单/歌手/专辑等长内容页）：内层 min-h-full，
+    内容撑高后由面板滚动，底部 padding 保证滚到头仍停在播放栏上方 */
+const FILL_PATHS = new Set(["/", "/roaming", "/history", "/favorites", "/daily"]);
 
 function MainLayout({ children }: { children: React.ReactNode }) {
   useNavTracker();
+  const pathname = usePathname();
+  const fill = FILL_PATHS.has(pathname);
   return (
     <>
       {/* 桌面壳窗口控制按钮（悬浮右上，浏览器端不渲染） */}
@@ -18,12 +26,16 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 flex flex-col overflow-hidden">
         <TopNav />
         {/* 内容磨砂面板：铺满 main 全区（含播放栏背后）——渐变不再从面板与播放栏之间的缝隙漏出。
-            内层 h-full：给 flex 填充页（漫游/发现）一条确定高度链，页面自身不滚、歌单内部滚；
-            长内容页（设置）内容自然溢出内层，由本层滚动。
-            底部留白 92px = 播放栏顶边——列表行正好流到栏顶为止，中间不留空带
-            （留白大于栏顶会出现一条发白的空面板带；calc 的 + 必须带空格，Tailwind 用下划线） */}
-        <div className="flex-1 overflow-y-auto bg-card/45 backdrop-blur-md pb-[calc(92px_+_var(--safe-bottom))]">
-          <div className="h-full flex flex-col max-w-[1500px] mx-auto px-3 md:px-6 pt-4 md:pt-6">
+            底部留白 92px（=播放栏顶边）挂在内层 padding 上：长页滚到头停在栏顶上方，
+            填充页列表正好流到栏顶（min-h-full 会被大列表内容撑爆，无法两用，故按路由分流；
+            calc 的 + 必须带空格，Tailwind 用下划线） */}
+        <div className="flex-1 overflow-y-auto bg-card/45 backdrop-blur-md">
+          <div
+            className={cn(
+              "flex flex-col max-w-[1500px] mx-auto px-3 md:px-6 pt-4 md:pt-6 pb-[calc(92px_+_var(--safe-bottom))]",
+              fill ? "h-full" : "min-h-full"
+            )}
+          >
             {children}
           </div>
         </div>
