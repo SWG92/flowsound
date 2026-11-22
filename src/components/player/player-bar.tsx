@@ -270,16 +270,6 @@ export function PlayerBar() {
     }
   };
 
-  // 滚轮调音量（悬停在播放栏上滚动即可，向上加向下减）
-  const handleWheelVolume = (e: React.WheelEvent) => {
-    const current = usePlayerStore.getState().volume;
-    const delta = e.deltaY < 0 ? 0.05 : -0.05;
-    const next = Math.min(1, Math.max(0, Math.round((current + delta) * 100) / 100));
-    if (next !== current) {
-      setVolume(next);
-    }
-  };
-
   // 点击外部关闭下拉菜单
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -313,8 +303,6 @@ export function PlayerBar() {
       <div
         className="fixed left-2 right-2 md:left-3 md:right-3 h-16 md:h-20 glass rounded-[28px] z-50 flex items-center px-3 md:px-5 gap-2 md:gap-4"
         style={{ bottom: `calc(0.5rem + var(--safe-bottom))` }}
-        onWheel={handleWheelVolume}
-        title="滚轮可调节音量"
       >
         {/* 歌曲信息 + 封面 */}
         <div className="flex items-center gap-2 md:gap-3 w-28 md:w-64 shrink-0">
@@ -350,7 +338,7 @@ export function PlayerBar() {
         </div>
 
         {/* 中间控制区：控制行居中 + 进度条行在下（原先的居中两行版） */}
-        <div className="flex-1 flex flex-col items-center gap-1 max-w-2xl mx-auto">
+        <div className="flex-1 flex flex-col items-center gap-1 max-w-3xl mx-auto">
           <div className="flex items-center justify-center gap-1 w-full">
             <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8 hidden sm:inline-flex" onClick={cyclePlayMode} title={MODE_LABELS[playMode]}>
               <ModeIcon className="h-4 w-4" />
