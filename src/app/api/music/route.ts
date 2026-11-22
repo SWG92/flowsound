@@ -35,7 +35,7 @@ function serveBuffer(entry: StreamEntry, rangeHeader: string | null): Response {
   });
   if (!rangeHeader) {
     headers.set("Content-Length", String(total));
-    return new Response(entry.buf, { status: 200, headers });
+    return new Response(new Uint8Array(entry.buf), { status: 200, headers });
   }
   // 解析 "bytes=start-end"（支持 start- / start-end / -suffix）
   const m = rangeHeader.match(/bytes=(\d*)-(\d*)/);
@@ -56,7 +56,10 @@ function serveBuffer(entry: StreamEntry, rangeHeader: string | null): Response {
   }
   headers.set("Content-Range", `bytes ${start}-${end}/${total}`);
   headers.set("Content-Length", String(end - start + 1));
-  return new Response(entry.buf.subarray(start, end + 1), { status: 206, headers });
+  return new Response(new Uint8Array(entry.buf.subarray(start, end + 1)), {
+    status: 206,
+    headers,
+  });
 }
 
 // 服务端缓存 TTL：歌词/歌单基本不变可长缓存；搜索/联想短缓存；
@@ -236,7 +239,7 @@ export async function GET(request: NextRequest) {
           "Accept-Ranges": "bytes",
           "Cache-Control": "no-store",
         });
-        return new Response(Buffer.from(arrayBuf), {
+        return new Response(new Uint8Array(arrayBuf), {
           status: rangeHeader ? 206 : 200,
           headers,
         });
