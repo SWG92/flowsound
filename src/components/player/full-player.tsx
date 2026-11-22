@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { ChevronDown, Heart, Loader2, MessageCircle, Pause, Play, Repeat, Repeat1, SkipBack, SkipForward, Shuffle } from "lucide-react";
 import { usePlayerStore } from "@/lib/store";
 import { audioPlayer } from "@/lib/audio-player";
@@ -9,7 +10,11 @@ import { ProgressFill } from "./progress";
 import { CommentsDialog } from "./comments-dialog";
 import { VisualizerBars } from "./visualizer-bars";
 import { useDominantColor } from "@/hooks/use-dominant-color";
+import { PERFORMANCE_KEY } from "@/lib/constants";
 import type { PlayMode } from "@/lib/types";
+
+// 声浪流场：懒加载（首次展开全屏页才拉取 chunk），纯 WebGL 单 pass
+const FlowCanvas = dynamic(() => import("./flow-canvas"), { ssr: false });
 
 /**
  * 全屏播放页（iOS 风格）：点播放栏封面/歌名展开。
@@ -199,6 +204,13 @@ export function FullPlayer() {
       )}
       <div className="absolute inset-0 bg-black/55" />
       {accent && <div className="absolute inset-0" style={{ background: "var(--accent-soft)" }} />}
+      {/* 声浪流场：音频驱动的 WebGL 流场，随鼓点加速/提亮（性能模式下不渲染） */}
+      {typeof window !== "undefined" && localStorage.getItem(PERFORMANCE_KEY) !== "1" && (
+        <FlowCanvas
+          accent={accent}
+          className="absolute inset-0 w-full h-full pointer-events-none mix-blend-screen opacity-70"
+        />
+      )}
 
       {/* 桌面壳拖拽区：铺顶部按钮之间的空档（左按钮区/中标题/右按钮区物理隔离） */}
       <div className="fs-drag-strip" style={{ left: 90, width: "24%", top: 0, height: 60 }} />
