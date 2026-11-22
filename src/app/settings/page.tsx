@@ -55,10 +55,10 @@ const BACKUP_DATA_KEYS = [
 // 备份文件结构标记
 const BACKUP_MAGIC = "flowsound-backup";
 
-/** 设置分组：安静的小标题 + 素面卡片（黄金法则：就近分组、降低视觉噪音） */
+/** 设置分组：安静的小标题 + 玻璃卡片（与全局材质一致，分组靠行分隔线表达） */
 function Section({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-border/50 bg-card/40 p-5">
+    <section className="glass rounded-2xl p-5">
       <h2 className="flex items-center gap-1.5 text-xs font-medium tracking-widest text-muted-foreground mb-1">
         <Icon className="h-3.5 w-3.5" />
         {title}
@@ -264,7 +264,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-2xl">
+    <div className="space-y-5 max-w-2xl mx-auto">
       {/* 导入用的隐藏文件选择器 */}
       <input
         ref={importFileRef}

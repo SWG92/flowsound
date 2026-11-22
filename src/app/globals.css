@@ -703,9 +703,11 @@ html.desktop-lyrics body {
   overflow: hidden;
 }
 
-/* 歌词窗根：整窗可拖动（无边框窗的移动方式），文字禁选中 */
+/* 歌词窗根：普通元素（悬停可触发工具条显隐）。
+   拖拽由 ::before 全尺寸垫层承担——app-region: drag 会吞掉鼠标事件，
+   若直接放在根上，:hover 永远不触发、工具条无法显现 */
 .desktop-lyrics-root {
-  -webkit-app-region: drag;
+  position: relative;
   user-select: none;
   cursor: default;
   height: 100vh;
@@ -715,7 +717,21 @@ html.desktop-lyrics body {
   justify-content: center;
   padding: 8px 20px;
 }
-.desktop-lyrics-root button {
+.desktop-lyrics-root::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  -webkit-app-region: drag;
+  cursor: grab;
+}
+.desktop-lyrics-root:active::before {
+  cursor: grabbing;
+}
+/* 内容浮在拖拽垫层之上，本身不参与拖拽（悬停/点击保持可用） */
+.desktop-lyrics-line,
+.desktop-lyrics-trans,
+.desktop-lyrics-tools {
+  position: relative;
   -webkit-app-region: no-drag;
 }
 
@@ -746,7 +762,7 @@ html.desktop-lyrics body {
   margin-top: 4px;
 }
 
-/* 悬停工具条（右上角）：关闭按钮 */
+/* 悬停工具条（右上角）：字号/锁定/关闭 */
 .desktop-lyrics-tools {
   position: absolute;
   top: 4px;
@@ -755,6 +771,7 @@ html.desktop-lyrics body {
   transition: opacity 0.2s ease;
   display: flex;
   gap: 2px;
+  z-index: 1;
 }
 .desktop-lyrics-root:hover .desktop-lyrics-tools {
   opacity: 1;
