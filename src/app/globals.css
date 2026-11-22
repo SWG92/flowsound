@@ -605,6 +605,13 @@ a:active {
   display: none;              /* Chrome/Safari/Edge */
 }
 
+/* Base UI Tabs 的非活跃面板必须真隐藏：面板 className 里的 flex 等 display 工具类
+   位于 utilities 层，会覆盖 preflight 的 [hidden]{display:none}，导致未选中 Tab 的
+   列表整条泄漏到活跃列表下方（表现为播放栏上方一条"白带"+面板多出滚动条） */
+[data-slot="tabs-content"][hidden] {
+  display: none !important;
+}
+
 /* 全屏播放页（深色背景）的进度条：默认白色，专辑主色存在时用主色（--accent 由全屏页注入） */
 .player-slider-light [data-slot="slider-track"] {
   background: rgba(255, 255, 255, 0.2);
