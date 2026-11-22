@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld("flowsoundDesktop", {
   openLyricsWindow: () => ipcRenderer.send("open-lyrics-window"),
   closeLyricsWindow: () => ipcRenderer.send("close-lyrics-window"),
   setLyricsLocked: (locked) => ipcRenderer.send("set-lyrics-locked", locked),
+  moveLyricsWindowBy: (dx, dy) => ipcRenderer.send("move-lyrics-window-by", dx, dy),
   onLyricsWindowState: (cb) => {
     ipcRenderer.on("lyrics-window-state", (_e, open) => cb(open));
   },

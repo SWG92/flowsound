@@ -6,13 +6,14 @@ import { getDesktop } from "@/lib/desktop";
 
 /**
  * 桌面歌词窗（原生透明小窗，由主进程创建）。
- * 形态与其他播放器一致：深色玻璃胶囊、常驻工具条（字号/锁定/关闭）、整窗可拖。
+ * 形态与其他播放器一致：深色玻璃胶囊、常驻工具条（字号/锁定/关闭）。
  * 数据来源：主窗口经 BroadcastChannel("flowsound-lyrics") 推送当前歌词行。
  *
- * 拖拽要点：-webkit-app-region: drag 必须挂在真实元素上（伪元素不生效）。
- * 锁定 = 整窗鼠标穿透（setIgnoreMouseEvents true + forward）——穿透时鼠标移动
- * 事件仍转发给页面，据此检测光标：进入工具条区域 → 临时恢复鼠标（可点🔓解锁），
- * 离开 → 重新穿透。解锁入口：工具条 🔓 / 托盘菜单 / 播放栏按钮关闭重开。
+ * 拖拽（LX Music 同款）：渲染层监听鼠标算 delta → IPC → 主进程 setBounds。
+ * 不用 -webkit-app-region：透明窗 + 鼠标穿透场景下不可靠。
+ * 锁定 = 整窗鼠标穿透（setIgnoreMouseEvents true + forward）——穿透时 mousemove
+ * 事件仍转发给页面，因此拖拽在锁定状态下照常工作；工具条热区（右上角 150x56）
+ * 悬停 → 临时恢复鼠标（可点 🔓 解锁）。解锁入口：工具条 🔓 / 托盘菜单。
  */
 interface LyricPayload {
   text?: string;
@@ -30,6 +31,8 @@ export default function DesktopLyricsPage() {
   const lockedRef = useRef(false);
   const inZoneRef = useRef(false);
   const appliedRef = useRef(false); // 最近一次下发给主进程的穿透状态（去重 IPC）
+  const rootRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ x: number; y: number } | null>(null);
 
   // 标记透明底：抹掉根布局的渐变背景与光斑（见 globals.css 桌面歌词窗一节）
   useEffect(() => {
@@ -83,10 +86,24 @@ export default function DesktopLyricsPage() {
     applyIgnore(next);
   };
 
-  // 锁定中：光标进入工具条热区（右上角 150x56）→ 临时恢复鼠标；离开 → 重新穿透
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest("button")) return; // 工具条按钮不启动拖拽
+    dragRef.current = { x: e.screenX, y: e.screenY };
+  };
+
   const handleMouseMove = (e: React.MouseEvent) => {
+    // 拖拽（锁定穿透时 mousemove 仍转发，照常可拖）
+    if (dragRef.current) {
+      const dx = e.screenX - dragRef.current.x;
+      const dy = e.screenY - dragRef.current.y;
+      dragRef.current = { x: e.screenX, y: e.screenY };
+      if (dx || dy) getDesktop()?.moveLyricsWindowBy(dx, dy);
+    }
+    // 锁定中：光标进入工具条热区（右上角 150x56）→ 临时恢复鼠标；离开 → 重新穿透
     if (!lockedRef.current) return;
-    const rect = e.currentTarget.getBoundingClientRect();
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (!rect) return;
     const inZone = e.clientX > rect.right - 150 && e.clientY < rect.top + 56;
     if (inZone !== inZoneRef.current) {
       inZoneRef.current = inZone;
@@ -94,17 +111,28 @@ export default function DesktopLyricsPage() {
     }
   };
 
+  const handleMouseUp = () => {
+    dragRef.current = null;
+  };
+
   return (
-    <div className="desktop-lyrics-root" onMouseMove={handleMouseMove}>
+    <div
+      ref={rootRef}
+      className="desktop-lyrics-root"
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={() => (dragRef.current = null)}
+    >
       <div className="desktop-lyrics-pill">
-        {/* 常驻工具条（右上角）：半透明小按钮，整窗锁定时通过热区仍可点 */}
+        {/* 常驻工具条（右上角） */}
         <div className="desktop-lyrics-tools">
           <button onClick={cycleFont} title="切换字号" className="desktop-lyrics-chip text-xs font-bold">
             Aa
           </button>
           <button
             onClick={handleLockToggle}
-            title={locked ? "解锁桌面歌词" : "锁定（鼠标穿透防误点）"}
+            title={locked ? "解锁桌面歌词" : "锁定（鼠标穿透防误点，托盘菜单也可解锁）"}
             className="desktop-lyrics-chip"
           >
             {locked ? <LockOpen className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}

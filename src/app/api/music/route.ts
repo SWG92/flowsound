@@ -19,6 +19,46 @@ const STREAM_ALLOWED_HOSTS = [
   "kugou.com", // 酷狗音源
 ];
 
+// 音频内存缓存（LRU ≤3 首）：整首读入后 Range 从内存切片——播放/seek 零上游抖动
+interface StreamEntry {
+  buf: Buffer;
+  contentType: string;
+}
+const streamBuffer = new Map<string, StreamEntry>();
+
+function serveBuffer(entry: StreamEntry, rangeHeader: string | null): Response {
+  const total = entry.buf.length;
+  const headers = new Headers({
+    "Content-Type": entry.contentType,
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "no-store",
+  });
+  if (!rangeHeader) {
+    headers.set("Content-Length", String(total));
+    return new Response(entry.buf, { status: 200, headers });
+  }
+  // 解析 "bytes=start-end"（支持 start- / start-end / -suffix）
+  const m = rangeHeader.match(/bytes=(\d*)-(\d*)/);
+  let start = 0;
+  let end = total - 1;
+  if (m) {
+    if (m[1] === "" && m[2] !== "") {
+      start = Math.max(0, total - parseInt(m[2]));
+      end = total - 1;
+    } else {
+      start = parseInt(m[1]) || 0;
+      end = m[2] !== "" ? Math.min(parseInt(m[2]), total - 1) : total - 1;
+    }
+  }
+  if (start > end || start >= total) {
+    headers.set("Content-Range", `bytes */${total}`);
+    return new Response(null, { status: 416, headers });
+  }
+  headers.set("Content-Range", `bytes ${start}-${end}/${total}`);
+  headers.set("Content-Length", String(end - start + 1));
+  return new Response(entry.buf.subarray(start, end + 1), { status: 206, headers });
+}
+
 // 服务端缓存 TTL：歌词/歌单基本不变可长缓存；搜索/联想短缓存；
 // 取址 URL 会过期，只做短缓存去重（客户端重试、回退、预加载会短时间重复打同一接口）
 const SERVER_TTL: Record<string, number> = {
@@ -144,9 +184,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Missing fn" }, { status: 400 });
   }
 
-  // 音频流代理：把跨域 CDN 音频转成同源流——Web Audio（EQ/频谱可视化）要求
-  // 资源同源或跨域干净，而音乐 CDN 都不带 CORS 头，直连接入会得到静音。
-  // Range 头透传（拖动 seek 依赖 206）；不设超时（音频是长流，由客户端断开取消）。
+  // 音频流代理（缓冲式）：把跨域 CDN 音频一次性读入内存，Range 从内存即时切片。
+  // 直通转发在上游抖动时会造成播放卡顿；缓冲后播放/seek 全部从内存服务，零上游抖动。
+  // 内存预算：仅缓存 ≤20MB 的音频（MP3 320k 全曲 4~6MB）；无损 FLAC（20MB+）走直通流。
   if (fn === "stream") {
     const raw = request.nextUrl.searchParams.get("url") || "";
     let target: URL;
@@ -166,29 +206,50 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "invalid url" }, { status: 400 });
     }
 
+    const rangeHeader = request.headers.get("range");
+
+    // 内存缓存命中（LRU，≤3 首）：直接从内存切 Range
+    const cachedEntry = streamBuffer.get(raw);
+    if (cachedEntry) {
+      // LRU 触碰：删了重插，保持插入序 = 访问序
+      streamBuffer.delete(raw);
+      streamBuffer.set(raw, cachedEntry);
+      return serveBuffer(cachedEntry, rangeHeader);
+    }
+
     try {
-      const range = request.headers.get("range");
-      const upstream = await fetch(target.toString(), {
-        headers: range ? { Range: range } : {},
-        redirect: "follow",
-      });
-      if (!upstream.ok && upstream.status !== 206) {
+      const upstream = await fetch(target.toString(), { redirect: "follow" });
+      if (!upstream.ok) {
         return NextResponse.json(
           { error: `upstream ${upstream.status}` },
           { status: 502 }
         );
       }
-      const headers = new Headers();
-      for (const h of ["content-type", "content-length", "content-range"]) {
-        const v = upstream.headers.get(h);
-        if (v) headers.set(h, v);
+      const contentType = upstream.headers.get("content-type") || "audio/mpeg";
+      const arrayBuf = await upstream.arrayBuffer();
+
+      // 超大音频（无损）：不占缓存，本次请求直接流式返回（只支持整文件，seek 走重新请求）
+      if (arrayBuf.byteLength > 20 * 1024 * 1024) {
+        const headers = new Headers({
+          "Content-Type": contentType,
+          "Content-Length": String(arrayBuf.byteLength),
+          "Accept-Ranges": "bytes",
+          "Cache-Control": "no-store",
+        });
+        return new Response(Buffer.from(arrayBuf), {
+          status: rangeHeader ? 206 : 200,
+          headers,
+        });
       }
-      headers.set("accept-ranges", "bytes");
-      headers.set("Cache-Control", "no-store");
-      return new Response(upstream.body, {
-        status: upstream.status,
-        headers,
-      });
+
+      // LRU 上限 3 首
+      if (streamBuffer.size >= 3) {
+        const oldest = streamBuffer.keys().next().value as string;
+        streamBuffer.delete(oldest);
+      }
+      const entry: StreamEntry = { buf: Buffer.from(arrayBuf), contentType };
+      streamBuffer.set(raw, entry);
+      return serveBuffer(entry, rangeHeader);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "stream error";
       logError(`[music-api] stream:`, msg);

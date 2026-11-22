@@ -703,13 +703,13 @@ html.desktop-lyrics body {
   overflow: hidden;
 }
 
-/* 窗体根：真实元素挂拖拽区（伪元素上的 app-region 不生效），整窗可拖 */
+/* 窗体根：不用 app-region（透明窗+穿透下不可靠）——
+   拖拽由渲染层监听鼠标 → IPC 移动窗口（LX Music 同款），全场景稳定 */
 .desktop-lyrics-root {
   height: 100vh;
   padding: 10px;
   display: flex;
   align-items: center;
-  -webkit-app-region: drag;
   user-select: none;
 }
 
@@ -726,14 +726,13 @@ html.desktop-lyrics body {
   padding: 16px 64px 16px 30px;
 }
 
-/* 常驻工具条（右上角）：半透明小按钮，不依赖悬停显隐 */
+/* 常驻工具条（右上角）：半透明小按钮 */
 .desktop-lyrics-tools {
   position: absolute;
   top: 8px;
   right: 12px;
   display: flex;
   gap: 3px;
-  -webkit-app-region: no-drag;
 }
 .desktop-lyrics-chip {
   display: flex;

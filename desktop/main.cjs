@@ -392,6 +392,13 @@ function closeLyricsWindow() {
 ipcMain.on("open-lyrics-window", () => createLyricsWindow());
 ipcMain.on("close-lyrics-window", () => closeLyricsWindow());
 ipcMain.on("set-lyrics-locked", (_e, locked) => applyLyricsLock(locked));
+// 桌面歌词窗拖拽（LX Music 同款：渲染层算 delta → 主进程 setBounds）
+ipcMain.on("move-lyrics-window-by", (_e, dx, dy) => {
+  if (!lyricsWindow || lyricsWindow.isDestroyed()) return;
+  if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
+  const b = lyricsWindow.getBounds();
+  lyricsWindow.setBounds({ x: b.x + dx, y: b.y + dy, width: b.width, height: b.height });
+});
 
 // ============ 托盘（播放态图标 + tooltip 歌名）============
 
