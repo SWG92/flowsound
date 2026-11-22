@@ -26,5 +26,9 @@ function MainLayout({ children }: { children: React.ReactNode }) {
 }
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  // 桌面歌词窗路由：独立渲染进程专用，必须裸渲染（透明底 + 单行歌词）——
+  // 若套主界面布局，侧栏/播放栏/窗口控制会被整个塞进 680x140 的小窗
+  if (pathname === "/desktop-lyrics") return <>{children}</>;
   return <MainLayout>{children}</MainLayout>;
 }
