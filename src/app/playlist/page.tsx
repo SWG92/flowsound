@@ -319,6 +319,21 @@ export default function PlaylistPage() {
                 >
                   <X className="h-3 w-3" />
                 </Button>
+                {/* 悬浮播放：卡片上直接开播整个歌单，不用先进详情页 */}
+                {playlist.songs.length > 0 && (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute bottom-3 right-3 w-9 h-9 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-md"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePlayAll(playlist.songs);
+                    }}
+                    title="播放全部"
+                  >
+                    <Play className="h-4 w-4" />
+                  </Button>
+                )}
                 <div className="flex items-center gap-3 mb-3">
                   {/* 歌单封面：用第一首歌的专辑封面，没有则回退图标 */}
                   {getCoverUrl(playlist.songs[0]) ? (

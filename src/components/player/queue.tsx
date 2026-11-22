@@ -55,11 +55,21 @@ export function PlayQueue() {
     setDragIdx(idx);
   }, []);
 
+  // 拖拽到面板边缘时自动滚动（长队列把歌拖到可视区外时必备）
+  const handleDragAutoScroll = useCallback((e: React.DragEvent) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (e.clientY < rect.top + 44) el.scrollTop -= 8;
+    else if (e.clientY > rect.bottom - 44) el.scrollTop += 8;
+  }, []);
+
   const handleDragOver = useCallback((e: React.DragEvent, idx: number) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
+    handleDragAutoScroll(e);
     setDropIdx(idx);
-  }, []);
+  }, [handleDragAutoScroll]);
 
   const handleDragLeave = useCallback(() => {
     setDropIdx(null);
@@ -177,7 +187,12 @@ export function PlayQueue() {
       </div>
 
       {/* 歌曲列表（虚拟化：只渲染可视区 ± overscan 的行） */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-2" onWheel={(e) => e.stopPropagation()}>
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto p-2"
+        onWheel={(e) => e.stopPropagation()}
+        onDragOver={handleDragAutoScroll}
+      >
         {queue.length === 0 ? (
           <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
             播放队列为空
