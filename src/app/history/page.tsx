@@ -43,8 +43,8 @@ export default function HistoryPage() {
   const showTop = mounted && view === "top" && displayTop.length > 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col flex-1 min-h-0 gap-6">
+      <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Clock className="h-6 w-6 text-primary" />
@@ -82,7 +82,7 @@ export default function HistoryPage() {
       </div>
 
       {/* 视图切换 */}
-      <div className="flex gap-1 p-1 rounded-lg bg-black/5 dark:bg-white/5 w-fit">
+      <div className="flex gap-1 p-1 rounded-lg bg-black/5 dark:bg-white/5 w-fit shrink-0">
         <button
           onClick={() => setView("recent")}
           className={cn(
@@ -111,12 +111,16 @@ export default function HistoryPage() {
 
       {/* 搜索：历史歌曲多时快速定位（当前视图过滤） */}
       {mounted && count >= 10 && (
-        <SongSearchInput value={search} onChange={setSearch} placeholder="在播放记录中搜索歌名、歌手、专辑..." />
+        <div className="shrink-0">
+          <SongSearchInput value={search} onChange={setSearch} placeholder="在播放记录中搜索歌名、歌手、专辑..." />
+        </div>
       )}
 
       {view === "recent" ? (
         showContent ? (
-          <SongList songs={displayRecent} showIndex showAlbum virtual />
+          <div className="flex-1 min-h-0">
+            <SongList songs={displayRecent} showIndex showAlbum virtual fill />
+          </div>
         ) : mounted ? (
           search.trim() && playHistory.length > 0 ? (
             <div className="text-center py-20 text-muted-foreground">
@@ -135,7 +139,9 @@ export default function HistoryPage() {
           </div>
         )
       ) : showTop ? (
-        <SongList songs={displayTop} showIndex showAlbum virtual />
+        <div className="flex-1 min-h-0">
+          <SongList songs={displayTop} showIndex showAlbum virtual fill />
+        </div>
       ) : mounted ? (
         search.trim() && topSongs.length > 0 ? (
           <div className="text-center py-20 text-muted-foreground">

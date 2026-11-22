@@ -233,6 +233,45 @@ body::after {
     0 8px 28px oklch(0.35 0.06 270 / 0.1);
 }
 
+/* 播放栏专用强玻璃：歌曲列表会从其下方滑过，普通 .glass 的中段只有
+   0.16~0.38 白叠加，行内容会透出来。实底垫到 0.8（深色 0.88），
+   只留一丝氛围透色，玻璃质感在、列表行看不见 */
+.glass-bar {
+  background:
+    linear-gradient(
+      135deg,
+      oklch(1 0 0 / 0.55),
+      oklch(1 0 0 / 0.28) 42%,
+      oklch(1 0 0 / 0.45)
+    ),
+    oklch(1 0 0 / 0.8);
+  backdrop-filter: blur(28px) saturate(1.2) brightness(1.04);
+  -webkit-backdrop-filter: blur(28px) saturate(1.2) brightness(1.04);
+  border: 1px solid oklch(1 0 0 / 0.55);
+  box-shadow:
+    inset 0 1px 1px oklch(1 0 0 / 0.75),
+    inset 0 -1px 1px oklch(1 0 0 / 0.22),
+    0 12px 40px oklch(0.35 0.06 270 / 0.14);
+}
+
+.dark .glass-bar {
+  background:
+    linear-gradient(
+      135deg,
+      oklch(1 0 0 / 0.14),
+      oklch(1 0 0 / 0.05) 42%,
+      oklch(1 0 0 / 0.1)
+    ),
+    oklch(0.2 0.02 270 / 0.88);
+  backdrop-filter: blur(28px) saturate(1.2) brightness(1.1);
+  -webkit-backdrop-filter: blur(28px) saturate(1.2) brightness(1.1);
+  border: 1px solid oklch(1 0 0 / 0.16);
+  box-shadow:
+    inset 0 1px 1px oklch(1 0 0 / 0.3),
+    inset 0 -1px 1px oklch(1 0 0 / 0.07),
+    0 12px 40px oklch(0 0 0 / 0.4);
+}
+
 /* 深色液态玻璃 */
 .dark .glass {
   background:

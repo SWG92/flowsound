@@ -166,8 +166,8 @@ export function DailyRecommend() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col flex-1 min-h-0 gap-4">
+      <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold">每日推荐</h2>
@@ -195,7 +195,9 @@ export function DailyRecommend() {
           </Button>
         </div>
       </div>
-      <SongList songs={songs} showIndex showAlbum={false} virtual />
+      <div className="flex-1 min-h-0">
+        <SongList songs={songs} showIndex showAlbum={false} virtual fill />
+      </div>
     </div>
   );
 }

@@ -402,7 +402,7 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
         {virtual ? (
           <div
             ref={scrollRef}
-            className={cn("overflow-y-auto", fill && "flex-1 min-h-0")}
+            className={cn("overflow-y-auto scrollbar-hide", fill && "flex-1 min-h-0")}
             style={fill ? undefined : { maxHeight: maxHeight || "calc(100vh - 320px)" }}
             // 无限滚动必须挂在列表自身的滚动上：虚拟列表有自己的滚动条，
             // 页面几乎不滚动，若把哨兵放在页面流里会一直停在视口内、把全部页一次加载完

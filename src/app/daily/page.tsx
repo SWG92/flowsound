@@ -4,8 +4,8 @@ import { DailyRecommend } from "@/components/player/daily-recommend";
 
 export default function DailyPage() {
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="flex flex-col flex-1 min-h-0 gap-6">
+      <div className="shrink-0">
         <h1 className="text-2xl font-bold">
           <span className="gradient-text">每日推荐</span>
         </h1>

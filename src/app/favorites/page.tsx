@@ -34,8 +34,8 @@ export default function FavoritesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col flex-1 min-h-0 gap-6">
+      <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Heart className="h-6 w-6 text-red-500 fill-red-500" />
@@ -62,11 +62,15 @@ export default function FavoritesPage() {
       </div>
 
       {mounted && favoriteSongs.length >= 10 && (
-        <SongSearchInput value={search} onChange={setSearch} placeholder="在收藏中搜索歌名、歌手、专辑..." />
+        <div className="shrink-0">
+          <SongSearchInput value={search} onChange={setSearch} placeholder="在收藏中搜索歌名、歌手、专辑..." />
+        </div>
       )}
 
       {mounted && displaySongs.length > 0 ? (
-        <SongList songs={displaySongs} showIndex showAlbum virtual />
+        <div className="flex-1 min-h-0">
+          <SongList songs={displaySongs} showIndex showAlbum virtual fill />
+        </div>
       ) : mounted && favoriteSongs.length > 0 && search.trim() ? (
         <div className="text-center py-16 text-muted-foreground">
           <p className="text-sm">没有匹配「{search.trim()}」的收藏歌曲</p>
