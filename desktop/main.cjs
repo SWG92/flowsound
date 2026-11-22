@@ -135,7 +135,7 @@ function createSplash() {
     alwaysOnTop: true,
     skipTaskbar: true,
     show: false,
-    webPreferences: { sandbox: true },
+    webPreferences: { sandbox: true, preload: path.join(__dirname, "preload-splash.cjs") },
   });
   splashWin.on("closed", () => { splashWin = null; });
   splashWin.once("ready-to-show", () => {
@@ -147,6 +147,13 @@ function createSplash() {
     search: `icon=${encodeURIComponent(iconPath)}`,
   });
 }
+
+// 启动屏点击跳过：冷启动首绘迟迟不来时可手动放行
+ipcMain.on("splash:skip", () => {
+  if (!splashWin) return;
+  closeSplash();
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
+});
 
 function closeSplash() {
   if (!splashWin || splashWin.isDestroyed()) {
@@ -236,6 +243,15 @@ function createWindow() {
     closeSplash();
     mainWindow.show();
   });
+  // 兜底：冷启动首绘缓慢时 ready-to-show 可能迟迟不来，启动屏会一直盖着——
+  // 加载完成（稍候一拍等首绘）/加载失败/15s 硬超时 三条路径都会关闭启动屏并亮出主窗
+  mainWindow.webContents.on("did-finish-load", () => setTimeout(() => closeSplash(), 300));
+  mainWindow.webContents.on("did-fail-load", () => closeSplash());
+  setTimeout(() => {
+    if (!splashWin) return;
+    closeSplash();
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
+  }, 15000);
   mainWindow.loadURL(`http://127.0.0.1:${serverPort}`);
 
   // 窗口状态记忆：尺寸/位置变化防抖落盘
