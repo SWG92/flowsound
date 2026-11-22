@@ -23,7 +23,7 @@ export function ProgressBar() {
   const dragTimeRef = useRef<number | null>(null);
 
   return (
-    <div className="flex items-center gap-2 w-full">
+    <div className="relative flex items-center gap-2 w-full group/bar">
       <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">{formatTime(currentTime)}</span>
       <Slider
         value={[dragTime ?? currentTime]}
@@ -43,9 +43,13 @@ export function ProgressBar() {
           audioPlayer.setSeeking(false);
           setDragTime(null);
         }}
-        className="flex-1"
+        className="flex-1 group/bar"
       />
       <span className="text-xs text-muted-foreground w-10 tabular-nums">{formatTime(duration)}</span>
+      {/* 悬停时间提示：02:10 / 04:49 */}
+      <span className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover/bar:opacity-100 transition-opacity rounded-md bg-foreground/85 px-2 py-0.5 text-[11px] text-background whitespace-nowrap tabular-nums shadow-md">
+        {formatTime(dragTime ?? currentTime)} / {formatTime(duration)}
+      </span>
     </div>
   );
 }

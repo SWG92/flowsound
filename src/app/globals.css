@@ -574,6 +574,16 @@ a:active {
   background: var(--accent, rgba(255, 255, 255, 0.85));
 }
 
+/* 播放栏歌名跑马灯：名称溢出时悬停滚动（往复），未溢出无动画 */
+.title-marquee {
+  text-overflow: clip;
+  animation: title-marquee 7s ease-in-out infinite alternate;
+}
+@keyframes title-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(var(--mq-delta, -40px)); }
+}
+
 
 /* ============ Electron 桌面壳（汽水式：无独立标题横栏）============ */
 /* 窗口控制按钮悬浮在内容右上角；拖拽区由页面顶部自然留白承担：

@@ -90,7 +90,7 @@ function SongRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[2rem_2.5rem_1fr_3rem_1.5rem] md:grid-cols-[3rem_2.5rem_1fr_1fr_5rem_2.5rem] gap-2 md:gap-3 px-2 md:px-4 py-2 rounded-lg song-row group items-center",
+        "grid grid-cols-[2rem_2.5rem_1fr_3rem_1.5rem] md:grid-cols-[3rem_2.5rem_1.2fr_1fr_0.8fr_5rem_2.5rem] gap-2 md:gap-3 px-2 md:px-4 py-2 rounded-lg song-row group items-center",
         isCurrent && "bg-primary/10",
         isPaid ? "cursor-not-allowed" : "cursor-pointer"
       )}
@@ -132,25 +132,32 @@ function SongRow({
         )}
       </div>
 
-      {/* 封面 */}
+      {/* 封面（无封面用 FlowSound Logo 占位） */}
       <div className="w-10 h-10 rounded overflow-hidden shrink-0">
         {coverUrl ? (
           <img src={coverUrl + "?param=80y80"} alt={song.name} className="w-full h-full object-cover" loading="lazy" />
         ) : (
-          <div className="w-full h-full bg-muted flex items-center justify-center"><Play className="h-3 w-3 text-muted-foreground" /></div>
+          <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+            <img src="/icon-192.svg" alt="" className="w-5 h-5 opacity-50" />
+          </div>
         )}
       </div>
 
-      {/* 歌名 + 歌手 */}
+      {/* 歌名（宽屏独立成列，小屏叠歌手副行） */}
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <p className={cn("text-sm truncate", isCurrent && "text-primary font-medium", isPaid && "text-muted-foreground")}>{song.name}</p>
           {isPaid && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">VIP</Badge>}
         </div>
-        <p className="text-xs text-muted-foreground truncate">{song.artists?.map((a) => a.name).join(" / ")}</p>
+        <p className="text-xs text-muted-foreground truncate md:hidden">{song.artists?.map((a) => a.name).join(" / ")}</p>
       </div>
 
-      {/* 专辑 */}
+      {/* 歌手（独立列，宽屏显示） */}
+      <div className="min-w-0 hidden md:block">
+        <p className="text-sm text-muted-foreground truncate">{song.artists?.map((a) => a.name).join(" / ")}</p>
+      </div>
+
+      {/* 专辑（压缩列宽） */}
       {showAlbum && (
         <div className="min-w-0 hidden sm:block">
           <p className="text-sm text-muted-foreground truncate">{song.album?.name}</p>
@@ -377,10 +384,11 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
     <>
       <div className="space-y-1">
         {/* 表头 */}
-        <div className="grid grid-cols-[2rem_2.5rem_1fr_3rem_1.5rem] md:grid-cols-[3rem_2.5rem_1fr_1fr_5rem_2.5rem] gap-2 md:gap-3 px-2 md:px-4 py-2 text-xs text-muted-foreground uppercase tracking-wider">
+        <div className="grid grid-cols-[2rem_2.5rem_1fr_3rem_1.5rem] md:grid-cols-[3rem_2.5rem_1.2fr_1fr_0.8fr_5rem_2.5rem] gap-2 md:gap-3 px-2 md:px-4 py-2 text-xs text-muted-foreground uppercase tracking-wider">
           <div className="text-center">#</div>
           <div />
           <div>歌曲</div>
+          <div className="hidden md:block">歌手</div>
           <div className="hidden md:block">专辑</div>
           <div className="text-right"><Clock className="h-3 w-3 inline" /></div>
           <div />

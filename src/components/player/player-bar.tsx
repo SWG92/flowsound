@@ -18,6 +18,7 @@ import {
   Gauge,
   SlidersHorizontal,
   MessageCircle,
+  AudioLines,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,16 @@ export function PlayerBar() {
   const [showEQ, setShowEQ] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [prevVolume, setPrevVolume] = useState(0.8);
+  // 歌名跑马灯：名称溢出时悬停滚动查看完整名称
+  const titleRef = useRef<HTMLParagraphElement>(null);
+  const [marqueeOn, setMarqueeOn] = useState(false);
+  const [marqueeDelta, setMarqueeDelta] = useState(0);
+  const checkMarquee = () => {
+    const el = titleRef.current;
+    if (!el) { setMarqueeOn(false); return; }
+    const delta = el.scrollWidth - el.clientWidth;
+    if (delta > 4) { setMarqueeDelta(delta); setMarqueeOn(true); } else { setMarqueeOn(false); }
+  };
   const sleepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isFadingRef = useRef(false);
@@ -324,7 +335,13 @@ export function PlayerBar() {
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium truncate cursor-pointer hover:underline" onClick={() => setShowFullPlayer(true)}>
+            <p
+              ref={titleRef}
+              className={cn("text-sm font-medium truncate cursor-pointer hover:underline", marqueeOn && "title-marquee")}
+              style={marqueeOn ? ({ "--mq-delta": `-${marqueeDelta}px` } as React.CSSProperties) : undefined}
+              onMouseEnter={checkMarquee}
+              onClick={() => setShowFullPlayer(true)}
+            >
               {currentSong?.name || "加载中..."}
             </p>
             <p className="text-xs text-muted-foreground truncate">
@@ -491,6 +508,11 @@ export function PlayerBar() {
             )}
           </div>
 
+          {/* 歌词（全屏页歌词视图） */}
+          <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8 hidden md:flex" onClick={() => setShowFullPlayer(true)} title="歌词">
+            <AudioLines className="h-4 w-4" />
+          </Button>
+
           {/* 播放队列 */}
           <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8 hidden md:flex" onClick={() => setShowQueue(!showQueue)} title="播放队列">
             <ListMusic className="h-4 w-4" />
@@ -505,7 +527,7 @@ export function PlayerBar() {
             max={1}
             step={0.01}
             onValueChange={(val) => setVolume(Array.isArray(val) ? val[0] : val)}
-            className="hidden md:block w-28"
+            className="hidden md:block w-32"
           />
         </div>
       </div>
