@@ -16,8 +16,28 @@ interface LyricPayload {
   accent?: string;
 }
 
+// 字号三档（挂载后从 localStorage 恢复，避免 SSR/水合不一致）
+const FONT_SIZES = { s: 24, m: 30, l: 40 } as const;
+const FONT_ORDER = [FONT_SIZES.s, FONT_SIZES.m, FONT_SIZES.l] as const;
+
 export default function DesktopLyricsPage() {
   const [line, setLine] = useState<LyricPayload>({ text: "" });
+  const [fontSize, setFontSize] = useState<number>(FONT_SIZES.m);
+
+  // 恢复上次字号
+  useEffect(() => {
+    try {
+      const v = Number(localStorage.getItem("flowsound_lyrics_fontsize"));
+      if (FONT_ORDER.includes(v as (typeof FONT_ORDER)[number])) setFontSize(v);
+    } catch { /* ignore */ }
+  }, []);
+
+  const cycleFont = () => {
+    const idx = FONT_ORDER.indexOf(fontSize as (typeof FONT_ORDER)[number]);
+    const next = FONT_ORDER[(idx + 1) % FONT_ORDER.length];
+    setFontSize(next);
+    try { localStorage.setItem("flowsound_lyrics_fontsize", String(next)); } catch { /* ignore */ }
+  };
 
   // 标记透明底：抹掉根布局的渐变背景与光斑（见 globals.css 桌面歌词窗一节）
   useEffect(() => {
@@ -39,6 +59,13 @@ export default function DesktopLyricsPage() {
     <div className="desktop-lyrics-root">
       <div className="desktop-lyrics-tools">
         <button
+          onClick={cycleFont}
+          title="切换字号"
+          className="px-1.5 rounded-full text-xs font-bold text-white/70 hover:text-white hover:bg-black/30 cursor-pointer bg-black/20 h-[22px]"
+        >
+          Aa
+        </button>
+        <button
           onClick={() => getDesktop()?.setLyricsLocked(true)}
           title="锁定（鼠标穿透防误点，托盘菜单可解锁）"
           className="p-1 rounded-full text-white/70 hover:text-white hover:bg-black/30 cursor-pointer bg-black/20"
@@ -56,7 +83,10 @@ export default function DesktopLyricsPage() {
 
       <p
         className={cnLine(line)}
-        style={line.accent ? ({ "--lyrics-accent": line.accent } as React.CSSProperties) : undefined}
+        style={{
+          fontSize: `${fontSize}px`,
+          ...(line.accent ? ({ "--lyrics-accent": line.accent } as React.CSSProperties) : undefined),
+        }}
       >
         {line.text || "FlowSound"}
       </p>
