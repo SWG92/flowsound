@@ -157,7 +157,8 @@ export function PlayQueue() {
         )}
         style={{
           top: fullPlayerOpen ? "calc(4.5rem + var(--safe-top))" : "0.75rem",
-          bottom: "calc(96px + var(--safe-bottom))",
+          // 悬浮播放栏顶边 92px + 12px 呼吸位
+          bottom: "calc(104px + var(--safe-bottom))",
         }}
       >
       {/* 头部 */}
