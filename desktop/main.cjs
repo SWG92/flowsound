@@ -302,11 +302,12 @@ function loadLyricsBounds() {
   try {
     const s = JSON.parse(fs.readFileSync(LYRICS_STATE_FILE(), "utf8"));
     if (!Number.isFinite(s.x) || !Number.isFinite(s.y)) return null;
-    const ok = screen.getAllDisplays().some((d) => {
-      const a = d.workArea;
-      return s.x >= a.x - 60 && s.y >= a.y - 60 && s.x < a.x + a.width && s.y < a.y + a.height;
-    });
-    return ok ? s : null;
+    // 钳制到主显示器工作区内：上次保存的位置偏出屏幕（拖太偏/换显示器）时拉回来
+    const wa = screen.getPrimaryDisplay().workArea;
+    const x = Math.min(Math.max(s.x, wa.x), wa.x + wa.width - 680);
+    const y = Math.min(Math.max(s.y, wa.y), wa.y + wa.height - 140);
+    if (x !== s.x || y !== s.y) return { ...s, x, y };
+    return s;
   } catch {
     return null;
   }
