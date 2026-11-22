@@ -18,7 +18,9 @@ import {
   Gauge,
   SlidersHorizontal,
   MessageCircle,
+  Captions,
 } from "lucide-react";
+import { getDesktop } from "@/lib/desktop";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -100,6 +102,13 @@ export function PlayerBar() {
   const [showEQ, setShowEQ] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [prevVolume, setPrevVolume] = useState(0.8);
+  // 桌面歌词窗开关状态（歌词窗自身关闭时由主进程回推同步）
+  const [lyricsWinOpen, setLyricsWinOpen] = useState(false);
+  useEffect(() => {
+    const d = getDesktop();
+    if (!d?.onLyricsWindowState) return;
+    d.onLyricsWindowState((open) => setLyricsWinOpen(open));
+  }, []);
   const sleepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isFadingRef = useRef(false);
@@ -349,26 +358,24 @@ export function PlayerBar() {
           </Button>
         </div>
 
-        {/* 中间控制区 */}
-        <div className="flex-1 flex flex-col items-center gap-1 max-w-2xl mx-auto">
-          {/* 播放按钮行：居中 */}
-          <div className="flex items-center justify-center gap-1 w-full">
-            <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8 hidden sm:inline-flex" onClick={cyclePlayMode} title={MODE_LABELS[playMode]}>
-              <ModeIcon className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8" onClick={() => prevSong()} disabled={isLoading}>
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <SkipBack className="h-4 w-4" />}
-            </Button>
-            <Button size="icon" className="rounded-full cursor-pointer w-9 h-9 mx-0.5" onClick={togglePlay} disabled={isLoading}>
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
-            </Button>
-            <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8" onClick={() => nextSong()} disabled={isLoading}>
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <SkipForward className="h-4 w-4" />}
-            </Button>
+        {/* 中间控制区：单行排版（控制 + 进度），汽水式 */}
+        <div className="flex-1 flex items-center gap-1 md:gap-1.5 min-w-0">
+          <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8 hidden sm:inline-flex shrink-0" onClick={cyclePlayMode} title={MODE_LABELS[playMode]}>
+            <ModeIcon className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8 shrink-0" onClick={() => prevSong()} disabled={isLoading}>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <SkipBack className="h-4 w-4" />}
+          </Button>
+          <Button size="icon" className="rounded-full cursor-pointer w-9 h-9 shrink-0" onClick={togglePlay} disabled={isLoading}>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+          </Button>
+          <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8 shrink-0" onClick={() => nextSong()} disabled={isLoading}>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <SkipForward className="h-4 w-4" />}
+          </Button>
+          {/* 进度条（自订阅组件：进度更新只重渲染进度条本身） */}
+          <div className="flex-1 min-w-0">
+            <ProgressBar />
           </div>
-
-          {/* 进度条行（自订阅组件：进度更新只重渲染进度条本身） */}
-          <ProgressBar />
         </div>
 
         {/* 右侧：音质 + 倍速 + 定时 + 队列 + 音量 */}
@@ -503,6 +510,23 @@ export function PlayerBar() {
               </div>
             )}
           </div>
+
+          {/* 桌面歌词窗（仅桌面壳）：透明置顶小窗，随专辑主色染色 */}
+          {getDesktop() && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn("cursor-pointer h-8 w-8 hidden md:flex", lyricsWinOpen && "text-primary")}
+              onClick={() =>
+                lyricsWinOpen
+                  ? getDesktop()?.closeLyricsWindow()
+                  : getDesktop()?.openLyricsWindow()
+              }
+              title="桌面歌词"
+            >
+              <Captions className="h-4 w-4" />
+            </Button>
+          )}
 
           {/* 播放队列 */}
           <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8 hidden md:flex" onClick={() => setShowQueue(!showQueue)} title="播放队列">

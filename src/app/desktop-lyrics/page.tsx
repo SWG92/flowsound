@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { X, Lock } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { X, Lock, LockOpen } from "lucide-react";
 import { getDesktop } from "@/lib/desktop";
 
 /**
@@ -23,6 +23,42 @@ const FONT_ORDER = [FONT_SIZES.s, FONT_SIZES.m, FONT_SIZES.l] as const;
 export default function DesktopLyricsPage() {
   const [line, setLine] = useState<LyricPayload>({ text: "" });
   const [fontSize, setFontSize] = useState<number>(FONT_SIZES.m);
+  // 锁定 = 整窗鼠标穿透（看得见点不了）。交互模型：
+  // 锁定时鼠标移动事件仍转发（forward: true），页面据此检测光标——
+  // 光标进入右上角工具条区域 → 临时恢复鼠标（工具条可点）；离开 → 重新穿透。
+  // 🔓 按钮 = 彻底解锁。解锁入口：工具条 + 托盘菜单 + 播放栏按钮三处
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [locked, setLocked] = useState(false);
+  const lockedRef = useRef(false);
+  const inZoneRef = useRef(false);
+  const appliedRef = useRef(false); // 最近一次下发给主进程的穿透状态（去重 IPC）
+
+  const applyIgnore = (ignore: boolean) => {
+    if (appliedRef.current === ignore) return;
+    appliedRef.current = ignore;
+    getDesktop()?.setLyricsLocked(ignore);
+  };
+
+  const handleLockToggle = () => {
+    const next = !lockedRef.current;
+    lockedRef.current = next;
+    setLocked(next);
+    inZoneRef.current = false;
+    appliedRef.current = false;
+    applyIgnore(next);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!lockedRef.current) return;
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    // 工具条热区：右上角 150x56
+    const inZone = e.clientX > rect.right - 150 && e.clientY < rect.top + 56;
+    if (inZone !== inZoneRef.current) {
+      inZoneRef.current = inZone;
+      applyIgnore(!inZone);
+    }
+  };
 
   // 恢复上次字号（延后一拍，避免 effect 内同步 setState 级联渲染告警）
   useEffect(() => {
@@ -59,7 +95,7 @@ export default function DesktopLyricsPage() {
   }, []);
 
   return (
-    <div className="desktop-lyrics-root">
+    <div ref={rootRef} className="desktop-lyrics-root" onMouseMove={handleMouseMove}>
       <div className="desktop-lyrics-tools">
         <button
           onClick={cycleFont}
@@ -69,11 +105,11 @@ export default function DesktopLyricsPage() {
           Aa
         </button>
         <button
-          onClick={() => getDesktop()?.setLyricsLocked(true)}
-          title="锁定（鼠标穿透防误点，托盘菜单可解锁）"
+          onClick={handleLockToggle}
+          title={locked ? "解锁桌面歌词" : "锁定（鼠标穿透防误点；光标移到本工具条可解锁）"}
           className="p-1 rounded-full text-white/70 hover:text-white hover:bg-black/30 cursor-pointer bg-black/20"
         >
-          <Lock className="h-3.5 w-3.5" />
+          {locked ? <LockOpen className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
         </button>
         <button
           onClick={() => getDesktop()?.closeLyricsWindow()}

@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Heart, Loader2, MessageCircle, Pause, Play, Repeat, Repeat1, SkipBack, SkipForward, Shuffle } from "lucide-react";
 import { usePlayerStore } from "@/lib/store";
 import { audioPlayer } from "@/lib/audio-player";
-import { getDesktop } from "@/lib/desktop";
 import { cn, getCoverUrl } from "@/lib/utils";
 import { ProgressFill } from "./progress";
 import { CommentsDialog } from "./comments-dialog";
@@ -45,13 +44,6 @@ export function FullPlayer() {
 
   const [showLyricsView, setShowLyricsView] = useState(true);
   const [showComments, setShowComments] = useState(false);
-  // 桌面歌词窗开关状态（歌词窗自身关闭时由主进程回推同步）
-  const [lyricsWinOpen, setLyricsWinOpen] = useState(false);
-  useEffect(() => {
-    const d = getDesktop();
-    if (!d?.onLyricsWindowState) return;
-    d.onLyricsWindowState((open) => setLyricsWinOpen(open));
-  }, []);
   // 模式切换浮标：切换后短暂显示模式名（list/single 共用循环图标，需文字区分）
   const [modeTip, setModeTip] = useState(false);
   const modeTipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -322,23 +314,6 @@ export function FullPlayer() {
               title={lyricTrans ? "隐藏翻译" : "显示翻译"}
             >
               译
-            </button>
-          )}
-          {/* 桌面歌词窗开关（仅桌面壳）：透明置顶小窗，随专辑主色染色 */}
-          {getDesktop() && (
-            <button
-              onClick={() =>
-                lyricsWinOpen
-                  ? getDesktop()?.closeLyricsWindow()
-                  : getDesktop()?.openLyricsWindow()
-              }
-              className={cn(
-                "px-2.5 py-1 rounded-full text-xs cursor-pointer transition-colors border",
-                lyricsWinOpen ? "bg-white/25 text-white border-white/25" : "text-white/50 border-white/15 hover:text-white/80"
-              )}
-              title="桌面歌词悬浮窗"
-            >
-              词
             </button>
           )}
         </div>
