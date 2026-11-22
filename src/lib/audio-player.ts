@@ -20,6 +20,9 @@ class AudioPlayer {
 
   // 歌曲切换通知（供可视化器等模块重新绑定音频元素）
   private songStartCallbacks: Set<SongStartCallback> = new Set();
+  // 加载彻底失败（自动重试仍失败）回调：上层据此绕过缓存重新取址恢复。
+  // 回调返回 true 表示上层接管（底层不再提示）；false/无监听 → 底层走默认提示
+  private loadFailCallbacks: Set<(url: string, position: number) => boolean> = new Set();
   // 拖拽进度条时暂停 rAF 时间更新，防止滑块抽搐
   private isSeeking = false;
 
@@ -68,6 +71,19 @@ class AudioPlayer {
     for (const cb of this.songStartCallbacks) {
       cb(this.sound);
     }
+  }
+
+  /** 订阅"加载彻底失败"事件（自动重试仍失败后触发一次，供上层重新取址恢复）。
+   * position = 失败时的播放位置（秒）。回调返回 true 表示上层接管恢复 */
+  onLoadFail(cb: (url: string, position: number) => boolean): () => void {
+    this.loadFailCallbacks.add(cb);
+    return () => this.loadFailCallbacks.delete(cb);
+  }
+
+  /** 卸载当前音频实例（加载彻底失败后的恢复路径用：
+   * 卸掉坏实例后，上层以同一 URL 重新走加载流程也能命中"无实例"分支） */
+  reset() {
+    this.stopInternal();
   }
 
   // 播放新歌曲。opts.startAt：加载后定位到的进度（秒）；
@@ -202,14 +218,29 @@ class AudioPlayer {
             }, 600);
             return;
           }
-          usePlayerStore.getState().setPlaying(false);
           usePlayerStore.getState().setLoading(false);
+          // 彻底失败：通知上层（重新取址恢复）。失败位置供续播
+          let failPos = this.pendingSeek;
           try {
-            useToastStore
-              .getState()
-              .showToast("歌曲加载失败，请切换音质或稍后重试", "error");
-          } catch {
-            // toast store 可能未初始化
+            const t = this.sound?.seek();
+            if (typeof t === "number" && !isNaN(t) && t > 1) failPos = t;
+          } catch { /* ignore */ }
+          let handled = false;
+          for (const cb of this.loadFailCallbacks) {
+            try {
+              if (cb(url, failPos)) { handled = true; break; }
+            } catch { /* ignore */ }
+          }
+          if (!handled) {
+            // 上层未接管（如恢复预算用尽）时退回旧行为：提示用户手动处理
+            usePlayerStore.getState().setPlaying(false);
+            try {
+              useToastStore
+                .getState()
+                .showToast("歌曲加载失败，请切换音质或稍后重试", "error");
+            } catch {
+              // toast store 可能未初始化
+            }
           }
         },
       });

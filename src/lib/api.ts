@@ -139,15 +139,18 @@ export async function getSongUrl(
   id: number | string,
   quality?: AudioQuality,
   platform: MusicPlatform = "netease",
-  platformId?: string
+  platformId?: string,
+  fresh = false
 ): Promise<string> {
   const q = quality || getStoredQuality();
   const bitrate = AUDIO_QUALITY[q].bitrate;
   const pid = platformId || String(id);
 
   const cacheKey = `url:${platform}:${pid}:${bitrate}`;
-  const cached = getCached<string>(cacheKey);
-  if (cached) return cached;
+  if (!fresh) {
+    const cached = getCached<string>(cacheKey);
+    if (cached) return cached;
+  }
 
   // 对于非网易云平台，发送 platformId
   const params: Record<string, string> = {

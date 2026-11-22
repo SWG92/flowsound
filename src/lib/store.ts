@@ -49,7 +49,7 @@ interface PlayerState {
   sourceIndex: number;
 
   // 操作
-  playSong: (song: Song, queue?: Song[], sourceList?: Song[]) => Promise<void>;
+  playSong: (song: Song, queue?: Song[], sourceList?: Song[], opts?: { freshUrl?: boolean }) => Promise<void>;
   togglePlay: () => void;
   setPlaying: (playing: boolean) => void;
   setCurrentTime: (time: number) => void;
@@ -322,7 +322,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   sourceList: playbackSnapshot?.sourceList ?? [],
   sourceIndex: playbackSnapshot?.sourceIndex ?? -1,
 
-  playSong: async (song, queue, sourceList) => {
+  // opts.freshUrl：跳过 URL 内存缓存重新取址（播放失败后的自动恢复用——
+  // 缓存里的地址可能已过期，重新拿一份新的）
+  playSong: async (song, queue, sourceList, opts) => {
     const gen = ++playGeneration;
     set({ isLoading: true });
 
@@ -336,7 +338,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     let resolvedPlatformId = sourcePlatformId;
 
     try {
-      url = await getSongUrl(song.id, undefined, sourcePlatform, sourcePlatformId);
+      url = await getSongUrl(song.id, undefined, sourcePlatform, sourcePlatformId, opts?.freshUrl);
     } catch { /* ignore */ }
 
     // 源平台无播放 URL → 在其他平台搜索同名歌曲
@@ -356,7 +358,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
               match.id,
               undefined,
               fbPlatform,
-              match.platformId
+              match.platformId,
+              opts?.freshUrl
             );
             if (fbUrl) {
               url = fbUrl;

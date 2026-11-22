@@ -16,6 +16,9 @@ let restorePending = playbackRestored;
 // 由播放调度 effect 消费一次性转为 startAt。带歌曲 id 校验——若恢复的歌不可播
 // 触发了自动跳下一首，进度不能错误地带到新歌上
 let restoreSeek: { id: number; time: number } | null = null;
+// 播放失败自动恢复：同一首歌最多重新取址恢复 2 次（防死循环），成功起播即清零
+let failSongId: number | null = null;
+let failCount = 0;
 
 export function useAudioPlayer() {
   const prevSongUrl = useRef<string | null>(null);
@@ -99,6 +102,32 @@ export function useAudioPlayer() {
   useEffect(() => {
     audioPlayer.setSpeed(speed);
   }, [speed]);
+
+  // 播放失败自动恢复：自动重试仍失败 → 卸掉坏实例、绕过 URL 缓存重新取址，
+  // 从失败位置续播。同一首歌最多恢复 2 次，成功起播（onSongStart）即清零计数。
+  // 预算用尽时返回 false，底层回退为提示用户手动处理
+  useEffect(() => {
+    const resetFail = () => { failCount = 0; };
+    const offStart = audioPlayer.onSongStart(resetFail);
+    const offFail = audioPlayer.onLoadFail((url, pos) => {
+      const s = usePlayerStore.getState();
+      const song = s.currentSong;
+      if (!song || !s.isPlaying) return false;
+      if (failSongId !== song.id) {
+        failSongId = song.id;
+        failCount = 0;
+      }
+      if (++failCount > 2) return false;
+      audioPlayer.reset();                       // 卸掉加载失败的坏实例
+      restoreSeek = { id: song.id, time: pos };  // 从失败位置续播
+      s.playSong(song, s.queue, s.sourceList, { freshUrl: true });
+      return true;
+    });
+    return () => {
+      offStart();
+      offFail();
+    };
+  }, []);
 
   // 跳转到指定时间
   const seek = useCallback((time: number) => {

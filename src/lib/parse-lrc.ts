@@ -35,37 +35,41 @@ export function parseLRC(lrc: string, tlyric?: string): LyricLine[] {
   const transMap = new Map<number, string>();
   if (tlyric) {
     for (const line of tlyric.split("\n")) {
-      const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
-      if (match) {
-        const minutes = parseInt(match[1]);
-        const seconds = parseInt(match[2]);
-        const ms = parseInt(match[3]);
-        const time = minutes * 60 + seconds + ms / (match[3].length === 3 ? 1000 : 100);
-        const text = match[4].trim();
-        if (text) transMap.set(time, text);
+      // 翻译行同样可能一行多时间戳
+      const stamps = [...line.matchAll(/\[(\d{2}):(\d{2})\.(\d{2,3})\]/g)];
+      const text = line.replace(/\[(\d{2}):(\d{2})\.(\d{2,3})\]/g, "").trim();
+      if (stamps.length === 0 || !text) continue;
+      for (const m of stamps) {
+        const minutes = parseInt(m[1]);
+        const seconds = parseInt(m[2]);
+        const ms = parseInt(m[3]);
+        const time = minutes * 60 + seconds + ms / (m[3].length === 3 ? 1000 : 100);
+        transMap.set(time, text);
       }
     }
   }
 
   const result: LyricLine[] = [];
   for (const line of lrc.split("\n")) {
-    const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
-    if (match) {
-      const minutes = parseInt(match[1]);
-      const seconds = parseInt(match[2]);
-      const ms = parseInt(match[3]);
-      const time = minutes * 60 + seconds + ms / (match[3].length === 3 ? 1000 : 100);
-      const text = match[4].trim();
-      if (text && !isMetaLine(text)) {
-        let transText: string | undefined;
-        for (const [tTime, tText] of transMap) {
-          if (Math.abs(tTime - time) < 0.5) {
-            transText = tText;
-            break;
-          }
+    // 一行可携带多个时间戳（QQ 音乐导出格式：[00:01.00][00:05.00]同一句）——
+    // 必须逐个展开，否则第二个时间点起的歌词整段丢失
+    const stamps = [...line.matchAll(/\[(\d{2}):(\d{2})\.(\d{2,3})\]/g)];
+    if (stamps.length === 0) continue;
+    const text = line.replace(/\[(\d{2}):(\d{2})\.(\d{2,3})\]/g, "").trim();
+    if (!text || isMetaLine(text)) continue;
+    for (const m of stamps) {
+      const minutes = parseInt(m[1]);
+      const seconds = parseInt(m[2]);
+      const ms = parseInt(m[3]);
+      const time = minutes * 60 + seconds + ms / (m[3].length === 3 ? 1000 : 100);
+      let transText: string | undefined;
+      for (const [tTime, tText] of transMap) {
+        if (Math.abs(tTime - time) < 0.5) {
+          transText = tText;
+          break;
         }
-        result.push({ time, text, transText });
       }
+      result.push({ time, text, transText });
     }
   }
 
