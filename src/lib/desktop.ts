@@ -12,12 +12,10 @@ export interface FlowSoundDesktop {
   setProgress(v: number): void;
   setTrayState(s: { playing: boolean; title: string }): void;
   clearDiskCache(): Promise<{ ok: boolean; message?: string }>;
-  closeLyrics(): void;
-  setLyricsLocked(on: boolean): void;
-  onLyricsLockState(cb: (locked: boolean) => void): void;
-  dragOverlayStart(x: number, y: number): void;
-  dragOverlayMove(x: number, y: number): void;
-  dragOverlayEnd(): void;
+  // —— 桌面歌词窗 ——
+  openLyricsWindow(): void;
+  closeLyricsWindow(): void;
+  onLyricsWindowState(cb: (open: boolean) => void): void;
   checkForUpdates(): Promise<unknown>;
   restartForUpdate(): void;
   onUpdateStatus(cb: (s: { type: string; version?: string; percent?: number; message?: string }) => void): void;

@@ -687,3 +687,75 @@ a:active {
   }
 }
 
+
+/* ============ 桌面歌词窗（原生透明窗的整页透明底）============
+   body 默认带 bg-gradient-main 不透明渐变 + 两个光斑伪元素，
+   透明 BrowserWindow 会把这些渲染成实心黑块——歌词路由必须全部抹掉 */
+html.desktop-lyrics,
+html.desktop-lyrics body {
+  background: transparent !important;
+}
+html.desktop-lyrics body::before,
+html.desktop-lyrics body::after {
+  display: none !important;
+}
+html.desktop-lyrics body {
+  overflow: hidden;
+}
+
+/* 歌词窗根：整窗可拖动（无边框窗的移动方式），文字禁选中 */
+.desktop-lyrics-root {
+  -webkit-app-region: drag;
+  user-select: none;
+  cursor: default;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+}
+.desktop-lyrics-root button {
+  -webkit-app-region: no-drag;
+}
+
+/* 当前歌词行：白字多层阴影保证任意壁纸上可读；有专辑主色时浸染 */
+.desktop-lyrics-line {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  color: #fff;
+  text-shadow:
+    0 0 6px rgba(0, 0, 0, 0.75),
+    0 2px 4px rgba(0, 0, 0, 0.6);
+  transition: color 0.5s ease;
+}
+.desktop-lyrics-line.has-accent {
+  color: var(--lyrics-accent, #fff);
+  text-shadow:
+    0 0 8px rgba(0, 0, 0, 0.85),
+    0 2px 6px rgba(0, 0, 0, 0.6);
+}
+.desktop-lyrics-trans {
+  font-size: 16px;
+  font-weight: 500;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  margin-top: 4px;
+}
+
+/* 悬停工具条（右上角）：关闭按钮 */
+.desktop-lyrics-tools {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  display: flex;
+  gap: 2px;
+}
+.desktop-lyrics-root:hover .desktop-lyrics-tools {
+  opacity: 1;
+}

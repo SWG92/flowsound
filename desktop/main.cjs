@@ -19,6 +19,7 @@ const PORT_RETRY = 20;
 let serverProc = null;
 let serverPort = 0;
 let mainWindow = null;
+let lyricsWindow = null;
 let splashWin = null;
 let splashShownAt = 0;
 let tray = null;
@@ -288,6 +289,58 @@ function showWindow() {
   mainWindow.focus();
 }
 
+// ============ 桌面歌词窗（原生透明小窗）============
+// 独立渲染进程，加载 /desktop-lyrics 路由；歌词行由主窗口经
+// BroadcastChannel("flowsound-lyrics") 推送（同源窗口间广播，无需主进程中转）。
+
+function createLyricsWindow() {
+  if (lyricsWindow && !lyricsWindow.isDestroyed()) {
+    lyricsWindow.show();
+    return;
+  }
+  lyricsWindow = new BrowserWindow({
+    width: 680,
+    height: 140,
+    x: (() => {
+      try {
+        const a = screen.getPrimaryDisplay().workArea;
+        return a.x + Math.round((a.width - 680) / 2);
+      } catch { return 100; }
+    })(),
+    y: (() => {
+      try {
+        const a = screen.getPrimaryDisplay().workArea;
+        return a.y + a.height - 170;
+      } catch { return 600; }
+    })(),
+    frame: false,
+    transparent: true,
+    resizable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+    },
+  });
+  lyricsWindow.setAlwaysOnTop(true, "screen-saver"); // 压过大部分置顶窗口
+  lyricsWindow.loadURL(`http://127.0.0.1:${serverPort}/desktop-lyrics`);
+  lyricsWindow.once("ready-to-show", () => lyricsWindow?.showInactive()); // 不抢主窗口焦点
+  lyricsWindow.on("closed", () => {
+    lyricsWindow = null;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("lyrics-window-state", false);
+    }
+  });
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("lyrics-window-state", true);
+  }
+}
+
+function closeLyricsWindow() {
+  if (lyricsWindow && !lyricsWindow.isDestroyed()) lyricsWindow.close();
+}
+
 // ============ 托盘（播放态图标 + tooltip 歌名）============
 
 function trayIconFor(playing) {
@@ -445,6 +498,10 @@ ipcMain.on("set-progress", (_e, v) => {
   }
 });
 ipcMain.on("set-tray-state", (_e, s) => updateTrayState(s));
+
+// 桌面歌词窗开关（播放栏"词"按钮切换）
+ipcMain.on("open-lyrics-window", () => createLyricsWindow());
+ipcMain.on("close-lyrics-window", () => closeLyricsWindow());
 
 // 清理磁盘缓存：Chromium HTTP 磁盘缓存（封面图/字体/接口临时副本，增长大头）
 // + 软件内更新遗留的安装包副本。收藏/历史等 Local Storage 用户数据不受影响。
