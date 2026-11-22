@@ -98,8 +98,8 @@ export function Sidebar() {
 
   return (
     <>
-      {/* 桌面端：固定侧栏 */}
-      <aside className="fs-sidebar hidden md:flex flex-col w-56 shrink-0 glass h-[calc(100vh-120px)] rounded-[28px] m-3 mr-0 p-4 overflow-hidden sticky top-3 self-start">
+      {/* 桌面端：固定侧栏（高度：12px 顶距 + 播放栏顶边 12+80，正好衔接，左下不露渐变空隙） */}
+      <aside className="fs-sidebar hidden md:flex flex-col w-56 shrink-0 glass h-[calc(100vh-104px)] rounded-[28px] m-3 mr-0 p-4 overflow-hidden sticky top-3 self-start">
         {navContent}
       </aside>
 

@@ -312,8 +312,8 @@ export function PlayerBar() {
   return (
     <>
       <div
-        className="fixed left-2 right-2 md:left-3 md:right-3 h-16 md:h-20 glass-bar rounded-t-[28px] z-50 flex items-center px-3 md:px-5 gap-2 md:gap-4"
-        style={{ bottom: "var(--safe-bottom)" }}
+        className="fixed left-3 right-3 h-16 md:h-20 glass-bar rounded-[28px] z-50 flex items-center px-3 md:px-5 gap-2 md:gap-4"
+        style={{ bottom: "calc(12px + var(--safe-bottom))" }}
       >
         {/* 歌曲信息 + 封面 */}
         <div className="flex items-center gap-2 md:gap-3 w-28 md:w-64 shrink-0">
