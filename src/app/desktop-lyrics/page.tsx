@@ -24,12 +24,15 @@ export default function DesktopLyricsPage() {
   const [line, setLine] = useState<LyricPayload>({ text: "" });
   const [fontSize, setFontSize] = useState<number>(FONT_SIZES.m);
 
-  // 恢复上次字号
+  // 恢复上次字号（延后一拍，避免 effect 内同步 setState 级联渲染告警）
   useEffect(() => {
-    try {
-      const v = Number(localStorage.getItem("flowsound_lyrics_fontsize"));
-      if (FONT_ORDER.includes(v as (typeof FONT_ORDER)[number])) setFontSize(v);
-    } catch { /* ignore */ }
+    const t = setTimeout(() => {
+      try {
+        const v = Number(localStorage.getItem("flowsound_lyrics_fontsize"));
+        if (FONT_ORDER.includes(v as (typeof FONT_ORDER)[number])) setFontSize(v);
+      } catch { /* ignore */ }
+    }, 0);
+    return () => clearTimeout(t);
   }, []);
 
   const cycleFont = () => {
