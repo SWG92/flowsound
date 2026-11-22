@@ -6,7 +6,7 @@ appId: com.swg92.flowsound
 productName: FlowSound
 directories:
   app: desktop
-  output: release
+  output: dist
   buildResources: desktop/build
 files:
   - "**/*"
