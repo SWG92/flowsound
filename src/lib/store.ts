@@ -67,6 +67,7 @@ interface PlayerState {
   playNext: (song: Song) => void;
   setCurrentLyricIndex: (index: number) => void;
   toggleFavorite: (song: Song) => void;
+  mergeFavoriteSongs: (songs: Song[]) => number; // 批量合并收藏（网易云红心导入），返回新增数
   isFavorite: (songId: number) => boolean;
   addToHistory: (song: Song) => void;
   clearHistory: () => void;
@@ -682,6 +683,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   isFavorite: (songId) => get().favorites.includes(songId),
+
+  mergeFavoriteSongs: (songs) => {
+    const existing = new Set(get().favorites);
+    const add = songs.filter((s) => !existing.has(s.id));
+    if (add.length === 0) return 0;
+    const newFavoriteSongs = [...get().favoriteSongs, ...add];
+    const newFavorites = newFavoriteSongs.map((s) => s.id);
+    saveToStorage(STORAGE_KEYS.favorites, newFavorites);
+    set({ favorites: newFavorites, favoriteSongs: newFavoriteSongs });
+    return add.length;
+  },
 
   addToHistory: (song) => {
     const { playHistory } = get();

@@ -1,17 +1,21 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Heart, Play } from "lucide-react";
+import { CloudDownload, Heart, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SongList } from "@/components/playlist/song-list";
 import { SongSearchInput, filterSongs } from "@/components/playlist/song-search";
 import { usePlayerStore } from "@/lib/store";
+import { useToast } from "@/components/ui/toast";
+import { fetchLoginStatus, fetchLikeList, fetchSongDetails, hasNeteaseCookie } from "@/lib/api";
 
 export default function FavoritesPage() {
   // 字段级订阅：播放进度等 store 变化不再引发收藏页重渲染
   const favoriteSongs = usePlayerStore((s) => s.favoriteSongs);
   const setQueue = usePlayerStore((s) => s.setQueue);
   const playSong = usePlayerStore((s) => s.playSong);
+  const mergeFavoriteSongs = usePlayerStore((s) => s.mergeFavoriteSongs);
+  const { showToast } = useToast();
   // 避免 hydration 不匹配：favorites 来自 localStorage，SSR 时为 []
   const [mounted, setMounted] = useState(false);
   // 收藏内搜索（歌曲多时快速定位）
@@ -33,6 +37,32 @@ export default function FavoritesPage() {
     playSong(displaySongs[0], displaySongs, displaySongs);
   };
 
+  // 网易云红心导入：云端喜欢列表 → 批量取歌详情 → 合并进本地收藏（去重）
+  const [importingLikes, setImportingLikes] = useState(false);
+  const importNeteaseLikes = async () => {
+    setImportingLikes(true);
+    try {
+      const st = await fetchLoginStatus();
+      if (!st.profile) {
+        showToast("网易云登录已失效，请到设置页重新扫码", "error");
+        return;
+      }
+      const r = await fetchLikeList(st.profile.userId);
+      const ids = (r.ids || []).filter((id) => !favoriteSongs.some((s) => s.id === id));
+      if (ids.length === 0) {
+        showToast("云端红心均已收藏", "info");
+        return;
+      }
+      const songs = await fetchSongDetails(ids);
+      const added = mergeFavoriteSongs(songs);
+      showToast(added > 0 ? `已导入 ${added} 首网易云红心` : "导入完成", added > 0 ? "success" : "info");
+    } catch {
+      showToast("导入失败，请稍后重试", "error");
+    } finally {
+      setImportingLikes(false);
+    }
+  };
+
   return (
     <div className="flex flex-col flex-1 min-h-0 gap-6">
       <div className="flex items-center justify-between shrink-0">
@@ -47,6 +77,18 @@ export default function FavoritesPage() {
               : `${count} 首歌曲`}
           </p>
         </div>
+        {mounted && hasNeteaseCookie() && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={importNeteaseLikes}
+            disabled={importingLikes}
+            className="cursor-pointer"
+          >
+            <CloudDownload className="h-4 w-4 mr-1.5" />
+            {importingLikes ? "导入中…" : "导入网易云红心"}
+          </Button>
+        )}
         {mounted && favoriteSongs.length > 0 && (
           <Button
             variant="outline"

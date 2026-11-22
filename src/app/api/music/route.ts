@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdapter } from "@/lib/platforms";
-import type { MusicPlatform } from "@/lib/types";
+import type { MusicPlatform, Song } from "@/lib/types";
 import { logError } from "@/lib/logger";
 import { NETEASE_BASE, NETEASE_HEADERS, FETCH_TIMEOUT } from "@/lib/constants";
 import { getServerCache, setServerCache, serverCacheKey } from "@/lib/server-cache";
 import { slimSongs } from "@/lib/song-slim";
 import { numParam, alnumParam } from "@/lib/validate";
+import { weapi } from "@/lib/weapi";
+import QRCode from "qrcode";
 
 type HandlerFn = (params: Record<string, string>) => Promise<unknown>;
 
@@ -23,6 +25,7 @@ const SERVER_TTL: Record<string, number> = {
   "playlist/detail": 30 * 60 * 1000,
   "song/url": 5 * 60 * 1000,
   "mv/detail": 10 * 60 * 1000, // MV 视频地址带签名时效，只做短缓存
+  "song/detail": 30 * 60 * 1000, // 歌曲详情（红心/云歌单导入用）基本不变可长缓存
 };
 
 // 浏览器侧缓存头（Service Worker 不拦截 /api/，由 HTTP 缓存接管）：
@@ -34,6 +37,7 @@ const BROWSER_CACHE: Record<string, string> = {
   "playlist/detail": "private, max-age=1800",
   "song/url": "no-store",
   "mv/detail": "private, max-age=600",
+  "song/detail": "private, max-age=1800",
 };
 
 function resolvePlatform(request: NextRequest): MusicPlatform {
@@ -120,6 +124,103 @@ const mvDetailHandler: HandlerFn = async (params) => {
   return res.json();
 };
 
+// ============ 网易云账号（扫码登录 + 云端曲库） ============
+// 登录态：客户端保存 MUSIC_U Cookie 并随请求透传（服务端保持无状态，
+// Electron/浏览器两端通用）；Cookie 做净化防 header 注入
+
+function neteaseCookieHeader(cookie: string | undefined): Record<string, string> {
+  const safe = (cookie || "").replace(/[\r\n]/g, "").slice(0, 900);
+  return safe ? { Cookie: safe } : {};
+}
+
+/** weapi POST：登录/账号类端点只接受 weapi 加密表单（明文 GET 上游返回 400）。
+    网关约定：URL 的 /api/ 段替换为 /weapi/ + query 带空 csrf_token，
+    载荷统一注入空 csrf_token 字段（上游校验键存在） */
+async function weapiPost(
+  path: string,
+  payload: Record<string, unknown>,
+  cookie?: string
+): Promise<{ data: Record<string, unknown>; res: Response }> {
+  const { params, encSecKey } = weapi({ csrf_token: "", ...payload });
+  const body = new URLSearchParams({ params, encSecKey }).toString();
+  const res = await fetch(`${NETEASE_BASE}${path.replace(/^\/api\//, "/weapi/")}?csrf_token=`, {
+    method: "POST",
+    headers: {
+      ...NETEASE_HEADERS,
+      origin: "https://music.163.com",
+      ...neteaseCookieHeader(cookie),
+      "Content-Length": String(Buffer.byteLength(body)),
+    },
+    body,
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+  });
+  const data = (await res.json()) as Record<string, unknown>;
+  return { data, res };
+}
+
+const loginQrCreateHandler: HandlerFn = async () => {
+  const { data } = await weapiPost("/api/login/qrcode/unikey", { type: "1" });
+  const unikey = (data.unikey as string) || "";
+  // 上游此版只回 unikey：二维码内容按官方约定拼接，本地生成 data-URI 供客户端直显
+  const qrimg = unikey
+    ? await QRCode.toDataURL(`https://music.163.com/login?codekey=${unikey}`, { margin: 1, width: 240 })
+    : "";
+  return { unikey, qrimg, code: data.code ?? 0 };
+};
+
+const loginQrCheckHandler: HandlerFn = async (params) => {
+  // unikey 为带连字符的 UUID 形态：只放行字母数字与连字符（防 query 注入）
+  const key = (params.key || "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 64);
+  if (!key) return { code: 800, cookie: "" };
+  const { data, res } = await weapiPost("/api/login/qrcode/client/login", { key, type: "1" });
+  // 803=确认成功：把上游 Set-Cookie 中的 MUSIC_U 透传给客户端保存（服务端不存登录态）
+  const setCookies = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
+  const cookie = setCookies
+    .filter((c) => /MUSIC_U=/.test(c))
+    .map((c) => c.split(";")[0])
+    .join("; ");
+  return { code: data.code ?? 0, cookie };
+};
+
+const loginStatusHandler: HandlerFn = async (params) => {
+  const { data } = await weapiPost("/api/nuser/account/get", {}, params.cookie);
+  const p = data.profile as { userId: number; nickname: string; avatarUrl: string } | undefined;
+  return { profile: p ? { userId: p.userId, nickname: p.nickname, avatarUrl: p.avatarUrl } : null };
+};
+
+const likeListHandler: HandlerFn = async (params) => {
+  const uid = numParam(params.uid, "");
+  if (!uid) return { ids: [] };
+  const { data } = await weapiPost("/api/song/like/get", { uid, limit: "1000" }, params.cookie);
+  return { ids: ((data.ids as number[]) || []).slice(0, 1500) };
+};
+
+const userPlaylistHandler: HandlerFn = async (params) => {
+  const uid = numParam(params.uid, "");
+  if (!uid) return { playlists: [] };
+  const { data } = await weapiPost("/api/user/playlist", { uid, limit: "100", offset: "0" }, params.cookie);
+  return {
+    playlists: ((data.playlist as Array<{ id: number; name: string; coverImgUrl?: string; trackCount?: number }>) || [])
+      .slice(0, 100)
+      .map((pl) => ({
+        id: pl.id,
+        name: pl.name,
+        coverImgUrl: pl.coverImgUrl || "",
+        trackCount: pl.trackCount || 0,
+      })),
+  };
+};
+
+const songDetailHandler: HandlerFn = async (params) => {
+  // ids 为逗号分隔的纯数字列表（批量取歌详情，供红心导入/云歌单导入）
+  const ids = (params.ids || "").replace(/[^0-9,]/g, "").slice(0, 9000);
+  if (!ids) return { songs: [] };
+  const idArr = ids.split(",").filter(Boolean).map(Number);
+  const list = JSON.stringify(idArr);
+  const { data } = await weapiPost("/api/v3/song/detail", { c: list, ids: list }, params.cookie);
+  return { songs: slimSongs((data.songs as Song[]) || []) };
+};
+
 // ============ 路由映射 ============
 
 const HANDLERS: Record<string, HandlerFn> = {
@@ -129,6 +230,12 @@ const HANDLERS: Record<string, HandlerFn> = {
   "playlist/detail": playlistDetailHandler,
   suggest: suggestHandler,
   "mv/detail": mvDetailHandler,
+  "login/qr/create": loginQrCreateHandler,
+  "login/qr/check": loginQrCheckHandler,
+  "login/status": loginStatusHandler,
+  likelist: likeListHandler,
+  "user/playlist": userPlaylistHandler,
+  "song/detail": songDetailHandler,
 };
 
 // ============ Route handler ============

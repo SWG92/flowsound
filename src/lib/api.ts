@@ -327,3 +327,78 @@ export function prefetchSongUrl(song: Song) {
   getSongUrl(song.id, undefined, platform, song.platformId).catch(() => {});
 }
 
+// ============ 网易云账号（扫码登录 + 云端曲库） ============
+// MUSIC_U Cookie 保存在本地，随账号相关请求透传给自家 /api/music 转发上游；
+// 服务端保持无状态，Electron/浏览器两端通用
+
+const NC_COOKIE_KEY = "flowsound_nc_cookie";
+let ncCookie = typeof window !== "undefined" ? localStorage.getItem(NC_COOKIE_KEY) || "" : "";
+
+export function setNeteaseCookie(cookie: string | null) {
+  ncCookie = cookie || "";
+  if (ncCookie) {
+    localStorage.setItem(NC_COOKIE_KEY, ncCookie);
+  } else {
+    localStorage.removeItem(NC_COOKIE_KEY);
+  }
+}
+
+export function hasNeteaseCookie(): boolean {
+  return !!ncCookie;
+}
+
+export interface NetEaseProfile {
+  userId: number;
+  nickname: string;
+  avatarUrl: string;
+}
+
+export interface NetEasePlaylistMeta {
+  id: number;
+  name: string;
+  coverImgUrl: string;
+  trackCount: number;
+}
+
+/** 创建扫码登录二维码：qrimg 为上游返回的 base64 data-URI，可直接展示 */
+export async function loginQrCreate(): Promise<{ unikey: string; qrimg: string; code: number }> {
+  return fetchJSON("login/qr/create");
+}
+
+/** 轮询扫码状态：800=过期 801=等待 802=已扫码 803=已确认（cookie 随响应返回） */
+export async function loginQrCheck(key: string): Promise<{ code: number; cookie: string }> {
+  return fetchJSON("login/qr/check", { key });
+}
+
+export async function fetchLoginStatus(): Promise<{ profile: NetEaseProfile | null }> {
+  return fetchJSON("login/status", ncCookie ? { cookie: ncCookie } : undefined);
+}
+
+export async function fetchLikeList(uid: number): Promise<{ ids: number[] }> {
+  return fetchJSON("likelist", { uid: String(uid), ...(ncCookie ? { cookie: ncCookie } : {}) });
+}
+
+export async function fetchUserPlaylists(uid: number): Promise<{ playlists: NetEasePlaylistMeta[] }> {
+  return fetchJSON("user/playlist", { uid: String(uid), ...(ncCookie ? { cookie: ncCookie } : {}) });
+}
+
+/** 批量取歌曲详情（红心导入/云歌单导入用；上游一次最多约 1000 首，这里上限 900） */
+export async function fetchSongDetails(ids: number[]): Promise<Song[]> {
+  if (ids.length === 0) return [];
+  const r = await fetchJSON<{ songs: Song[] }>("song/detail", {
+    ids: ids.slice(0, 900).join(","),
+    ...(ncCookie ? { cookie: ncCookie } : {}),
+  });
+  return (r.songs || []).map((s: Song) => ({ ...s, platform: "netease" as const, platformId: String(s.id) }));
+}
+
+/** 云歌单曲目列表（导入为本地歌单用；匿名可访问） */
+export async function getNeteasePlaylistSongs(id: string | number): Promise<Song[]> {
+  const data = await fetchJSON<{ result?: { tracks: Song[] }; playlist?: { tracks: Song[] } }>(
+    "playlist/detail",
+    { id: String(id), platform: "netease" }
+  );
+  const tracks = data.result?.tracks || data.playlist?.tracks || [];
+  return tracks.slice(0, 500).map((s: Song) => ({ ...s, platform: "netease" as const, platformId: String(s.id) }));
+}
+
