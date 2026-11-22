@@ -703,36 +703,54 @@ html.desktop-lyrics body {
   overflow: hidden;
 }
 
-/* 歌词窗根：普通元素（悬停可触发工具条显隐）。
-   拖拽由 ::before 全尺寸垫层承担——app-region: drag 会吞掉鼠标事件，
-   若直接放在根上，:hover 永远不触发、工具条无法显现 */
+/* 窗体根：真实元素挂拖拽区（伪元素上的 app-region 不生效），整窗可拖 */
 .desktop-lyrics-root {
-  position: relative;
-  user-select: none;
-  cursor: default;
   height: 100vh;
+  padding: 10px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+/* 深色玻璃胶囊：与其他播放器桌面歌词同形态（半透明深底 + 模糊透壁纸） */
+.desktop-lyrics-pill {
+  position: relative;
+  width: 100%;
+  border-radius: 28px;
+  background: linear-gradient(120deg, rgba(16, 14, 28, 0.78), rgba(34, 26, 52, 0.62));
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.5);
+  padding: 16px 64px 16px 30px;
+}
+
+/* 常驻工具条（右上角）：半透明小按钮，不依赖悬停显隐 */
+.desktop-lyrics-tools {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  display: flex;
+  gap: 3px;
+  -webkit-app-region: no-drag;
+}
+.desktop-lyrics-chip {
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 20px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
 }
-.desktop-lyrics-root::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  -webkit-app-region: drag;
-  cursor: grab;
-}
-.desktop-lyrics-root:active::before {
-  cursor: grabbing;
-}
-/* 内容浮在拖拽垫层之上，本身不参与拖拽（悬停/点击保持可用） */
-.desktop-lyrics-line,
-.desktop-lyrics-trans,
-.desktop-lyrics-tools {
-  position: relative;
-  -webkit-app-region: no-drag;
+.desktop-lyrics-chip:hover {
+  background: rgba(255, 255, 255, 0.28);
+  color: #fff;
 }
 
 /* 当前歌词行：白字多层阴影保证任意壁纸上可读；有专辑主色时浸染 */
@@ -757,22 +775,7 @@ html.desktop-lyrics body {
   font-size: 16px;
   font-weight: 500;
   text-align: center;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.8);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
   margin-top: 4px;
-}
-
-/* 悬停工具条（右上角）：字号/锁定/关闭 */
-.desktop-lyrics-tools {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  display: flex;
-  gap: 2px;
-  z-index: 1;
-}
-.desktop-lyrics-root:hover .desktop-lyrics-tools {
-  opacity: 1;
 }

@@ -304,8 +304,8 @@ function loadLyricsBounds() {
     if (!Number.isFinite(s.x) || !Number.isFinite(s.y)) return null;
     // 钳制到主显示器工作区内：上次保存的位置偏出屏幕（拖太偏/换显示器）时拉回来
     const wa = screen.getPrimaryDisplay().workArea;
-    const x = Math.min(Math.max(s.x, wa.x), wa.x + wa.width - 680);
-    const y = Math.min(Math.max(s.y, wa.y), wa.y + wa.height - 140);
+    const x = Math.min(Math.max(s.x, wa.x), wa.x + wa.width - 720);
+    const y = Math.min(Math.max(s.y, wa.y), wa.y + wa.height - 150);
     if (x !== s.x || y !== s.y) return { ...s, x, y };
     return s;
   } catch {
@@ -340,16 +340,16 @@ function createLyricsWindow() {
     try {
       const a = screen.getPrimaryDisplay().workArea;
       return {
-        x: a.x + Math.round((a.width - 680) / 2),
-        y: a.y + a.height - 170,
+        x: a.x + Math.round((a.width - 720) / 2),
+        y: a.y + a.height - 160,
       };
     } catch {
       return { x: 100, y: 600 };
     }
   })();
   lyricsWindow = new BrowserWindow({
-    width: 680,
-    height: 140,
+    width: 720,
+    height: 150,
     x: bounds.x,
     y: bounds.y,
     frame: false,
