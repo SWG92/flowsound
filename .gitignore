@@ -58,4 +58,5 @@ nul
 
 # Electron 桌面版
 /release/
+/dist/
 /desktop/node_modules/
