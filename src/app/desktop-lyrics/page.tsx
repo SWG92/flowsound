@@ -31,6 +31,24 @@ export default function DesktopLyricsPage() {
   const inZoneRef = useRef(false);
   const appliedRef = useRef(false); // 最近一次下发给主进程的穿透状态（去重 IPC）
 
+  // 标记透明底：抹掉根布局的渐变背景与光斑（见 globals.css 桌面歌词窗一节）
+  useEffect(() => {
+    document.documentElement.classList.add("desktop-lyrics");
+    return () => document.documentElement.classList.remove("desktop-lyrics");
+  }, []);
+
+  // 歌词数据：主窗口经 BroadcastChannel 推送当前行；打开时先请求一次同步
+  useEffect(() => {
+    const ch = new BroadcastChannel("flowsound-lyrics");
+    ch.onmessage = (e: MessageEvent) => {
+      const data = e.data as LyricPayload & { type?: string };
+      if (data?.type === "sync") return;
+      setLine(data ?? { text: "" });
+    };
+    ch.postMessage({ type: "sync" });
+    return () => ch.close();
+  }, []);
+
   // 恢复上次字号（延后一拍，避免 effect 内同步 setState 级联渲染告警）
   useEffect(() => {
     const t = setTimeout(() => {

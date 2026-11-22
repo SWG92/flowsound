@@ -60,6 +60,10 @@ export function DesktopMediaBridge() {
       });
     };
     publish();
+    // 歌词窗打开时会发 sync 请求：立即补发当前行（否则要等下一次歌词变化才同步）
+    ch.onmessage = (e: MessageEvent) => {
+      if ((e.data as { type?: string })?.type === "sync") publish();
+    };
     const unsub = usePlayerStore.subscribe((s, prev) => {
       if (
         s.currentLyricIndex !== prev.currentLyricIndex ||
