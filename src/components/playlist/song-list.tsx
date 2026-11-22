@@ -44,6 +44,8 @@ interface SongListProps {
   virtual?: boolean;
   /** 虚拟滚动容器最大高度，默认填充父容器 */
   maxHeight?: string;
+  /** 填充模式：列表撑满父容器剩余高度（页面 flex 布局，页面自身不滚动，仅列表内滚动） */
+  fill?: boolean;
   /** 列表滚动到底部附近时触发（用于无限滚动加载下一页） */
   onEndReached?: () => void;
   /** 距离底部多少像素触发 onEndReached，默认 240 */
@@ -188,7 +190,7 @@ function SongRow({
   );
 }
 
-export function SongList({ songs, showIndex = true, showAlbum = true, virtual = false, maxHeight, onEndReached, endReachedThreshold = 240, playlistId, onRemoveFromPlaylist, onReorder }: SongListProps) {
+export function SongList({ songs, showIndex = true, showAlbum = true, virtual = false, fill = false, maxHeight, onEndReached, endReachedThreshold = 240, playlistId, onRemoveFromPlaylist, onReorder }: SongListProps) {
   const router = useRouter();
   // 字段级订阅：currentTime 等高频切片变化不再引发整个列表重渲染
   const currentSong = usePlayerStore((s) => s.currentSong);
@@ -394,12 +396,12 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
           <div />
         </div>
 
-        {/* 歌曲列表 */}
+        {/* 歌曲列表（fill 模式：撑满父容器剩余高度，页面自身不滚动） */}
         {virtual ? (
           <div
             ref={scrollRef}
-            className="overflow-y-auto"
-            style={{ maxHeight: maxHeight || "calc(100vh - 320px)" }}
+            className={cn("overflow-y-auto", fill && "h-full")}
+            style={fill ? undefined : { maxHeight: maxHeight || "calc(100vh - 320px)" }}
             // 无限滚动必须挂在列表自身的滚动上：虚拟列表有自己的滚动条，
             // 页面几乎不滚动，若把哨兵放在页面流里会一直停在视口内、把全部页一次加载完
             onScroll={

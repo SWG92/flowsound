@@ -76,8 +76,8 @@ export default function Home() {
       </div>
 
       {/* 排行榜 */}
-      <Tabs defaultValue="hot" className="gap-0!">
-        <div className="flex items-center justify-between mb-1">
+      <Tabs defaultValue="hot" className="gap-0! flex-1 min-h-0 flex flex-col">
+        <div className="flex items-center justify-between mb-1 shrink-0">
           <TabsList className="bg-black/5">
             <TabsTrigger value="hot" className="cursor-pointer text-xs md:text-sm data-active:bg-primary/10 data-active:text-primary rounded-md">
               <Flame className="h-4 w-4 mr-1 md:mr-1.5" />
@@ -94,7 +94,7 @@ export default function Home() {
           </TabsList>
         </div>
 
-        <TabsContent value="hot">
+        <TabsContent value="hot" className="flex-1 min-h-0 flex flex-col">
           {loading ? (
             <SkeletonList />
           ) : loadFailed ? (
@@ -102,29 +102,29 @@ export default function Home() {
           ) : (
             <>
               <PlayAllBtn onClick={() => handlePlayAll(hotSongs)} />
-              <SongList songs={hotSongs} virtual />
+              <div className="flex-1 min-h-0"><SongList songs={hotSongs} virtual fill /></div>
             </>
           )}
         </TabsContent>
 
-        <TabsContent value="rising">
+        <TabsContent value="rising" className="flex-1 min-h-0 flex flex-col">
           {loading ? (
             <SkeletonList />
           ) : (
             <>
               <PlayAllBtn onClick={() => handlePlayAll(risingSongs)} />
-              <SongList songs={risingSongs} virtual />
+              <div className="flex-1 min-h-0"><SongList songs={risingSongs} virtual fill /></div>
             </>
           )}
         </TabsContent>
 
-        <TabsContent value="new">
+        <TabsContent value="new" className="flex-1 min-h-0 flex flex-col">
           {loading ? (
             <SkeletonList />
           ) : (
             <>
               <PlayAllBtn onClick={() => handlePlayAll(newSongs)} />
-              <SongList songs={newSongs} virtual />
+              <div className="flex-1 min-h-0"><SongList songs={newSongs} virtual fill /></div>
             </>
           )}
         </TabsContent>

@@ -17,9 +17,11 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <main className="flex-1 flex flex-col overflow-hidden" style={{ paddingBottom: "calc(84px + var(--safe-bottom))" }}>
         <TopNav />
-        {/* 内容磨砂面板：全出血铺满内容区——渐变只做最底层背景，不再从面板缝隙漏光 */}
+        {/* 内容磨砂面板：全出血铺满内容区——渐变只做最底层背景，不再从面板缝隙漏光。
+            min-h-full + flex：短内容页（漫游等 flex 填充页）撑满视口且页面不滚动；
+            长内容页（设置）超出部分由外层滚动 */}
         <div className="flex-1 overflow-y-auto bg-card/45 backdrop-blur-md">
-          <div className="max-w-[1500px] mx-auto px-3 md:px-6 py-4 md:py-6">
+          <div className="min-h-full flex flex-col max-w-[1500px] mx-auto px-3 md:px-6 py-4 md:py-6">
             {children}
           </div>
         </div>

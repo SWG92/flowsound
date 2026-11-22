@@ -83,8 +83,8 @@ export default function RoamingPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="flex flex-col h-full min-h-0 gap-4">
+      <div className="shrink-0">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <span className="gradient-text">音乐漫游</span>
           <Radio className="h-5 w-5 text-primary" />
@@ -95,7 +95,7 @@ export default function RoamingPage() {
       </div>
 
       {/* 流派胶囊墙 */}
-      <div className="flex flex-wrap gap-2.5">
+      <div className="flex flex-wrap gap-2.5 shrink-0">
         {ROAMING_GENRES.map((g) => (
           <button
             key={g.id}
@@ -114,12 +114,12 @@ export default function RoamingPage() {
 
       {/* 选中流派描述 */}
       {genre && (
-        <p className="text-xs text-muted-foreground">{genre.desc}</p>
+        <p className="text-xs text-muted-foreground shrink-0">{genre.desc}</p>
       )}
 
       {/* 曲池区域 */}
       {loading ? (
-        <div className="space-y-3">
+        <div className="space-y-3 shrink-0">
           {Array.from({ length: 8 }).map((_, i) => (
             <Skeleton key={i} className="h-12 bg-black/5" />
           ))}
@@ -129,8 +129,8 @@ export default function RoamingPage() {
           曲池拉取失败，点击上面的流派重试
         </div>
       ) : pool.length > 0 ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex items-center justify-between shrink-0 pb-2">
             <p className="text-sm text-muted-foreground">
               漫游池已就绪 · {pool.length} 首 · 播完自动绕回池首
             </p>
@@ -139,7 +139,10 @@ export default function RoamingPage() {
               开始漫游
             </Button>
           </div>
-          <SongList songs={pool} showIndex showAlbum={false} virtual />
+          {/* 填充模式：页面固定高度，滚轮只作用于歌单列表 */}
+          <div className="flex-1 min-h-0">
+            <SongList songs={pool} showIndex showAlbum={false} virtual fill />
+          </div>
         </div>
       ) : (
         <div className="text-sm text-muted-foreground py-8 text-center">
