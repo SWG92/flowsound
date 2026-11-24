@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 本项目额外产物：electron-builder 打包输出
+    "dist/**",
   ]),
   {
     // 封面/头像全部来自第三方 CDN（网易云/QQ/酷狗），URL 自带动态裁剪参数

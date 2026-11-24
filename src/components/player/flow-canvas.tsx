@@ -188,7 +188,11 @@ function initGl(canvas: HTMLCanvasElement, getAccent: () => string | null): (() 
 export default function FlowCanvas({ accent, className }: { accent: string | null; className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const accentRef = useRef(accent);
-  accentRef.current = accent;
+
+  // ref 写入移到 effect：React 19 purity 规则禁止 render 期写 ref
+  useEffect(() => {
+    accentRef.current = accent;
+  }, [accent]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

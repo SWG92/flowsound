@@ -119,6 +119,8 @@ class AudioPlayer {
     if (eqEnabled) {
       installHowlerCorsHook();
       useCors = await probeCors(url);
+      // 竞态防护：await 期间若用户切歌，playToken 已变，本次播放作废
+      if (this.playToken !== playToken) return;
       setPendingCors(useCors);
       if (!useCors) {
         this.eqUnsupportedNotified = true;

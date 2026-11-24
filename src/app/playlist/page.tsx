@@ -158,6 +158,8 @@ export default function PlaylistPage() {
 
   // 云歌单导入：取歌曲列表 → 落地为本地歌单（id 带 nc_ 前缀；再次导入=更新歌曲）
   const importCloudPlaylist = async (pl: NetEasePlaylistMeta) => {
+    // eslint-disable-next-line react-hooks/purity -- 事件回调内取时间戳是合理的 impure 调用，React Compiler 会跳过本组件的自动 memo
+    const now = Date.now();
     setImportingId(pl.id);
     try {
       const songs = await getNeteasePlaylistSongs(pl.id);
@@ -169,7 +171,7 @@ export default function PlaylistPage() {
       const exists = playlists.some((p) => p.id === localId);
       const updated = exists
         ? playlists.map((p) => (p.id === localId ? { ...p, name: pl.name, songs } : p))
-        : [...playlists, { id: localId, name: pl.name, songs, createdAt: Date.now() } as Playlist];
+        : [...playlists, { id: localId, name: pl.name, songs, createdAt: now } as Playlist];
       savePlaylists(updated);
       setPlaylists(updated);
       showToast(exists ? `「${pl.name}」已更新（${songs.length} 首）` : `已导入「${pl.name}」（${songs.length} 首）`, "success");

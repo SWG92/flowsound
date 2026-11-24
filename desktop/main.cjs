@@ -15,6 +15,8 @@ app.commandLine.appendSwitch("use-system-ca");
 
 const BASE_PORT = 37120;      // 内嵌服务器起始端口（避开常用 3000，冲突自动 +1 重试）
 const PORT_RETRY = 20;
+// 用户启动 FlowSound.exe --insecure 时启用（仅在系统证书链异常时用，默认保持 TLS 校验）
+const INSECURE_TLS = process.argv.includes("--insecure");
 
 let serverProc = null;
 let serverPort = 0;
@@ -51,19 +53,22 @@ function isPortFree(port) {
 }
 
 // 用 Electron 自带的 Node 运行 standalone server.js（ELECTRON_RUN_AS_NODE），
-// 用户机器无需安装 Node。NODE_TLS_REJECT_UNAUTHORIZED=0 与本地构建一致（上游音乐接口需要）
-function spawnServer(serverDir, port) {
+// 用户机器无需安装 Node。系统证书链拦截上游音乐接口的自签名证书时，可通过:
+// ① 命令行启动 FlowSound.exe 时追加 --insecure 参数（已在下方解析并回退 NODE_TLS_REJECT_UNAUTHORIZED=0）
+// ② 或单独运行 npm run start:insecure（仅限本地调试）
+function spawnServer(serverDir, port, insecure = false) {
   const entry = path.join(serverDir, "server.js");
   if (!fs.existsSync(entry)) return null;
+  const baseEnv = {
+    ...process.env,
+    ELECTRON_RUN_AS_NODE: "1",
+    PORT: String(port),
+    HOSTNAME: "127.0.0.1",
+  };
+  if (insecure) baseEnv.NODE_TLS_REJECT_UNAUTHORIZED = "0";
   const proc = spawn(process.execPath, [entry], {
     cwd: serverDir,
-    env: {
-      ...process.env,
-      ELECTRON_RUN_AS_NODE: "1",
-      NODE_TLS_REJECT_UNAUTHORIZED: "0",
-      PORT: String(port),
-      HOSTNAME: "127.0.0.1",
-    },
+    env: baseEnv,
     stdio: ["ignore", "ignore", "pipe"],
   });
   proc.stderr.on("data", (d) => console.error("[server]", String(d).trim()));
@@ -95,7 +100,7 @@ async function startServer() {
   if (fs.existsSync(path.join(dir, "server.js"))) {
     for (let p = BASE_PORT; p < BASE_PORT + PORT_RETRY; p++) {
       if (!(await isPortFree(p))) continue;
-      serverProc = spawnServer(dir, p);
+      serverProc = spawnServer(dir, p, INSECURE_TLS);
       if (!serverProc) throw new Error("内嵌服务器文件缺失（standalone 构建不完整）");
       await waitReady(p);
       serverPort = p;
