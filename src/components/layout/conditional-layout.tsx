@@ -1,10 +1,14 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { TopNav } from "./top-nav";
-import { PlayerBar } from "@/components/player/player-bar";
-import { PlayQueue } from "@/components/player/queue";
+// PlayerBar / PlayQueue 依赖 Zustand persist（客户端 hydration 前从 localStorage 恢复快照），
+// SSR 时 store 为空 → return null，客户端 hydrate 后有快照 → 渲染完整组件，DOM 结构不一致触发 hydration mismatch。
+// 用 ssr:false 让它们完全不参与 SSR，hydration 后再挂载。
+const PlayerBar = dynamic(() => import("@/components/player/player-bar").then((m) => m.PlayerBar), { ssr: false });
+const PlayQueue = dynamic(() => import("@/components/player/queue").then((m) => m.PlayQueue), { ssr: false });
 import { DesktopWindowControls } from "@/components/electron/desktop-title-bar";
 import { useNavTracker } from "@/hooks/use-nav-tracker";
 import { usePlayerStore } from "@/lib/store";
@@ -36,7 +40,11 @@ function MainLayout({ children }: { children: React.ReactNode }) {
             填充页列表正好流到栏顶（min-h-full 会被大列表内容撑爆，无法两用，故按路由分流；
             calc 的 + 必须带空格，Tailwind 用下划线） */}
         <div className="flex-1 overflow-y-auto bg-card/45 backdrop-blur-md">
+          {/* suppressHydrationWarning：Zustand persist 在 hydration 前同步从 localStorage 恢复播放快照，
+              SSR 时 store 是空的 → pb-4；客户端首次 render 已恢复快照 → pb-[calc(92px+...)]。
+              这是预期内无害的 SSR/CSR 不一致，跳过 React hydration 检查 */}
           <div
+            suppressHydrationWarning
             className={cn(
               "flex flex-col max-w-[1500px] mx-auto px-3 md:px-6 pt-4 md:pt-6",
               hasPlayer ? "pb-[calc(92px_+_var(--safe-bottom))]" : "pb-4",
