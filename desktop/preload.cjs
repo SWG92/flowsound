@@ -10,14 +10,18 @@ contextBridge.exposeInMainWorld("flowsoundDesktop", {
   isDesktop: true,
   // —— 媒体键（主进程 → 渲染层）——
   onMediaCommand: (cb) => {
-    ipcRenderer.on("media-command", (_e, cmd) => cb(cmd));
+    const h = (_e, cmd) => cb(cmd);
+    ipcRenderer.on("media-command", h);
+    return () => ipcRenderer.removeListener("media-command", h);
   },
   // —— 窗口控制（自绘标题栏用）——
   windowMinimize: () => ipcRenderer.send("window-minimize"),
   windowMaxToggle: () => ipcRenderer.send("window-max-toggle"),
   windowClose: () => ipcRenderer.send("window-close"),
   onWindowState: (cb) => {
-    ipcRenderer.on("window-state", (_e, s) => cb(s));
+    const h = (_e, s) => cb(s);
+    ipcRenderer.on("window-state", h);
+    return () => ipcRenderer.removeListener("window-state", h);
   },
   // —— 关闭行为（tray | exit）——
   setCloseAction: (a) => ipcRenderer.send("set-close-action", a),
@@ -31,7 +35,9 @@ contextBridge.exposeInMainWorld("flowsoundDesktop", {
   checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
   restartForUpdate: () => ipcRenderer.send("quit-and-install"),
   onUpdateStatus: (cb) => {
-    ipcRenderer.on("update-status", (_e, s) => cb(s));
+    const h = (_e, s) => cb(s);
+    ipcRenderer.on("update-status", h);
+    return () => ipcRenderer.removeListener("update-status", h);
   },
   getAppVersion: () => ipcRenderer.invoke("app-version"),
 });

@@ -7,6 +7,7 @@ import { PlayerBar } from "@/components/player/player-bar";
 import { PlayQueue } from "@/components/player/queue";
 import { DesktopWindowControls } from "@/components/electron/desktop-title-bar";
 import { useNavTracker } from "@/hooks/use-nav-tracker";
+import { usePlayerStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 /** flex 填充页：内层给确定高度（h-full），页面自身不滚、歌单内部滚。
@@ -18,12 +19,17 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   useNavTracker();
   const pathname = usePathname();
   const fill = FILL_PATHS.has(pathname);
+  // 播放栏是否在渲染：决定底部是否预留 92px 空间——
+  // 未播放时不预留，避免底部出现一条空白横条隔断歌词/内容
+  const hasPlayer = usePlayerStore((s) => !!s.currentSong || s.isLoading);
   return (
     <>
       {/* 桌面壳窗口控制按钮（悬浮右上，浏览器端不渲染） */}
       <DesktopWindowControls />
       <Sidebar />
-      <main className="flex-1 flex flex-col overflow-hidden">
+      {/* main 与 Sidebar 顶部/底部/右边对齐（都是 12px 呼吸），
+          左边紧贴 Sidebar（mr-0），圆角与侧栏统一 */}
+      <main className="flex-1 flex flex-col m-3 ml-0 mr-3 rounded-[28px] overflow-hidden">
         <TopNav />
         {/* 内容磨砂面板：铺满 main 全区（含播放栏背后）——渐变不再从面板与播放栏之间的缝隙漏出。
             底部留白 92px（=播放栏顶边）挂在内层 padding 上：长页滚到头停在栏顶上方，
@@ -32,7 +38,8 @@ function MainLayout({ children }: { children: React.ReactNode }) {
         <div className="flex-1 overflow-y-auto bg-card/45 backdrop-blur-md">
           <div
             className={cn(
-              "flex flex-col max-w-[1500px] mx-auto px-3 md:px-6 pt-4 md:pt-6 pb-[calc(92px_+_var(--safe-bottom))]",
+              "flex flex-col max-w-[1500px] mx-auto px-3 md:px-6 pt-4 md:pt-6",
+              hasPlayer ? "pb-[calc(92px_+_var(--safe-bottom))]" : "pb-4",
               fill ? "h-full" : "min-h-full"
             )}
           >

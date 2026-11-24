@@ -18,7 +18,8 @@ export function DesktopWindowControls() {
     if (!d) return;
     // 挂上壳标记：globals.css 据此启用桌面壳专属样式（拖拽区等，不做布局位移）
     document.documentElement.classList.add("desktop-shell");
-    d.onWindowState?.((s) => setMaximized(!!s?.maximized));
+    const unsub = d.onWindowState?.((s) => setMaximized(!!s?.maximized));
+    return () => unsub?.();
   }, [d]);
 
   if (!d) return null;

@@ -3,18 +3,19 @@
 // Electron 桌面壳桥接的类型化访问（浏览器环境返回 null，调用方判空跳过）
 export interface FlowSoundDesktop {
   isDesktop: boolean;
-  onMediaCommand(cb: (cmd: string) => void): void;
+  // 事件订阅统一返回取消函数（preload 已绑定 removeListener）
+  onMediaCommand(cb: (cmd: string) => void): () => void;
   windowMinimize(): void;
   windowMaxToggle(): void;
   windowClose(): void;
-  onWindowState(cb: (s: { maximized: boolean; fullscreen: boolean }) => void): void;
+  onWindowState(cb: (s: { maximized: boolean; fullscreen: boolean }) => void): () => void;
   setCloseAction(a: "tray" | "exit"): void;
   setProgress(v: number): void;
   setTrayState(s: { playing: boolean; title: string }): void;
   clearDiskCache(): Promise<{ ok: boolean; message?: string }>;
   checkForUpdates(): Promise<unknown>;
   restartForUpdate(): void;
-  onUpdateStatus(cb: (s: { type: string; version?: string; percent?: number; message?: string }) => void): void;
+  onUpdateStatus(cb: (s: { type: string; version?: string; percent?: number; message?: string }) => void): () => void;
   getAppVersion(): Promise<string>;
 }
 

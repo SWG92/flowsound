@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Radio, Play, RefreshCw, Heart } from "lucide-react";
+import { Radio, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SongList } from "@/components/playlist/song-list";
@@ -48,11 +48,6 @@ export default function RoamingPage() {
     },
     [setQueue, showToast]
   );
-
-  const pickGenre = (g: RoamingGenre) => {
-    setGenre(g);
-    loadPool(g);
-  };
 
   const startRoaming = () => {
     if (pool.length === 0) return;

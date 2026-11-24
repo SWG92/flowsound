@@ -6,6 +6,7 @@ import { getSongUrl, getLyrics, prefetchSongUrl, searchSongs } from "./api";
 import { STORAGE_KEYS, MAX_HISTORY, THEME_COOKIE, AUDIO_QUALITY } from "./constants";
 import { useToastStore } from "./toast-store";
 import type { AudioQuality } from "./constants";
+import { logError } from "./logger";
 
 interface PlayerState {
   // 当前播放
@@ -347,7 +348,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     try {
       url = await getSongUrl(song.id, undefined, sourcePlatform, sourcePlatformId, opts?.freshUrl);
-    } catch { /* ignore */ }
+    } catch (e) { logError("源平台 URL 取址失败", { platform: sourcePlatform, error: e }); }
 
     // 源平台无播放 URL → 在其他平台搜索同名歌曲
     if (!url) {
@@ -376,7 +377,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
               break;
             }
           }
-        } catch { /* continue to next platform */ }
+        } catch (e) { logError("跨平台 URL 回退失败", { platform: fbPlatform, error: e }); }
       }
     }
 
@@ -384,7 +385,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     let lyrics: LyricLine[] = [];
     try {
       lyrics = await getLyrics(song.id, resolvedPlatform, resolvedPlatformId);
-    } catch { /* ignore */ }
+    } catch (e) { logError("歌词获取失败", { platform: resolvedPlatform, error: e }); }
 
     // 歌词跨平台兜底：源平台取不到歌词时（纯音/翻奏版、接口失效等），
     // 在其他平台搜索同名曲取其歌词。匹配要求歌名包含 + 歌手重合——

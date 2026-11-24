@@ -116,14 +116,18 @@ export default function SettingsPage() {
     const d = getDesktop();
     if (!d) return;
     d.getAppVersion?.().then((v) => setDeskVersion(v)).catch(() => {});
-    d.onUpdateStatus?.((s) => {
+    // 用 ref 捕获最新 deskVersion，避免 effect 依赖数组里频繁重挂 onUpdateStatus
+    let deskVersionRef: string | null = null;
+    const unsubUpdate = d.onUpdateStatus?.((s) => {
       if (s.type === "checking") setUpdateMsg("正在检查更新…");
-      else if (s.type === "up-to-date") setUpdateMsg(`已是最新版本 v${s.version ?? deskVersion ?? ""}`);
+      else if (s.type === "up-to-date") setUpdateMsg(`已是最新版本 v${s.version ?? deskVersionRef ?? ""}`);
       else if (s.type === "available") setUpdateMsg(`发现新版本 v${s.version}，正在后台下载…`);
       else if (s.type === "progress") setUpdateMsg(`下载新版本 ${s.percent ?? 0}%`);
       else if (s.type === "downloaded") { setUpdateMsg(`v${s.version} 已就绪`); setUpdateReady(true); }
       else if (s.type === "error") setUpdateMsg("更新失败，可稍后重试或到 GitHub Releases 手动下载");
     });
+    // 版本号就绪后更新 ref（onUpdateStatus 回调里用）
+    d.getAppVersion?.().then((v) => { deskVersionRef = v; }).catch(() => {});
     // 本地偏好延后一拍再同步：effect 内同步 setState 会触发级联渲染（React Compiler 规则）
     const t = setTimeout(() => {
       try {
@@ -137,7 +141,7 @@ export default function SettingsPage() {
         }).catch(() => {});
       }
     }, 0);
-    return () => clearTimeout(t);
+    return () => { clearTimeout(t); unsubUpdate?.(); };
   }, []);
 
   const startQrLogin = async () => {
