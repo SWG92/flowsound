@@ -31,9 +31,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       {/* 桌面壳窗口控制按钮（悬浮右上，浏览器端不渲染） */}
       <DesktopWindowControls />
       <Sidebar />
-      {/* main 与 Sidebar 顶部/底部/右边对齐（都是 12px 呼吸），
-          左边紧贴 Sidebar（mr-0），圆角与侧栏统一 */}
-      <main className="flex-1 flex flex-col m-3 ml-0 mr-3 rounded-[28px] overflow-hidden">
+      <main className="flex-1 flex flex-col m-3 rounded-[28px] overflow-hidden">
         <TopNav />
         {/* 内容磨砂面板：铺满 main 全区（含播放栏背后）——渐变不再从面板与播放栏之间的缝隙漏出。
             底部留白 92px（=播放栏顶边）挂在内层 padding 上：长页滚到头停在栏顶上方，
