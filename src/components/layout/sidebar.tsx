@@ -54,41 +54,41 @@ export function Sidebar() {
       </div>
 
       {/* 桌面端 Logo + 标志语（桌面壳下兼任窗口拖拽区） */}
-      <Link href="/" className="fs-sidebar-head hidden md:flex items-center mb-8 px-2">
+      <Link href="/" className="fs-sidebar-head hidden md:flex items-center mb-7 px-1">
         <LogoBlock />
       </Link>
 
-      <nav className="space-y-1 mb-6">
-        <p className="text-xs text-muted-foreground px-2 mb-2 uppercase tracking-wider">推荐</p>
+      <nav className="space-y-1.5 mb-7">
+        <p className="text-xs text-muted-foreground px-2 mb-2.5 uppercase tracking-wider">推荐</p>
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href;
           return (
-            <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors", active ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+            <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors", active ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
               <Icon className="h-4 w-4" />{item.label}
             </Link>
           );
         })}
       </nav>
 
-      <nav className="space-y-1 flex-1">
-        <p className="text-xs text-muted-foreground px-2 mb-2 uppercase tracking-wider">我的音乐</p>
+      <nav className="space-y-1.5 flex-1">
+        <p className="text-xs text-muted-foreground px-2 mb-2.5 uppercase tracking-wider">我的音乐</p>
         {LIBRARY_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href;
           return (
-            <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors", active ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+            <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors", active ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
               <Icon className="h-4 w-4" />{item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="border-t border-border/50 pt-3 space-y-1">
-        <Link href="/settings" onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors", pathname === "/settings" ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+      <div className="border-t border-border/50 pt-4 space-y-1.5">
+        <Link href="/settings" onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors", pathname === "/settings" ? "bg-primary/15 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
           <Settings className="h-4 w-4" />设置
         </Link>
-        <button onClick={toggleTheme} className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors w-full text-left cursor-pointer">
+        <button onClick={toggleTheme} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors w-full text-left cursor-pointer">
           {mounted ? (theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />) : <div className="h-4 w-4" />}
           {mounted ? (theme === "dark" ? "浅色模式" : "深色模式") : "深色模式"}
         </button>
@@ -99,8 +99,9 @@ export function Sidebar() {
   return (
     <>
       {/* 桌面端：固定侧栏（高度：12px 顶距 + 播放栏顶边 92px + 12px 呼吸位——
-          底边离栏顶一拳距离，既不贴死也不露大块渐变） */}
-      <aside className="fs-sidebar hidden md:flex flex-col w-56 shrink-0 glass h-[calc(100vh-116px)] rounded-[28px] m-3 mr-0 p-4 overflow-hidden sticky top-3 self-start">
+          底边离栏顶一拳距离，既不贴死也不露大块渐变。
+          宽度收窄 + 内边距加大：行内容不再贴左、右侧空白收敛，视觉重心居中） */}
+      <aside className="fs-sidebar hidden md:flex flex-col w-52 shrink-0 glass h-[calc(100vh-116px)] rounded-[28px] m-3 mr-0 px-5 py-4 overflow-hidden sticky top-3 self-start">
         {navContent}
       </aside>
 
