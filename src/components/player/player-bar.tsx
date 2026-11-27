@@ -304,7 +304,37 @@ export function PlayerBar() {
     };
   }, []);
 
-  if (!currentSong && !isLoading) return null;
+  // 网页端待机态：没有播放过歌曲时也常驻栏（否则底部 92px 预留区是一段空白）；
+  // 桌面端启动即恢复快照所以总有歌，走不到这里
+  if (!currentSong && !isLoading) {
+    return (
+      <div
+        className="fixed left-3 right-3 h-16 md:h-20 glass-bar rounded-[28px] z-50 flex items-center px-3 md:px-5 gap-2 md:gap-4"
+        style={{ bottom: "calc(12px + var(--safe-bottom))" }}
+      >
+        <div className="flex items-center gap-2 md:gap-3 w-28 md:w-64 shrink-0">
+          <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-white/10 flex items-center justify-center text-lg shrink-0">🎵</div>
+          <div className="min-w-0">
+            <p className="text-sm text-muted-foreground truncate">还没有播放歌曲</p>
+            <p className="text-xs text-muted-foreground/70 truncate">去「发现音乐」挑一首开始吧</p>
+          </div>
+        </div>
+        <div className="flex-1" />
+        <div className="flex items-center gap-1 md:gap-2 shrink-0 justify-end w-auto md:w-72">
+          <Button variant="ghost" size="icon" className="cursor-pointer h-8 w-8" onClick={toggleMute} title={volume > 0 ? "静音" : "取消静音"}>
+            {volume > 0 ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+          </Button>
+          <Slider
+            value={[volume]}
+            max={1}
+            step={0.01}
+            onValueChange={(val) => setVolume(Array.isArray(val) ? val[0] : val)}
+            className="hidden md:block w-32"
+          />
+        </div>
+      </div>
+    );
+  }
 
   const coverUrl = getCoverUrl(currentSong);
 
