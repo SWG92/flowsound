@@ -6,7 +6,9 @@ appId: com.swg92.flowsound
 productName: FlowSound
 directories:
   app: desktop
-  output: dist
+  # 输出到工作区之外：本环境的工作区文件索引器会长期锁住新写入的 app.asar，
+  # 导致下次打包清理 win-unpacked 时 EBUSY（workspace 内的 dist 已弃用，重启后可删）
+  output: C:/Users/Su/AppData/Local/Temp/flowsound-dist
   buildResources: desktop/build
 files:
   - "**/*"
