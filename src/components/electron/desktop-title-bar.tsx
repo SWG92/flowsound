@@ -11,18 +11,19 @@ import { getDesktop } from "@/lib/desktop";
  * 浏览器环境不渲染。
  */
 export function DesktopWindowControls() {
+  const [shell, setShell] = useState(false);
   const [maximized, setMaximized] = useState(false);
-  const d = getDesktop();
 
   useEffect(() => {
+    const d = getDesktop();
     if (!d) return;
+    setShell(true);
     // 挂上壳标记：globals.css 据此启用桌面壳专属样式（拖拽区等，不做布局位移）
     document.documentElement.classList.add("desktop-shell");
-    const unsub = d.onWindowState?.((s) => setMaximized(!!s?.maximized));
-    return () => unsub?.();
-  }, [d]);
+    d.onWindowState?.((s) => setMaximized(!!s?.maximized));
+  }, []);
 
-  if (!d) return null;
+  if (!shell) return null;
 
   return (
     <div className="app-no-drag fixed top-2.5 right-3 z-[200] flex items-center gap-0.5">

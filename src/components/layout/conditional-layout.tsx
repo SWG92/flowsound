@@ -27,7 +27,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
       {/* 桌面壳窗口控制按钮（悬浮右上，浏览器端不渲染） */}
       <DesktopWindowControls />
       <Sidebar />
-      <main className="flex-1 flex flex-col m-3 rounded-[28px] overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden">
         <TopNav />
         {/* 内容磨砂面板：铺满 main 全区（含播放栏背后）——渐变不再从面板与播放栏之间的缝隙漏出。
             底部留白 92px（=播放栏顶边）挂在内层 padding 上：无论有没有播放都预留空间，

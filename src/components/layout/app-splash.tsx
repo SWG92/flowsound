@@ -11,11 +11,13 @@ import { getDesktop } from "@/lib/desktop";
  * <html> 打上 fs-desktop 标记，此组件被 CSS 隐藏，水合后直接卸载，不会双重播放。
  */
 export function AppSplash() {
-  // 桌面壳 preload 已给 <html> 打 fs-desktop 标记：初始 phase=done 直接 return null，
-  // 避免 effect 里同步 setState 触发 React 19 purity 规则警告
-  const [phase, setPhase] = useState<"show" | "fade" | "done">(() => getDesktop() ? "done" : "show");
+  const [phase, setPhase] = useState<"show" | "fade" | "done">("show");
 
   useEffect(() => {
+    if (getDesktop()) {
+      setPhase("done");
+      return;
+    }
     const t1 = setTimeout(() => setPhase("fade"), 1300);
     const t2 = setTimeout(() => setPhase("done"), 1900);
     return () => {
@@ -33,6 +35,7 @@ export function AppSplash() {
     >
       <div className="flex flex-col items-center">
         <div className="fs-splash-icon-wrap">
+          {/* eslint-disable-next-line @next/next/no-img-element -- 静态品牌图标 */}
           <img src="/icon-512.svg" alt="FlowSound" className="fs-splash-icon" />
         </div>
         <div className="fs-splash-brand gradient-text">FlowSound</div>
