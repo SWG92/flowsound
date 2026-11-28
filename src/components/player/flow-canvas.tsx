@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { getAnalyser } from "@/lib/equalizer";
+import { usePlayerStore } from "@/lib/store";
 import { PERFORMANCE_KEY } from "@/lib/constants";
 
 /**
@@ -125,6 +126,12 @@ function initGl(canvas: HTMLCanvasElement, getAccent: () => string | null): (() 
     // 性能模式：每 30 帧查一次开关，开启即休眠
     if (frame % 30 === 0 && localStorage.getItem(PERFORMANCE_KEY) === "1") {
       running = false;
+      return;
+    }
+    // 闲置降频：未播放时每 2 帧渲染 1 帧（缓慢呼吸足够），省一半 GPU/CPU
+    const playing = usePlayerStore.getState().isPlaying;
+    if (!playing && frame % 2 === 1) {
+      raf = requestAnimationFrame(render);
       return;
     }
     // 能量提取：低频段=鼓点，中频段=人声；无分析节点（未播放）时缓慢衰减

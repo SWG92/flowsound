@@ -10,14 +10,6 @@ let neteaseCookie = "";
 // 最近一次 getSongUrl 实际提供的音质等级（供路由层透传给客户端）
 let lastSongLevel: string | undefined;
 
-export function setNeteaseCookie(cookie: string) {
-  neteaseCookie = cookie;
-}
-
-export function getNeteaseCookie(): string {
-  return neteaseCookie;
-}
-
 // 游客登录。
 // 注意：网易云该接口现在要求签名参数，无参数调用恒返回 400「参数错误」，
 // 因此这里按时间间隔节流，避免每次取歌址都白跑一次注定失败的请求（拖慢播放、增加被限流风险）。

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { ListMusic, Plus, Music2, X, Pencil, Play, Search, CloudDownload } from "lucide-react";
+import { ListMusic, Plus, Music2, X, Pencil, Play, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,6 @@ import { useToast } from "@/components/ui/toast";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { logWarn } from "@/lib/logger";
 import { getCoverUrl } from "@/lib/utils";
-import { fetchLoginStatus, fetchUserPlaylists, getNeteasePlaylistSongs, hasNeteaseCookie, type NetEasePlaylistMeta } from "@/lib/api";
 import type { Song } from "@/lib/types";
 
 interface Playlist {
@@ -55,25 +54,9 @@ export default function PlaylistPage() {
   const playSong = usePlayerStore((s) => s.playSong);
   const { showToast } = useToast();
 
-  // 网易云歌单（登录后展示，一键导入为本地歌单）
-  const [cloudPlaylists, setCloudPlaylists] = useState<NetEasePlaylistMeta[]>([]);
-  const [importingId, setImportingId] = useState<number | null>(null);
-
   useEffect(() => {
     // 异步读取，避免同步 setState 触发级联渲染（react-hooks/set-state-in-effect）
     const t = setTimeout(() => setPlaylists(loadPlaylists()), 0);
-    return () => clearTimeout(t);
-  }, []);
-
-  // 已登录时拉取云端歌单列表（延后一拍，避免级联渲染）
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (!hasNeteaseCookie()) return;
-      fetchLoginStatus()
-        .then((st) => (st.profile ? fetchUserPlaylists(st.profile.userId) : { playlists: [] }))
-        .then((r) => setCloudPlaylists((r.playlists || []).slice(0, 30)))
-        .catch(() => {});
-    }, 0);
     return () => clearTimeout(t);
   }, []);
 
@@ -156,32 +139,6 @@ export default function PlaylistPage() {
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameName, setRenameName] = useState("");
 
-  // 云歌单导入：取歌曲列表 → 落地为本地歌单（id 带 nc_ 前缀；再次导入=更新歌曲）
-  const importCloudPlaylist = async (pl: NetEasePlaylistMeta) => {
-    // eslint-disable-next-line react-hooks/purity -- 事件回调内取时间戳是合理的 impure 调用，React Compiler 会跳过本组件的自动 memo
-    const now = Date.now();
-    setImportingId(pl.id);
-    try {
-      const songs = await getNeteasePlaylistSongs(pl.id);
-      if (songs.length === 0) {
-        showToast("该歌单曲目为空或拉取失败", "error");
-        return;
-      }
-      const localId = `nc_${pl.id}`;
-      const exists = playlists.some((p) => p.id === localId);
-      const updated = exists
-        ? playlists.map((p) => (p.id === localId ? { ...p, name: pl.name, songs } : p))
-        : [...playlists, { id: localId, name: pl.name, songs, createdAt: now } as Playlist];
-      savePlaylists(updated);
-      setPlaylists(updated);
-      showToast(exists ? `「${pl.name}」已更新（${songs.length} 首）` : `已导入「${pl.name}」（${songs.length} 首）`, "success");
-    } catch {
-      showToast("导入失败，请稍后重试", "error");
-    } finally {
-      setImportingId(null);
-    }
-  };
-
   const handleRename = () => {
     if (!renameId || !renameName.trim()) return;
     const updated = playlists.map((p) =>
@@ -233,46 +190,6 @@ export default function PlaylistPage() {
           </DialogContent>
         </Dialog>
       </div>
-
-      {/* 网易云歌单：登录后展示，点击卡片一键导入为本地歌单（再次导入=更新） */}
-      {cloudPlaylists.length > 0 && !activePlaylist && (
-        <div className="space-y-3">
-          <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-            <CloudDownload className="h-4 w-4" />
-            网易云歌单（点击卡片一键导入为本地歌单）
-          </h2>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {cloudPlaylists.map((pl) => {
-              const imported = playlists.some((p) => p.id === `nc_${pl.id}`);
-              return (
-                <button
-                  key={pl.id}
-                  onClick={() => importCloudPlaylist(pl)}
-                  disabled={importingId === pl.id}
-                  className="group relative w-36 shrink-0 text-left cursor-pointer rounded-xl overflow-hidden bg-card/50 border border-border hover:border-primary/40 transition-all"
-                >
-                  <div className="relative w-full aspect-square">
-                    {pl.coverImgUrl ? (
-                      <img src={pl.coverImgUrl + "?param=200y200"} alt="" className="w-full h-full object-cover" loading="lazy" />
-                    ) : (
-                      <div className="w-full h-full bg-muted flex items-center justify-center text-2xl">🎵</div>
-                    )}
-                    <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px]">
-                      {pl.trackCount} 首
-                    </span>
-                  </div>
-                  <div className="p-2">
-                    <p className="text-xs font-medium truncate">{pl.name}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {importingId === pl.id ? "导入中…" : imported ? "已导入 · 点击更新" : "点击导入"}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {activePlaylist ? (
         <div className="space-y-4">

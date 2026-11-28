@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef, type ReactNode } from "react";
-import { Monitor, Laptop, Database, Sun, Moon, Download, Upload, RefreshCw, LogIn, UserRound, type LucideIcon } from "lucide-react";
+import { Monitor, Laptop, Database, Sun, Moon, Download, Upload, RefreshCw, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getDesktop } from "@/lib/desktop";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/lib/store";
-import { loginQrCreate, loginQrCheck, fetchLoginStatus, setNeteaseCookie, hasNeteaseCookie, type NetEaseProfile } from "@/lib/api";
 import { useToast } from "@/components/ui/toast";
 import { APP_INFO, PERFORMANCE_KEY } from "@/lib/constants";
 import { clearApiCache } from "@/lib/api";
@@ -25,7 +24,6 @@ const PRESERVE_KEYS = [
   // 偏好设置
   "flowsound_theme",
   "flowsound_theme_preset",
-  "flowsound_nc_cookie",
   "flowsound_audio_quality",
   "flowsound_volume",
   "flowsound_play_mode",
@@ -108,10 +106,6 @@ export default function SettingsPage() {
   const [updateMsg, setUpdateMsg] = useState("");
   const [updateReady, setUpdateReady] = useState(false);
   const [closeAction, setCloseActionState] = useState<"tray" | "exit">("tray");
-  // 网易云账号：扫码登录（Cookie 存本地）+ 云端曲库同步入口
-  const [ncProfile, setNcProfile] = useState<NetEaseProfile | null>(null);
-  const [ncQr, setNcQr] = useState<{ img: string; key: string } | null>(null);
-  const [ncQrMsg, setNcQrMsg] = useState("");
   useEffect(() => {
     const d = getDesktop();
     if (!d) return;
@@ -133,68 +127,9 @@ export default function SettingsPage() {
       try {
         setCloseActionState(localStorage.getItem("flowsound_close_action") === "exit" ? "exit" : "tray");
       } catch { /* ignore */ }
-      // 已有 Cookie 时静默校验登录态（过期则清除）
-      if (hasNeteaseCookie()) {
-        fetchLoginStatus().then((r) => {
-          if (r.profile) setNcProfile(r.profile);
-          else setNeteaseCookie(null);
-        }).catch(() => {});
-      }
     }, 0);
     return () => { clearTimeout(t); unsubUpdate?.(); };
   }, []);
-
-  const startQrLogin = async () => {
-    try {
-      setNcQrMsg("");
-      const r = await loginQrCreate();
-      if (!r.unikey || !r.qrimg) throw new Error("no qr");
-      setNcQr({ img: r.qrimg, key: r.unikey });
-      setNcQrMsg("请用网易云音乐 App 扫码");
-      startQrPolling(r.unikey);
-    } catch {
-      setNcQrMsg("二维码获取失败，请重试");
-    }
-  };
-
-  const stopQrPollingRef = useRef(false);
-  const startQrPolling = (key: string) => {
-    stopQrPollingRef.current = false;
-    const tick = async () => {
-      if (stopQrPollingRef.current) return;
-      try {
-        const r = await loginQrCheck(key);
-        if (r.code === 803) {
-          setNeteaseCookie(r.cookie);
-          const st = await fetchLoginStatus();
-          setNcProfile(st.profile);
-          setNcQr(null);
-          setNcQrMsg("");
-          showToast("网易云音乐登录成功", "success");
-          return;
-        }
-        if (r.code === 802) setNcQrMsg("已扫码，请在手机上确认");
-        else if (r.code === 800) {
-          setNcQrMsg("二维码已过期，请刷新");
-          setNcQr(null);
-          return;
-        } else setNcQrMsg("等待扫码中…");
-      } catch {
-        setNcQrMsg("网络波动，继续等待…");
-      }
-      setTimeout(tick, 2500);
-    };
-    tick();
-  };
-
-  const logoutNetease = () => {
-    stopQrPollingRef.current = true;
-    setNeteaseCookie(null);
-    setNcProfile(null);
-    setNcQr(null);
-    setNcQrMsg("");
-    showToast("已退出网易云账号", "info");
-  };
 
   const handleCheckUpdate = () => {
     setUpdateMsg("正在检查更新…");
@@ -362,38 +297,6 @@ export default function SettingsPage() {
         </h1>
         <p className="text-sm text-muted-foreground mt-1">自定义你的音乐体验</p>
       </div>
-
-      <Section icon={UserRound} title="网易云账号">
-        {ncProfile ? (
-          <Row first title="已登录" desc="红心导入在「我喜欢的」页，歌单导入在「歌单」页">
-            <div className="flex items-center gap-3">
-              {ncProfile.avatarUrl && (
-                <img src={ncProfile.avatarUrl} alt="" className="w-9 h-9 rounded-full" />
-              )}
-              <span className="text-sm">{ncProfile.nickname}</span>
-              <Button variant="outline" size="sm" onClick={logoutNetease} className="cursor-pointer">
-                退出
-              </Button>
-            </div>
-          </Row>
-        ) : ncQr ? (
-          <Row first title="扫码登录" desc={ncQrMsg || "请用网易云音乐 App 扫码"}>
-            <div className="flex items-center gap-3">
-              <img src={ncQr.img} alt="网易云登录二维码" className="w-28 h-28 rounded-lg bg-white p-1" />
-              <Button variant="outline" size="sm" onClick={logoutNetease} className="cursor-pointer">
-                取消
-              </Button>
-            </div>
-          </Row>
-        ) : (
-          <Row first title="登录网易云" desc="扫码授权后可导入红心与歌单（凭据仅存本机）">
-            <Button size="sm" onClick={startQrLogin} className="cursor-pointer">
-              <LogIn className="h-4 w-4 mr-1" />
-              扫码登录
-            </Button>
-          </Row>
-        )}
-      </Section>
 
       <Section icon={Monitor} title="界面">
         <Row first title="主题模式" desc={mounted ? (theme === "dark" ? "当前：深色模式" : "当前：浅色模式") : "主题模式"}>
