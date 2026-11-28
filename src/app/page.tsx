@@ -17,6 +17,9 @@ export default function Home() {
   const [hotSongs, setHotSongs] = useState<Song[]>([]);
   const [risingSongs, setRisingSongs] = useState<Song[]>([]);
   const [newSongs, setNewSongs] = useState<Song[]>([]);
+  const [activeTab, setActiveTab] = useState<"hot" | "rising" | "new">("hot");
+  const songsFor = (t: "hot" | "rising" | "new") =>
+    t === "hot" ? hotSongs : t === "rising" ? risingSongs : newSongs;
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   // 只订阅用到的 action：播放进度等 store 变化不再引发首页重渲染
@@ -76,7 +79,7 @@ export default function Home() {
       </div>
 
       {/* 排行榜 */}
-      <Tabs defaultValue="hot" className="gap-0! flex-1 min-h-0 flex flex-col">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "hot" | "rising" | "new")} className="gap-0! flex-1 min-h-0 flex flex-col">
         <div className="flex items-center justify-between mb-1 shrink-0">
           <TabsList className="bg-black/5">
             <TabsTrigger value="hot" className="cursor-pointer text-xs md:text-sm data-active:bg-primary/10 data-active:text-primary rounded-md">
@@ -92,6 +95,17 @@ export default function Home() {
               <span className="hidden sm:inline">新歌榜</span>
             </TabsTrigger>
           </TabsList>
+          {/* 播放全部并入胶囊行（跟随当前榜单），消除独立按钮行的空白带 */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePlayAll(songsFor(activeTab))}
+            disabled={loading || songsFor(activeTab).length === 0}
+            className="cursor-pointer"
+          >
+            <Play className="h-4 w-4 mr-1.5" />
+            播放全部
+          </Button>
         </div>
 
         <TabsContent value="hot" className="flex-1 min-h-0 flex flex-col">
@@ -100,10 +114,7 @@ export default function Home() {
           ) : loadFailed ? (
             <LoadFailed onRetry={load} />
           ) : (
-            <>
-              <PlayAllBtn onClick={() => handlePlayAll(hotSongs)} />
-              <div className="flex-1 min-h-0"><SongList songs={hotSongs} virtual fill /></div>
-            </>
+            <div className="flex-1 min-h-0"><SongList songs={hotSongs} virtual fill /></div>
           )}
         </TabsContent>
 
@@ -111,10 +122,7 @@ export default function Home() {
           {loading ? (
             <SkeletonList />
           ) : (
-            <>
-              <PlayAllBtn onClick={() => handlePlayAll(risingSongs)} />
-              <div className="flex-1 min-h-0"><SongList songs={risingSongs} virtual fill /></div>
-            </>
+            <div className="flex-1 min-h-0"><SongList songs={risingSongs} virtual fill /></div>
           )}
         </TabsContent>
 
@@ -122,10 +130,7 @@ export default function Home() {
           {loading ? (
             <SkeletonList />
           ) : (
-            <>
-              <PlayAllBtn onClick={() => handlePlayAll(newSongs)} />
-              <div className="flex-1 min-h-0"><SongList songs={newSongs} virtual fill /></div>
-            </>
+            <div className="flex-1 min-h-0"><SongList songs={newSongs} virtual fill /></div>
           )}
         </TabsContent>
       </Tabs>
@@ -143,16 +148,6 @@ function SkeletonList() {
           <Skeleton className="w-16 h-4 bg-white/5" />
         </div>
       ))}
-    </div>
-  );
-}
-
-function PlayAllBtn({ onClick }: { onClick: () => void }) {
-  return (
-    <div className="flex justify-end mb-1">
-      <Button variant="outline" size="sm" onClick={onClick} className="cursor-pointer">
-        <Play className="h-4 w-4 mr-1.5" />播放全部
-      </Button>
     </div>
   );
 }

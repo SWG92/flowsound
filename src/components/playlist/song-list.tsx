@@ -387,10 +387,10 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
       {/* fill 模式：根容器撑满父级并纵向 flex——表头固定，滚动区吃掉剩余高度，
           否则 h-full 链在 auto 高度的根节点上断裂，退化为整页滚动 */}
       <div className={cn(fill ? "flex h-full min-h-0 flex-col" : "space-y-1")}>
-        {/* 列表玻璃卡片：与页面头部区分隔、提升识别度——轻量化处理不压暗页面 */}
+        {/* 列表玻璃卡片：与页面头部区分隔、提升识别度——仅边框，不压暗页面 */}
         <div
           className={cn(
-            "rounded-2xl border border-border/40 bg-card/20 overflow-hidden backdrop-blur-sm",
+            "rounded-2xl border border-border/40 overflow-hidden",
             fill && "flex-1 min-h-0 flex flex-col"
           )}
         >
