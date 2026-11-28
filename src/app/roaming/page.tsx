@@ -84,27 +84,18 @@ export default function RoamingPage() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 gap-4">
-      {/* 标题行：左侧标题，右侧开始漫游（上移，消除空带） */}
-      <div className="flex items-center justify-between shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <span className="gradient-text">音乐漫游</span>
-            <Radio className="h-5 w-5 text-primary" />
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            选一个流派，让音乐带你漂
-          </p>
-        </div>
-        {pool.length > 0 && (
-          <Button size="sm" onClick={startRoaming} className="cursor-pointer">
-            <Play className="h-4 w-4 mr-1.5" />
-            开始漫游
-          </Button>
-        )}
+      <div className="shrink-0">
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <span className="gradient-text">音乐漫游</span>
+          <Radio className="h-5 w-5 text-primary" />
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          选一个流派，让音乐带你漂
+        </p>
       </div>
 
-      {/* 流派胶囊墙 */}
-      <div className="flex flex-wrap gap-2.5 shrink-0">
+      {/* 流派胶囊行：开始漫游与胶囊同行（下移对齐），选好流派后一眼就能看到入口 */}
+      <div className="flex flex-wrap items-center gap-2.5 shrink-0">
         {ROAMING_GENRES.map((g) => (
           <button
             key={g.id}
@@ -119,6 +110,15 @@ export default function RoamingPage() {
             {g.label}
           </button>
         ))}
+        {pool.length > 0 && (
+          <>
+            <div className="flex-1 min-w-8" />
+            <Button size="sm" onClick={startRoaming} className="cursor-pointer">
+              <Play className="h-4 w-4 mr-1.5" />
+              开始漫游
+            </Button>
+          </>
+        )}
       </div>
 
       {/* 曲池区域 */}
