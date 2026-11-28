@@ -166,6 +166,10 @@ class AudioPlayer {
         onload: () => {
           const d = this.sound?.duration() || 0;
           if (d > 0) usePlayerStore.getState().setDuration(d);
+          // 试听片段检测：实际音频显著短于元数据时长（QQ/酷狗 VIP 歌常给 1 分钟左右试听）
+          const meta = usePlayerStore.getState().currentSong;
+          const trial = !!meta?.duration && d > 0 && d < (meta.duration / 1000) * 0.9;
+          usePlayerStore.getState().setTrialClip(trial);
           if (this.startPaused && this.pendingSeek > 0) {
             const t = this.pendingSeek;
             this.pendingSeek = 0;

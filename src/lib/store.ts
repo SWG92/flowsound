@@ -41,6 +41,7 @@ interface PlayerState {
   // 主题与设置
   theme: "light" | "dark";
   themePreset: ThemePreset; // 主题色预设（治愈紫/治愈橙/科技蓝）
+  trialClip: boolean; // 当前歌为试听片段（实际音频短于元数据时长，多为 VIP 版权限制）
   audioQuality: AudioQuality;
   lyricTrans: boolean; // 歌词翻译显示（默认开：有翻译时显示译文行）
   setLyricTrans: (on: boolean) => void;
@@ -78,6 +79,7 @@ interface PlayerState {
   setTheme: (theme: "light" | "dark") => void;
   setThemePreset: (preset: ThemePreset) => void;
   setAudioQuality: (quality: AudioQuality) => void;
+  setTrialClip: (v: boolean) => void;
   setShowFullPlayer: (show: boolean) => void;
   sleepAtEndOfTrack: boolean; // 播完当前歌曲后停止（Apple Music "End of Track" 式睡眠定时）
   setSleepAtEndOfTrack: (on: boolean) => void;
@@ -326,6 +328,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   showFullPlayer: false,
   theme: initialTheme,
   themePreset: initialThemePreset,
+  trialClip: false,
   audioQuality: initialAudioQuality,
   lyricTrans: initialLyricTrans,
   sourceList: playbackSnapshot?.sourceList ?? [],
@@ -734,6 +737,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     saveToStorage(STORAGE_KEYS.audioQuality, quality);
     set({ audioQuality: quality });
   },
+
+  setTrialClip: (v) => set({ trialClip: v }),
 
   setLyricTrans: (on) => {
     saveToStorage(STORAGE_KEYS.lyricTrans, on);

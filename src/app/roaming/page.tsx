@@ -84,14 +84,23 @@ export default function RoamingPage() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 gap-4">
-      <div className="shrink-0">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <span className="gradient-text">音乐漫游</span>
-          <Radio className="h-5 w-5 text-primary" />
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          选一个流派，让音乐带你漂
-        </p>
+      {/* 标题行：左侧标题，右侧开始漫游（上移，消除空带） */}
+      <div className="flex items-center justify-between shrink-0">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <span className="gradient-text">音乐漫游</span>
+            <Radio className="h-5 w-5 text-primary" />
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            选一个流派，让音乐带你漂
+          </p>
+        </div>
+        {pool.length > 0 && (
+          <Button size="sm" onClick={startRoaming} className="cursor-pointer">
+            <Play className="h-4 w-4 mr-1.5" />
+            开始漫游
+          </Button>
+        )}
       </div>
 
       {/* 流派胶囊墙 */}
@@ -112,11 +121,6 @@ export default function RoamingPage() {
         ))}
       </div>
 
-      {/* 选中流派描述 */}
-      {genre && (
-        <p className="text-xs text-muted-foreground/80 shrink-0">{genre.desc}</p>
-      )}
-
       {/* 曲池区域 */}
       {loading ? (
         <div className="space-y-3 shrink-0">
@@ -129,17 +133,9 @@ export default function RoamingPage() {
           曲池拉取失败，点击上面的流派重试
         </div>
       ) : pool.length > 0 ? (
-        <div className="flex-1 min-h-0 flex flex-col">
-          <div className="flex items-center justify-end shrink-0 pb-2">
-            <Button size="sm" onClick={startRoaming} className="cursor-pointer">
-              <Play className="h-4 w-4 mr-1.5" />
-              开始漫游
-            </Button>
-          </div>
+        <div className="flex-1 min-h-0">
           {/* 填充模式：页面固定高度，滚轮只作用于歌单列表 */}
-          <div className="flex-1 min-h-0">
-            <SongList songs={pool} showIndex showAlbum={false} virtual fill />
-          </div>
+          <SongList songs={pool} showIndex showAlbum={false} virtual fill />
         </div>
       ) : (
         <div className="text-sm text-muted-foreground py-8 text-center">

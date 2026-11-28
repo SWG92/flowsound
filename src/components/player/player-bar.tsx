@@ -142,6 +142,7 @@ export function PlayerBar() {
   const showQueue = usePlayerStore((s) => s.showQueue);
   const isLoading = usePlayerStore((s) => s.isLoading);
   const audioQuality = usePlayerStore((s) => s.audioQuality);
+  const trialClip = usePlayerStore((s) => s.trialClip);
   const setAudioQuality = usePlayerStore((s) => s.setAudioQuality);
   const setShowFullPlayer = usePlayerStore((s) => s.setShowFullPlayer);
   // 收藏用派生布尔：只在"当前歌曲是否已收藏"翻转时重渲染
@@ -418,7 +419,7 @@ export function PlayerBar() {
               onClick={() => { setShowQuality(!showQuality); setShowSpeed(false); setShowSleep(false); }}
               title={`音质：${AUDIO_QUALITY[audioQuality].label}${currentSong ? "（切换后当前歌曲按新音质重新加载）" : ""}`}
             >
-              {QUALITY_SHORT_LABELS[audioQuality]}
+              {trialClip ? "试听" : QUALITY_SHORT_LABELS[audioQuality]}
             </Button>
             {showQuality && (
               <div className="absolute bottom-full right-0 mb-2 glass rounded-lg p-1 min-w-[132px] shadow-lg z-[60]">
