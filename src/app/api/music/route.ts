@@ -113,15 +113,19 @@ const suggestHandler: HandlerFn = async (params) => {
   };
 };
 
-// MV 元信息与视频地址（匿名可用；brs 带签名有时效，缓存 10 分钟）
+// MV 元信息与视频地址（weapi POST；brs 带签名有时效，缓存 10 分钟）
 const mvDetailHandler: HandlerFn = async (params) => {
   const id = numParam(params.id, "");
   if (!id) return { error: "invalid id" };
-  const res = await fetch(`${NETEASE_BASE}/api/mv/detail?id=${id}`, {
-    headers: NETEASE_HEADERS,
-    signal: AbortSignal.timeout(FETCH_TIMEOUT),
-  });
-  return res.json();
+  const { data } = await weapiPost("/api/mv/detail", { id }, params.cookie);
+  return data;
+};
+
+// 私人FM：随机推荐电台歌曲（需登录 Cookie，每次返回约 3 首）
+const personalFmHandler: HandlerFn = async (params) => {
+  const { data } = await weapiPost("/api/v1/radio/get", {}, params.cookie);
+  const songs = (data.data as unknown[]) || [];
+  return { songs: slimSongs(songs as Song[]) };
 };
 
 // ============ 网易云账号（扫码登录 + 云端曲库） ============
@@ -236,6 +240,7 @@ const HANDLERS: Record<string, HandlerFn> = {
   likelist: likeListHandler,
   "user/playlist": userPlaylistHandler,
   "song/detail": songDetailHandler,
+  "personal/fm": personalFmHandler,
 };
 
 // ============ Route handler ============

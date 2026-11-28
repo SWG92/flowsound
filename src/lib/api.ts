@@ -392,6 +392,32 @@ export async function fetchSongDetails(ids: number[]): Promise<Song[]> {
   return (r.songs || []).map((s: Song) => ({ ...s, platform: "netease" as const, platformId: String(s.id) }));
 }
 
+// ============ MV / 私人FM ============
+
+export interface MvDetail {
+  id: number;
+  name: string;
+  cover?: string;
+  duration?: number;
+  artists?: { id: number; name: string }[];
+  brs?: Record<string, string>; // 清晰度 → 视频地址（"1080P" / "720P" / "480P"，带签名时效）
+}
+
+export async function fetchMvDetail(id: number): Promise<MvDetail | null> {
+  try {
+    const r = await fetchJSON<{ data?: MvDetail }>("mv/detail", { id: String(id) });
+    return r.data?.brs ? r.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 私人FM：需登录（Cookie 透传），每次返回约 3 首个性化推荐 */
+export async function fetchPersonalFm(): Promise<Song[]> {
+  const r = await fetchJSON<{ songs: Song[] }>("personal/fm", ncCookie ? { cookie: ncCookie } : {});
+  return (r.songs || []).map((s: Song) => ({ ...s, platform: "netease" as const, platformId: String(s.id) }));
+}
+
 /** 云歌单曲目列表（导入为本地歌单用；匿名可访问） */
 export async function getNeteasePlaylistSongs(id: string | number): Promise<Song[]> {
   const data = await fetchJSON<{ result?: { tracks: Song[] }; playlist?: { tracks: Song[] } }>(

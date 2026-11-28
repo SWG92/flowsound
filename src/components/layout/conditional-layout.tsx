@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 /** flex 填充页：内层给确定高度（h-full），页面自身不滚、歌单内部滚。
     其余页（设置/歌单/黑名单/歌手/专辑等长内容页）：内层 min-h-full，
     内容撑高后由面板滚动，底部 padding 保证滚到头仍停在播放栏上方 */
-const FILL_PATHS = new Set(["/", "/roaming", "/history", "/favorites", "/daily"]);
+const FILL_PATHS = new Set(["/", "/roaming", "/history", "/favorites", "/daily", "/fm"]);
 
 function MainLayout({ children }: { children: React.ReactNode }) {
   useNavTracker();
