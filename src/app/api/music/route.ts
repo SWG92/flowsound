@@ -112,13 +112,6 @@ const suggestHandler: HandlerFn = async (params) => {
   };
 };
 
-// 私人FM：随机推荐电台歌曲（匿名可用；登录 Cookie 个性化）
-const personalFmHandler: HandlerFn = async (params) => {
-  const { data } = await weapiPost("/api/v1/radio/get", {}, params.cookie);
-  const songs = (data.data as unknown[]) || [];
-  return { songs: slimSongs(songs as Song[]) };
-};
-
 // ============ 网易云账号（扫码登录 + 云端曲库） ============
 // 登录态：客户端保存 MUSIC_U Cookie 并随请求透传（服务端保持无状态，
 // Electron/浏览器两端通用）；Cookie 做净化防 header 注入
@@ -232,7 +225,6 @@ const HANDLERS: Record<string, HandlerFn> = {
   likelist: likeListHandler,
   "user/playlist": userPlaylistHandler,
   "song/detail": songDetailHandler,
-  "personal/fm": personalFmHandler,
 };
 
 // ============ Route handler ============

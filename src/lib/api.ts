@@ -392,13 +392,7 @@ export async function fetchSongDetails(ids: number[]): Promise<Song[]> {
   return (r.songs || []).map((s: Song) => ({ ...s, platform: "netease" as const, platformId: String(s.id) }));
 }
 
-// ============ 私人FM ============
-
-/** 私人FM：网易云随机电台（匿名可用，登录后个性化），单次返回 1-3 首 */
-export async function fetchPersonalFm(): Promise<Song[]> {
-  const r = await fetchJSON<{ songs: Song[] }>("personal/fm", ncCookie ? { cookie: ncCookie } : {});
-  return (r.songs || []).map((s: Song) => ({ ...s, platform: "netease" as const, platformId: String(s.id) }));
-}
+// （私人FM 已移除：fetchPersonalFm 一并清理）
 
 /** 云歌单曲目列表（导入为本地歌单用；匿名可访问） */
 export async function getNeteasePlaylistSongs(id: string | number): Promise<Song[]> {

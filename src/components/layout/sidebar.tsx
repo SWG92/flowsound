@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, Heart, Clock, ListMusic, Sparkles, Radio, RadioTower,
+  Home, Heart, Clock, ListMusic, Sparkles, Radio,
   Sun, Moon, Settings, Ban, Menu, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,6 @@ const NAV_ITEMS = [
   { href: "/", label: "发现音乐", icon: Home },
   { href: "/daily", label: "每日推荐", icon: Sparkles },
   { href: "/roaming", label: "音乐漫游", icon: Radio },
-  { href: "/fm", label: "私人FM", icon: RadioTower },
 ];
 
 const LIBRARY_ITEMS = [

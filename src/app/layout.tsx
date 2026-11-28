@@ -5,6 +5,7 @@ import { ClientWrapper } from "@/components/layout/client-wrapper";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { ToastContainer } from "@/components/ui/toast";
 import { ConditionalLayout } from "@/components/layout/conditional-layout";
+import { AmbientCanvas } from "@/components/layout/ambient-canvas";
 import { THEME_COOKIE } from "@/lib/constants";
 import "./globals.css";
 
@@ -66,7 +67,9 @@ export default async function RootLayout({
         {/* iOS 不支持 SVG 的 apple-touch-icon，用 PNG */}
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
-      <body className="h-screen overflow-hidden bg-gradient-main text-foreground flex">
+      <body className="relative h-screen overflow-hidden bg-gradient-main text-foreground flex">
+        {/* 全局环境声浪层：渐变之上、内容之下，整个应用随音乐流动 */}
+        <AmbientCanvas />
         <ThemeProvider>
           <ClientWrapper>
             <ConditionalLayout>
