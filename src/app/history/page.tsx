@@ -60,8 +60,11 @@ export default function HistoryPage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                setQueue(playHistory);
-                playSong(playHistory[0], playHistory, playHistory);
+                // 播放当前显示的列表（尊重搜索过滤，与所见一致）
+                const list = search.trim() ? displayRecent : playHistory;
+                if (list.length === 0) return;
+                setQueue(list);
+                playSong(list[0], list, list);
               }}
               className="cursor-pointer"
             >

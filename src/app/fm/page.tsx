@@ -21,18 +21,11 @@ export default function FmPage() {
   const playSong = usePlayerStore((s) => s.playSong);
   const nextSong = usePlayerStore((s) => s.nextSong);
   const togglePlay = usePlayerStore((s) => s.togglePlay);
+  const queue = usePlayerStore((s) => s.queue);
+  const queueIndex = usePlayerStore((s) => s.queueIndex);
   const { showToast } = useToast();
-  const [fmSongs, setFmSongs] = useState<FmSong[]>([]);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
-
-  interface FmSong {
-    id: number;
-    name: string;
-    artists: { name: string }[];
-    album: { name: string };
-    picUrl?: string;
-  }
 
   const loadBatch = async (autoplay: boolean) => {
     setLoading(true);
@@ -40,7 +33,6 @@ export default function FmPage() {
     try {
       const songs = await fetchPersonalFm();
       if (songs.length === 0) throw new Error("empty");
-      setFmSongs(songs);
       setQueue(songs);
       if (autoplay) playSong(songs[0], songs, songs);
       showToast(`FM 已换一批（${songs.length} 首）`, "info");
@@ -54,7 +46,14 @@ export default function FmPage() {
 
   const firstLoad = () => loadBatch(true);
 
-  const song = currentSong; // FM 入队后由全局播放器接管
+  // 跳过：队列里还有下一首就切；到队尾自动补一批接着放（之前队尾点击无反应）
+  const handleSkip = () => {
+    if (queueIndex < queue.length - 1) nextSong();
+    else loadBatch(true);
+  };
+
+  // 电台面板跟随全局播放状态：切走再回来不会丢卡片（之前的局部 state 会在路由切换时清空）
+  const song = currentSong;
   const cover = song ? getCoverUrl(song) : "";
 
   return (
@@ -71,7 +70,7 @@ export default function FmPage() {
 
       {/* 面板主体 */}
       <div className="flex-1 min-h-0 flex items-center justify-center">
-        {song && fmSongs.some((s) => s.id === song.id) ? (
+        {song ? (
           <div className="flex flex-col items-center gap-6 w-full max-w-md">
             <div className="relative w-56 h-56 rounded-[28px] overflow-hidden shadow-2xl">
               {cover && <img src={cover + "?param=400y400"} alt="" className="w-full h-full object-cover" />}
