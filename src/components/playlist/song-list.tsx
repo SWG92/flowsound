@@ -386,73 +386,83 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
     <>
       {/* fill 模式：根容器撑满父级并纵向 flex——表头固定，滚动区吃掉剩余高度，
           否则 h-full 链在 auto 高度的根节点上断裂，退化为整页滚动 */}
-      <div className={cn("space-y-1", fill && "flex h-full min-h-0 flex-col")}>
-        {/* 表头 */}
-        <div className="grid grid-cols-[2rem_2.5rem_1fr_3rem_1.5rem] md:grid-cols-[3rem_2.5rem_1.2fr_1fr_0.8fr_5rem_2.5rem] gap-2 md:gap-3 px-2 md:px-4 py-2 text-xs text-muted-foreground uppercase tracking-wider">
-          <div className="text-center">#</div>
-          <div />
-          <div>歌曲</div>
-          <div className="hidden md:block">歌手</div>
-          <div className="hidden md:block">专辑</div>
-          <div className="text-right"><Clock className="h-3 w-3 inline" /></div>
-          <div />
-        </div>
-
-        {/* 歌曲列表（fill 模式：撑满父容器剩余高度，页面自身不滚动） */}
-        {virtual ? (
-          <div
-            ref={scrollRef}
-            className={cn("overflow-y-auto scrollbar-hide", fill && "flex-1 min-h-0")}
-            style={fill ? undefined : { maxHeight: maxHeight || "calc(100vh - 320px)" }}
-            // 无限滚动必须挂在列表自身的滚动上：虚拟列表有自己的滚动条，
-            // 页面几乎不滚动，若把哨兵放在页面流里会一直停在视口内、把全部页一次加载完
-            onScroll={
-              onEndReached
-                ? () => {
-                    const el = scrollRef.current;
-                    if (!el) return;
-                    if (el.scrollHeight - el.scrollTop - el.clientHeight < endReachedThreshold) {
-                      onEndReached();
-                    }
-                  }
-                : undefined
-            }
-          >
-            <div
-              style={{
-                height: virtualizer.getTotalSize(),
-                width: "100%",
-                position: "relative",
-              }}
-            >
-              {virtualizer.getVirtualItems().map((vItem) => {
-                const song = filteredSongs[vItem.index];
-                const drag = dragHandlers(vItem.index);
-                return (
-                  <div
-                    key={song.id}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      transform: `translateY(${vItem.start}px)`,
-                    }}
-                    {...drag}
-                    className={cn(
-                      dragFrom === vItem.index && "opacity-40",
-                      dragOver === vItem.index && dragFrom !== null && dragFrom !== vItem.index && "ring-1 ring-primary/60 rounded-lg"
-                    )}
-                  >
-                    {renderRow(song, vItem.index)}
-                  </div>
-                );
-              })}
-            </div>
+      <div className={cn(fill ? "flex h-full min-h-0 flex-col" : "space-y-1")}>
+        {/* 列表玻璃卡片：与页面头部区分隔、提升识别度——材质与设置页分组卡片一致 */}
+        <div
+          className={cn(
+            "rounded-2xl border border-border/60 bg-card/40 overflow-hidden backdrop-blur-sm",
+            fill && "flex-1 min-h-0 flex flex-col"
+          )}
+        >
+          {/* 表头（卡片内固定 + 底分隔线） */}
+          <div className="shrink-0 grid grid-cols-[2rem_2.5rem_1fr_3rem_1.5rem] md:grid-cols-[3rem_2.5rem_1.2fr_1fr_0.8fr_5rem_2.5rem] gap-2 md:gap-3 px-2 md:px-4 py-2 text-xs text-muted-foreground uppercase tracking-wider border-b border-border/40 bg-white/5">
+            <div className="text-center">#</div>
+            <div />
+            <div>歌曲</div>
+            <div className="hidden md:block">歌手</div>
+            <div className="hidden md:block">专辑</div>
+            <div className="text-right"><Clock className="h-3 w-3 inline" /></div>
+            <div />
           </div>
-        ) : (
-          filteredSongs.map((song, index) => renderRow(song, index))
-        )}
+
+          {/* 歌曲列表（fill 模式：撑满父容器剩余高度，页面自身不滚动） */}
+          {virtual ? (
+            <div
+              ref={scrollRef}
+              className={cn("overflow-y-auto scrollbar-hide", fill && "flex-1 min-h-0")}
+              style={fill ? undefined : { maxHeight: maxHeight || "calc(100vh - 320px)" }}
+              // 无限滚动必须挂在列表自身的滚动上：虚拟列表有自己的滚动条，
+              // 页面几乎不滚动，若把哨兵放在页面流里会一直停在视口内、把全部页一次加载完
+              onScroll={
+                onEndReached
+                  ? () => {
+                      const el = scrollRef.current;
+                      if (!el) return;
+                      if (el.scrollHeight - el.scrollTop - el.clientHeight < endReachedThreshold) {
+                        onEndReached();
+                      }
+                    }
+                  : undefined
+              }
+            >
+              <div
+                style={{
+                  height: virtualizer.getTotalSize(),
+                  width: "100%",
+                  position: "relative",
+                }}
+              >
+                {virtualizer.getVirtualItems().map((vItem) => {
+                  const song = filteredSongs[vItem.index];
+                  const drag = dragHandlers(vItem.index);
+                  return (
+                    <div
+                      key={song.id}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        transform: `translateY(${vItem.start}px)`,
+                      }}
+                      {...drag}
+                      className={cn(
+                        dragFrom === vItem.index && "opacity-40",
+                        dragOver === vItem.index && dragFrom !== null && dragFrom !== vItem.index && "ring-1 ring-primary/60 rounded-lg"
+                      )}
+                    >
+                      {renderRow(song, vItem.index)}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="py-1">
+              {filteredSongs.map((song, index) => renderRow(song, index))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 操作菜单 */}

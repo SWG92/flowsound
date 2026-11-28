@@ -76,9 +76,9 @@ export default function BlacklistPage() {
           <p className="text-xs opacity-50">在歌曲列表右键 → 加入黑名单</p>
         </div>
       ) : (
-        <div className="space-y-1">
+        <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden backdrop-blur-sm">
           {/* 表头 */}
-          <div className="grid grid-cols-[3rem_2.5rem_1fr_1fr_5rem_3rem] gap-3 px-4 py-2 text-xs text-muted-foreground uppercase tracking-wider">
+          <div className="grid grid-cols-[3rem_2.5rem_1fr_1fr_5rem_3rem] gap-3 px-4 py-2 text-xs text-muted-foreground uppercase tracking-wider border-b border-border/40 bg-white/5">
             <div className="text-center">#</div>
             <div />
             <div>歌曲</div>
