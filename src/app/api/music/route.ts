@@ -7,6 +7,7 @@ import { getServerCache, setServerCache, serverCacheKey } from "@/lib/server-cac
 import { slimSongs } from "@/lib/song-slim";
 import { numParam, alnumParam } from "@/lib/validate";
 import { weapi } from "@/lib/weapi";
+import { setNeteaseCookie } from "@/lib/platforms/netease";
 import QRCode from "qrcode";
 
 type HandlerFn = (params: Record<string, string>) => Promise<unknown>;
@@ -177,12 +178,14 @@ const loginQrCheckHandler: HandlerFn = async (params) => {
   const key = (params.key || "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 64);
   if (!key) return { code: 800, cookie: "" };
   const { data, res } = await weapiPost("/api/login/qrcode/client/login", { key, type: "1" });
-  // 803=确认成功：把上游 Set-Cookie 中的 MUSIC_U 透传给客户端保存（服务端不存登录态）
+  // 803=确认成功：MUSIC_U 透传给客户端保存，并喂给取歌适配器——
+  // 用户 Cookie 解锁 VIP 歌曲取址与更高音质（匿名游客只有免费歌）
   const setCookies = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
   const cookie = setCookies
     .filter((c) => /MUSIC_U=/.test(c))
     .map((c) => c.split(";")[0])
     .join("; ");
+  if (data.code === 803 && cookie) setNeteaseCookie(cookie);
   return { code: data.code ?? 0, cookie };
 };
 

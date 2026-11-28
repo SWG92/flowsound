@@ -46,10 +46,15 @@ export default function FmPage() {
 
   const firstLoad = () => loadBatch(true);
 
-  // 跳过：队列里还有下一首就切；到队尾自动补一批接着放（之前队尾点击无反应）
+  // 跳过：显式按队列推进（不受单曲循环模式影响——nextSong 在单曲循环下会重放当前歌，
+  // 表现为"点了就重置进度"）；队列里还有下一首就切，到队尾自动补一批接着放
   const handleSkip = () => {
-    if (queueIndex < queue.length - 1) nextSong();
-    else loadBatch(true);
+    if (queueIndex < queue.length - 1) {
+      const next = queue[queueIndex + 1];
+      playSong(next, queue, queue);
+    } else {
+      loadBatch(true);
+    }
   };
 
   // 电台面板跟随全局播放状态：切走再回来不会丢卡片（之前的局部 state 会在路由切换时清空）

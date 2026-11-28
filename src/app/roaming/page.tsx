@@ -37,8 +37,9 @@ export default function RoamingPage() {
       try {
         const songs = await buildRoamingPool(g);
         if (songs.length === 0) throw new Error("empty");
+        // 只更新展示列表，不动队列——选流派就该看到该流派的歌单；
+        // 入队发生在「开始漫游」或点击列表行，不打断正在播的歌
         setPool(songs);
-        setQueue(songs);
       } catch {
         setError(true);
         showToast("漫游曲池拉取失败，请重试或换个流派", "error");
@@ -46,7 +47,7 @@ export default function RoamingPage() {
         setLoading(false);
       }
     },
-    [setQueue, showToast]
+    [showToast]
   );
 
   const startRoaming = () => {
@@ -56,7 +57,9 @@ export default function RoamingPage() {
     showToast(`开始漫游「${genre?.label}」· ${pool.length} 首已入列`, "success");
   };
 
-  // 刷新后恢复上次漫游的流派与曲池（队列由播放快照自动还原）。
+  // 刷新/切页后恢复上次选的流派，并拉取该流派的真实歌单展示
+  // （不再镜像当前播放队列——那是"现在播什么就显示什么"的病根；
+  //   队列不受影响，正在播的歌不打断）
   // 延后一拍：effect 内同步 setState 会触发级联渲染（React Compiler 规则）
   useEffect(() => {
     const t = setTimeout(() => {
@@ -64,16 +67,14 @@ export default function RoamingPage() {
         const last = localStorage.getItem("flowsound_roaming_genre");
         if (!last) return;
         const g = ROAMING_GENRES.find((x) => x.id === last);
-        if (g && usePlayerStore.getState().queue.length > 0) {
+        if (g) {
           setGenre(g);
-          // 曲池回显：播放快照恢复的队列就是上次漫游池
-          setPool(usePlayerStore.getState().queue);
-          setLoading(false);
+          loadPool(g);
         }
       } catch { /* ignore */ }
     }, 0);
     return () => clearTimeout(t);
-  }, []);
+  }, [loadPool]);
 
   const selectGenre = (g: RoamingGenre) => {
     setGenre(g);
