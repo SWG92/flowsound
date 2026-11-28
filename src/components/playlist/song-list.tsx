@@ -387,15 +387,15 @@ export function SongList({ songs, showIndex = true, showAlbum = true, virtual = 
       {/* fill 模式：根容器撑满父级并纵向 flex——表头固定，滚动区吃掉剩余高度，
           否则 h-full 链在 auto 高度的根节点上断裂，退化为整页滚动 */}
       <div className={cn(fill ? "flex h-full min-h-0 flex-col" : "space-y-1")}>
-        {/* 列表玻璃卡片：与页面头部区分隔、提升识别度——材质与设置页分组卡片一致 */}
+        {/* 列表玻璃卡片：与页面头部区分隔、提升识别度——轻量化处理不压暗页面 */}
         <div
           className={cn(
-            "rounded-2xl border border-border/60 bg-card/40 overflow-hidden backdrop-blur-sm",
+            "rounded-2xl border border-border/40 bg-card/20 overflow-hidden backdrop-blur-sm",
             fill && "flex-1 min-h-0 flex flex-col"
           )}
         >
           {/* 表头（卡片内固定 + 底分隔线） */}
-          <div className="shrink-0 grid grid-cols-[2rem_2.5rem_1fr_3rem_1.5rem] md:grid-cols-[3rem_2.5rem_1.2fr_1fr_0.8fr_5rem_2.5rem] gap-2 md:gap-3 px-2 md:px-4 py-2 text-xs text-muted-foreground uppercase tracking-wider border-b border-border/40 bg-white/5">
+          <div className="shrink-0 grid grid-cols-[2rem_2.5rem_1fr_3rem_1.5rem] md:grid-cols-[3rem_2.5rem_1.2fr_1fr_0.8fr_5rem_2.5rem] gap-2 md:gap-3 px-2 md:px-4 py-1.5 text-xs text-muted-foreground/80 uppercase tracking-wider border-b border-border/30">
             <div className="text-center">#</div>
             <div />
             <div>歌曲</div>
