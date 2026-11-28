@@ -114,7 +114,7 @@ export default function RoamingPage() {
 
       {/* 选中流派描述 */}
       {genre && (
-        <p className="text-xs text-muted-foreground shrink-0">{genre.desc}</p>
+        <p className="text-xs text-muted-foreground/80 shrink-0">{genre.desc}</p>
       )}
 
       {/* 曲池区域 */}
@@ -130,10 +130,7 @@ export default function RoamingPage() {
         </div>
       ) : pool.length > 0 ? (
         <div className="flex-1 min-h-0 flex flex-col">
-          <div className="flex items-center justify-between shrink-0 pb-2">
-            <p className="text-sm text-muted-foreground">
-              漫游池 · {pool.length} 首
-            </p>
+          <div className="flex items-center justify-end shrink-0 pb-2">
             <Button size="sm" onClick={startRoaming} className="cursor-pointer">
               <Play className="h-4 w-4 mr-1.5" />
               开始漫游

@@ -2,29 +2,44 @@
 
 import { useState } from "react";
 import { Disc3, Pause, Play, SkipForward } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/lib/store";
 import { fetchPersonalFm } from "@/lib/api";
-import { cn, getCoverUrl } from "@/lib/utils";
+import { getCoverUrl } from "@/lib/utils";
+import { useDominantColor } from "@/hooks/use-dominant-color";
+import FlowCanvas from "@/components/player/flow-canvas";
 
 /**
- * 私人FM：网易云随机电台。
- * 匿名接口每次只回 1 首——并行拉 3 次合并去重成一小批入队，
- * 播放栏的上一首/下一首即可在批内切换；跳过=切下一首，批内到头自动补新批。
+ * 私人FM：沉浸式电台页（参考 Mineradio 的粒子光影风格）。
+ * 暗色面板 = 专辑封面高斯模糊 + 主色浸染 + 声浪流场画布（音频驱动的流动光影）；
+ * 白字极简控制（暂停/跳过）。匿名接口单次只回 1 首——并行拉 3 次合并去重成一批，
+ * 播放栏上一首/下一首即可在批内切换；跳过=切下一首，批内到头自动补新批。
  */
+
+function hexAlpha(hex: string | null, alpha: number): string {
+  if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return "transparent";
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 export default function FmPage() {
   const currentSong = usePlayerStore((s) => s.currentSong);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const isLoading = usePlayerStore((s) => s.isLoading);
   const setQueue = usePlayerStore((s) => s.setQueue);
   const playSong = usePlayerStore((s) => s.playSong);
-  const nextSong = usePlayerStore((s) => s.nextSong);
   const togglePlay = usePlayerStore((s) => s.togglePlay);
   const queue = usePlayerStore((s) => s.queue);
   const queueIndex = usePlayerStore((s) => s.queueIndex);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  // 并行拉 3 次电台，合并去重成一批（匿名单次只回 1 首）
+  const song = currentSong;
+  const cover = song ? getCoverUrl(song) : "";
+  const accent = useDominantColor(cover || null);
+
+  // 并行拉 3 次电台合并去重成一批（匿名单次只回 1 首）
   const loadBatch = async (autoplay: boolean) => {
     setLoading(true);
     setFailed(false);
@@ -37,10 +52,8 @@ export default function FmPage() {
         return true;
       });
       if (merged.length === 0) throw new Error("empty");
-      const rest = merged.filter((s) => s.id !== currentSong?.id);
-      const batch = rest.length > 0 ? rest : merged;
-      setQueue(batch);
-      if (autoplay) playSong(batch[0], batch, batch);
+      setQueue(merged);
+      if (autoplay) playSong(merged[0], merged, merged);
     } catch {
       setFailed(true);
     } finally {
@@ -58,63 +71,87 @@ export default function FmPage() {
     }
   };
 
-  // 电台面板跟随全局播放状态：切走再回来不会丢正在播的歌
-  const song = currentSong;
-  const cover = song ? getCoverUrl(song) : "";
-
   return (
-    <div className="flex flex-col flex-1 min-h-0 gap-6">
-      <div className="shrink-0">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <span className="gradient-text">私人FM</span>
-          <Disc3 className="h-5 w-5 text-primary" />
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">随机放歌 · 不喜欢就跳过</p>
-      </div>
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* 沉浸式暗色面板：填满内容区 */}
+      <div className="relative flex-1 min-h-0 rounded-[28px] overflow-hidden bg-black/80">
+        {cover && (
+          <img
+            src={cover + "?param=600y600"}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover scale-125 blur-3xl"
+          />
+        )}
+        <div className="absolute inset-0 bg-black/60" />
+        {accent && <div className="absolute inset-0" style={{ background: hexAlpha(accent, 0.25) }} />}
+        {song && !loading && (
+          <FlowCanvas
+            accent={accent}
+            className="absolute inset-0 w-full h-full pointer-events-none mix-blend-screen opacity-70"
+          />
+        )}
 
-      <div className="flex-1 min-h-0 flex items-center justify-center">
-        {song ? (
-          <div className="flex flex-col items-center gap-6 w-full max-w-md">
-            <div className="relative w-56 h-56 rounded-[28px] overflow-hidden shadow-2xl">
-              {cover && <img src={cover + "?param=400y400"} alt="" className="w-full h-full object-cover" />}
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-semibold truncate max-w-md">{song.name}</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {song.artists?.map((a) => a.name).join(" / ")}
-              </p>
-            </div>
+        {/* 左上角标识 */}
+        <div className="absolute top-5 left-6 z-10">
+          <p className="text-[10px] uppercase tracking-[0.25em] text-white/50">私人FM</p>
+          <p className="text-xs text-white/70 mt-0.5">随机放歌 · 不喜欢就跳过</p>
+        </div>
+
+        {/* 中央：封面 + 歌曲信息 + 极简控制 */}
+        <div className="relative z-10 h-full flex flex-col items-center justify-center gap-6 px-8">
+          {song ? (
+            <>
+              <div className="w-52 h-52 rounded-[28px] overflow-hidden shadow-2xl">
+                {cover && <img src={cover + "?param=400y400"} alt="" className="w-full h-full object-cover" />}
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-semibold text-white truncate max-w-md">{song.name}</p>
+                <p className="text-sm text-white/60 mt-1">
+                  {song.artists?.map((a) => a.name).join(" / ")}
+                </p>
+              </div>
             <div className="flex items-center gap-4">
-              <Button size="sm" variant="outline" onClick={() => togglePlay()} className="cursor-pointer rounded-full px-4">
-                {isPlaying ? "暂停" : "播放"}
-              </Button>
-              <Button size="sm" onClick={handleSkip} className="cursor-pointer rounded-full px-4" disabled={loading}>
-                <SkipForward className={cn("h-4 w-4 mr-1.5", loading && "animate-spin")} />
-                跳过
-              </Button>
+              <button
+                onClick={() => togglePlay()}
+                className="w-14 h-14 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-90 bg-white/10 hover:bg-white/20 text-white backdrop-blur"
+                title={isPlaying ? "暂停" : "播放"}
+              >
+                {isPlaying ? <Pause className="h-5 w-5" fill="currentColor" /> : <Play className="h-5 w-5 ml-0.5" fill="currentColor" />}
+              </button>
+              <button
+                onClick={() => { if (!isLoading) handleSkip(); }}
+                className="w-14 h-14 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-90 bg-white/15 hover:bg-white/25 text-white backdrop-blur"
+                title="跳过"
+                disabled={isLoading}
+              >
+                <SkipForward className="h-5 w-5" fill="currentColor" />
+              </button>
             </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-5 text-center">
-            {loading ? (
-              <Disc3 className="h-10 w-10 text-primary animate-spin" />
-            ) : (
-              <Disc3 className="h-14 w-14 text-primary/60" />
-            )}
-            <div>
-              <p className="text-lg font-medium">{failed ? "FM 拉取失败" : loading ? "正在调频…" : "私人FM"}</p>
-              <p className="text-sm text-muted-foreground mt-1">
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-5 text-center">
+              {loading ? (
+                <Disc3 className="h-12 w-12 text-white/60 animate-spin" />
+              ) : (
+                <Disc3 className="h-14 w-14 text-white/40" />
+              )}
+              <p className="text-lg font-medium text-white">
+                {failed ? "FM 拉取失败" : loading ? "正在调频…" : "私人FM"}
+              </p>
+              <p className="text-sm text-white/60">
                 {failed ? "请稍后再试" : "随机放歌，不喜欢就跳过"}
               </p>
+              {!failed && !loading && (
+                <button
+                  onClick={() => loadBatch(true)}
+                  className="px-5 py-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white text-sm cursor-pointer transition-colors backdrop-blur"
+                >
+                  开始收听
+                </button>
+              )}
             </div>
-            {!failed && !loading && (
-              <Button onClick={() => loadBatch(true)} className="cursor-pointer">
-                <Play className="h-4 w-4 mr-1.5" />
-                开始收听
-              </Button>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
