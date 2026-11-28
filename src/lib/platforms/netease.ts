@@ -77,10 +77,10 @@ export const neteaseAdapter: PlatformAdapter = {
       }),
     });
 
-    // VIP（fee=1）歌曲：匿名游客无法取址且无跨平台替代时同样失败，直接不下发，
-    // 避免列表里出现点了没反应的死歌；已登录（用户 Cookie）可取址，保留不下滤
+    // VIP（fee=1）歌曲匿名无法取址且无跨平台替代时同样失败，直接不下发，
+    // 避免列表里出现点了没反应的死歌
     const songs = (data.result?.songs || [])
-      .filter((s: Song) => (neteaseCookie ? true : s.fee !== 1))
+      .filter((s: Song) => s.fee !== 1)
       .map((s: Song) => ({
         ...s,
         platform: "netease" as const,

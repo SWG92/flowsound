@@ -170,7 +170,7 @@ export function DailyRecommend() {
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">每日推荐</h2>
+          <h2 className="text-base font-semibold text-muted-foreground">今日歌单</h2>
         </div>
         <div className="flex items-center gap-2">
           <Button

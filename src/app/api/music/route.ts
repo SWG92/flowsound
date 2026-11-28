@@ -25,7 +25,6 @@ const SERVER_TTL: Record<string, number> = {
   lyric: 30 * 60 * 1000,
   "playlist/detail": 30 * 60 * 1000,
   "song/url": 5 * 60 * 1000,
-  "mv/detail": 10 * 60 * 1000, // MV 视频地址带签名时效，只做短缓存
   "song/detail": 30 * 60 * 1000, // 歌曲详情（红心/云歌单导入用）基本不变可长缓存
 };
 
@@ -37,7 +36,6 @@ const BROWSER_CACHE: Record<string, string> = {
   lyric: "private, max-age=1800",
   "playlist/detail": "private, max-age=1800",
   "song/url": "no-store",
-  "mv/detail": "private, max-age=600",
   "song/detail": "private, max-age=1800",
 };
 
@@ -114,15 +112,7 @@ const suggestHandler: HandlerFn = async (params) => {
   };
 };
 
-// MV 元信息与视频地址（weapi POST；brs 带签名有时效，缓存 10 分钟）
-const mvDetailHandler: HandlerFn = async (params) => {
-  const id = numParam(params.id, "");
-  if (!id) return { error: "invalid id" };
-  const { data } = await weapiPost("/api/mv/detail", { id }, params.cookie);
-  return data;
-};
-
-// 私人FM：随机推荐电台歌曲（需登录 Cookie，每次返回约 3 首）
+// 私人FM：随机推荐电台歌曲（匿名可用；登录 Cookie 个性化）
 const personalFmHandler: HandlerFn = async (params) => {
   const { data } = await weapiPost("/api/v1/radio/get", {}, params.cookie);
   const songs = (data.data as unknown[]) || [];
@@ -236,7 +226,6 @@ const HANDLERS: Record<string, HandlerFn> = {
   lyric: lyricHandler,
   "playlist/detail": playlistDetailHandler,
   suggest: suggestHandler,
-  "mv/detail": mvDetailHandler,
   "login/qr/create": loginQrCreateHandler,
   "login/qr/check": loginQrCheckHandler,
   "login/status": loginStatusHandler,

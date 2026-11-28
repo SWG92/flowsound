@@ -2,14 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { ChevronDown, Clapperboard, Heart, Loader2, MessageCircle, Pause, Play, Repeat, Repeat1, SkipBack, SkipForward, Shuffle } from "lucide-react";
+import { ChevronDown, Heart, Loader2, MessageCircle, Pause, Play, Repeat, Repeat1, SkipBack, SkipForward, Shuffle } from "lucide-react";
 import { usePlayerStore } from "@/lib/store";
 import { audioPlayer } from "@/lib/audio-player";
 import { cn, getCoverUrl } from "@/lib/utils";
 import { ProgressFill } from "./progress";
 import { CommentsDialog } from "./comments-dialog";
 import { VisualizerBars } from "./visualizer-bars";
-import { MvDialog } from "./mv-dialog";
 import { useDominantColor } from "@/hooks/use-dominant-color";
 import { PERFORMANCE_KEY } from "@/lib/constants";
 import type { PlayMode } from "@/lib/types";
@@ -51,7 +50,6 @@ export function FullPlayer() {
 
   const [showLyricsView, setShowLyricsView] = useState(true);
   const [showComments, setShowComments] = useState(false);
-  const [mvOpen, setMvOpen] = useState(false);
   // 模式切换浮标：切换后短暂显示模式名（list/single 共用循环图标，需文字区分）
   const [modeTip, setModeTip] = useState(false);
   const modeTipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -407,31 +405,12 @@ export function FullPlayer() {
             >
               <MessageCircle className="h-5 w-5" />
             </button>
-            {currentSong.mvId && (
-              <button
-                onClick={() => setMvOpen(true)}
-                className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white/75 hover:text-white hover:bg-white/10"
-                title="播放 MV"
-              >
-                <Clapperboard className="h-5 w-5" />
-              </button>
-            )}
           </div>
         </div>
       </div>
 
       {/* 评论弹窗（层级高于全屏页） */}
       <CommentsDialog song={currentSong} open={showComments} onOpenChange={setShowComments} />
-
-      {/* MV 播放弹窗（层级高于全屏页） */}
-      {mvOpen && currentSong.mvId && (
-        <MvDialog
-          mvId={currentSong.mvId}
-          name={currentSong.name}
-          artists={currentSong.artists?.map((a) => a.name).join(" / ")}
-          onClose={() => setMvOpen(false)}
-        />
-      )}
     </div>
   );
 }

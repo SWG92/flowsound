@@ -90,7 +90,7 @@ export default function RoamingPage() {
           <Radio className="h-5 w-5 text-primary" />
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          选一个流派，让音乐带你漂 · 播完自动接续，循环漫游不重样
+          选一个流派，让音乐带你漂
         </p>
       </div>
 
@@ -132,7 +132,7 @@ export default function RoamingPage() {
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex items-center justify-between shrink-0 pb-2">
             <p className="text-sm text-muted-foreground">
-              漫游池已就绪 · {pool.length} 首 · 播完自动绕回池首
+              漫游池 · {pool.length} 首
             </p>
             <Button size="sm" onClick={startRoaming} className="cursor-pointer">
               <Play className="h-4 w-4 mr-1.5" />
